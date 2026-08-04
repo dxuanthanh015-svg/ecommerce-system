@@ -6,18 +6,19 @@ import Footer from './customer/components/Footer/Footer'
 import Product from './customer/components/Product/Product.jsx'
 import "./App.css"
 import ProductPage from './customer/pages/ProductPage/ProductPage.jsx'
+import ProductDetailsPage from './customer/pages/ProductDetailsPage/ProductDetailsPage.jsx'
+import { Outlet, createBrowserRouter } from 'react-router-dom'
 
 function App() {
   return (
     <div className = "">
       <Navigation/>
       <div>
-        {/*<HomePage/>*/}
-        <ProductPage/>
+        <Outlet/>
       </div>
       <Footer/>
     </div>
-  )
+  ) 
 }
 
 export default App

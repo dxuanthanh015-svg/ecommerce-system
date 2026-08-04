@@ -4,7 +4,7 @@ const HomeSectionCard = ({product}) => {
   return (
     <div className='cursor-pointer flex flex-col items-center bg-white rounded-lg shadow-lg overflow-hidden w-[14rem] h-[20rem] mx-3 '>
         <div className='h-[13rem] w-[10rem]'>
-            <img className="object-cover object-top w-full h-full" src = {product.imageUrl} alt="" role="presentation"/>
+            <img className="object-cover object-contain w-full h-full  " src = {product.imageUrl} alt="" role="presentation"/>
 
         </div>
 

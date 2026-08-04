@@ -37,11 +37,11 @@ const HomeSectionCarousel = ({data, sectionName}) => {
           items={items}
           responsive={responsive}
           disableDotsControls
-          onSlideChanged={syncActiveIndex}
+          onSlideChanged={syncActiveIndex} // Cập nhật lại activeIndex
           activeIndex={activeIndex}
           controlsStrategy="responsive"
         />
-        {activeIndex < items.length - 4 && (
+        {activeIndex < items.length - 5 && (
           <Button
             variant="contained"
             className="z-50 "
