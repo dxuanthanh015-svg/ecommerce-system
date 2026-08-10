@@ -1,73 +1,56 @@
-import * as React from 'react';
-import Box from '@mui/material/Box';
-import Stepper from '@mui/material/Stepper';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import { useLocation, useNavigate } from 'react-router-dom';
-
-const steps = ['Login', 'Add Delivery Address', 'Order Summary', 'Payment'];
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import ExistedDeliveryAddress from "./ExistedDeliveryAddress";
+import DeliveryAddressForm from "./DeliveryAddressForm";
+import OrderSummary from "./OrderSummary";
 
 export default function CheckOut() {
   const navigate = useNavigate();
-  const handleNext = () => {
-    navigate(`?step=${step+1}`)
-  };
-
-  const handleBack = () => {
-    navigate(`?step=${step - 1}`)
-  };
-
-  const location = useLocation();
-  const querySearch = new URLSearchParams(location.search);
-
-  const step = Number(querySearch.get("step")) || 0;
 
   return (
-    <div className='px-10 lg:px-20 mt-10'>
-        <Box sx={{ width: '100%' }}>
-      <Stepper activeStep={step}>
-        {steps.map((label, index) => {
-          const stepProps = {};
-          const labelProps = {};
-
-          return (
-            <Step key={label} {...stepProps}>
-              <StepLabel {...labelProps}>{label}</StepLabel>
-            </Step>
-          );
-        })}
-      </Stepper>
-      {step === steps.length ? (
-        <React.Fragment>
-          <Typography sx={{ mt: 2, mb: 1 }}>
-            All steps completed - you&apos;re finished
-          </Typography>
-        </React.Fragment>
-      ) : (
-        <React.Fragment>
-          <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
-            <Button
-              color="inherit"
-              disabled={step === 0}
-              onClick={handleBack}
-              sx={{ mr: 1 }}
-            >
-              Back
-            </Button>
-            <Box sx={{ flex: '1 1 auto' }} />
-            <Button onClick={handleNext} >
-              {step === steps.length - 1 ? 'Finish' : 'Next'}              
-            </Button>
-          </Box>
-
-          <div>
-            ădadasd
+    <div className="bg-[#f8f9fc] min-h-screen py-10 font-sans">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Top Header Bar */}
+        <div className="flex items-center justify-between pb-6 mb-8 border-b border-gray-200/80">
+          <span 
+            className="text-xl font-extrabold text-gray-900 tracking-tight cursor-pointer" 
+            onClick={() => navigate('/')}
+          >
+            NexCart
+          </span>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-widest">
+            <LockOutlinedIcon sx={{ fontSize: 14 }} />
+            <span>SECURE CHECKOUT</span>
           </div>
-        </React.Fragment>
-      )}
-    </Box>
+        </div>
+
+        {/* Page Title Subheader */}
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight mb-1">
+            Checkout
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500">
+            Complete your order safely and securely.
+          </p>
+        </div>
+
+        {/* Main 2-Column Grid importing ExistedDeliveryAddress, DeliveryAddressForm, and OrderSummary */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+          {/* Left Column: Existed Addresses + Shipping & Payment Forms */}
+          <div className="lg:col-span-7">
+            <ExistedDeliveryAddress />
+            <DeliveryAddressForm />
+          </div>
+
+          {/* Right Column: Order Summary Section */}
+          <div className="lg:col-span-5">
+            <OrderSummary />
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

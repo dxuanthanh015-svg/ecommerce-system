@@ -1,22 +1,26 @@
 export const mainCarouselData = [
-    {
-        image : "https://cdn.pixabay.com/photo/2018/04/21/18/05/scarf-3339049_1280.jpg",
-        path : ""
-    },
-    {
-        image : "https://cdn.pixabay.com/photo/2017/03/19/02/39/wokandapix-shoes-2155406_1280.jpg",
-        path : ""
-    },
-    {
-        image : "https://cdn.pixabay.com/photo/2016/01/11/10/18/dog-1133316_1280.jpg",
-        path : ""
-    },
-    {
-        image : "https://cdn.pixabay.com/photo/2016/01/08/06/13/woman-1127201_1280.jpg",
-        path : ""
-    },
-    {
-        image : "https://cdn.pixabay.com/photo/2017/01/14/10/03/fashion-1979136_1280.jpg",
-        path : ""
-    }
-]
+  {
+    image: "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=1600&auto=format&fit=crop",
+    badge: "New Season - 50% Off",
+    title: "Embrace the Chill",
+    description: "Warm up your look with our cold-weather collection. Built to handle winter so you can keep exploring outdoors.",
+    buttonText: "SHOP NEW COLLECTION",
+    path: "/product"
+  },
+  {
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1600&auto=format&fit=crop",
+    badge: "Autumn / Winter '26",
+    title: "Elevated Essentials",
+    description: "Discover versatile layers crafted from the finest cashmere, wool, and sustainable cotton blends.",
+    buttonText: "EXPLORE COLLECTION",
+    path: "/product"
+  },
+  {
+    image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1600&auto=format&fit=crop",
+    badge: "Limited Edition",
+    title: "Timeless Sophistication",
+    description: "Premium outerwear and tailored pieces designed to make a statement wherever you go.",
+    buttonText: "DISCOVER NOW",
+    path: "/product"
+  }
+];

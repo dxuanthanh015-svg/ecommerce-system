@@ -1,49 +1,83 @@
-import React from "react";
-import { IconButton, Button } from "@mui/material";
-import RemoveCircleOutlineOutlinedIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
-import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
+import React, { useState } from "react";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
-const CartItem = ({ product }) => {
+const CartItem = ({ item, onRemove }) => {
+  const [quantity, setQuantity] = useState(item?.quantity || 1);
+
+  const handleDecrease = () => {
+    if (quantity > 1) setQuantity(quantity - 1);
+  };
+
+  const handleIncrease = () => {
+    setQuantity(quantity + 1);
+  };
+
   return (
-    <div className="p-5 shadow-lg border-2 border-gray-200 rounded-md m-3 ">
-      <div className="flex items-center">
-        <div className="w-20 h-20 lg:w-36 lg:h-36">
+    <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-xs mb-4 flex flex-col sm:flex-row gap-5 items-start sm:items-center justify-between">
+      {/* Left: Image + Meta */}
+      <div className="flex items-center gap-4 sm:gap-6 flex-1">
+        {/* Product Image */}
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
           <img
-            className="w-full h-full object-cover object-top"
-            src={product.imageUrl}
+            className="w-full h-full object-cover object-center"
+            src={item?.imageUrl || item?.image}
+            alt={item?.title || "Cart item"}
           />
         </div>
 
-        <div className="ml-5 space-y-1">
-          <p className="font-semibold">
-           {product.title}
+        {/* Info */}
+        <div className="space-y-1.5">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+            {item?.title}
+          </h3>
+          <p className="text-xs text-gray-500 font-medium">
+            Color: {item?.color || "Beige"} &nbsp;|&nbsp; Size: {item?.size || "M"}
           </p>
-          <p className="opacity-70">Size: L, White</p>
-          <p className="opacity-70 mt-2">Seller: {product.brand}</p>
-          <div className="flex space-x-5 items-center text-lg lg:text-xl text-gray-900 pt-6">
-            <p className="opacity-60 line-through">${product.price}</p>
-            <p className="font-semibold">${product.discountedPrice}</p>
-            <p className="text-green-500 font-semibold">{product.discountPersent}% Off</p>
+
+          {/* Quantity Controls (Mobile view inline) */}
+          <div className="pt-2 flex items-center gap-3">
+            <div className="inline-flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <button
+                onClick={handleDecrease}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer"
+                aria-label="Decrease quantity"
+              >
+                <RemoveIcon sx={{ fontSize: 14 }} />
+              </button>
+              <span className="w-9 text-center text-xs font-bold text-gray-900 select-none">
+                {quantity}
+              </span>
+              <button
+                onClick={handleIncrease}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer"
+                aria-label="Increase quantity"
+              >
+                <AddIcon sx={{ fontSize: 14 }} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      <div className="lg:flex items-center lg:space-x-10 pt-4">
-        <div className="flex items-center space-x-2">
-          <IconButton sx={{color:''}}>
-            <RemoveCircleOutlineOutlinedIcon />
-          </IconButton>
-          <span className="py-1 px-7 border border-gray-300 rounded-sm">3</span>
-          <IconButton sx={{color:'#9933CC'}}>
-            <AddCircleOutlineOutlinedIcon />
-          </IconButton>
-        </div>          
 
-        <Button sx={{backgroundColor:'#fff', color:'#3399FF' }}>
-            REMOVE
-        </Button>
+      {/* Right: Price & Remove Action */}
+      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-between w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 h-full">
+        <span className="text-base sm:text-lg font-bold text-gray-900">
+          ${((item?.price || 0) * quantity).toFixed(2)}
+        </span>
+
+        <button
+          onClick={() => onRemove && onRemove(item?.id)}
+          className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex items-center gap-1 mt-0 sm:mt-6"
+        >
+          <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+          <span>Remove</span>
+        </button>
       </div>
     </div>
   );
 };
 
 export default CartItem;
+

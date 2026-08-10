@@ -1,132 +1,70 @@
 import React from "react";
-import { Grid, Typography, Button, Box, Link } from "@mui/material";
+import { Link } from "react-router-dom";
+import LanguageIcon from "@mui/icons-material/Language";
 
 const Footer = () => {
   return (
-    <Box component="footer" className="bg-gray-900 text-gray-300 mt-16">
-      <Box className="max-w-7xl mx-auto px-6 py-12">
-        <Grid container spacing={25} className = "justify-center">
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" className="font-semibold mb-4 text-white">
-              Company
-            </Typography>
-            <div className="flex flex-col space-y-2">
-              {["About", "Blog", "Jobs", "Press", "Partners"].map((item) => (
-                <Button
-                  key={item}
-                  sx={{
-                    color: "#9ca3af",
-                    justifyContent: "flex-start",
-                    textTransform: "none",
-                    p: 0,
-                    minWidth: "auto",
-                    "&:hover": { color: "#ffffff" },
-                  }}
-                >
-                  {item}
-                </Button>
-              ))}
+    <footer className="bg-[#0B132B] text-gray-300 font-sans mt-20">
+      <div className="max-w-7xl mx-auto px-6 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
+          {/* Brand Info */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center gap-2">
+              <svg className="w-7 h-7 text-indigo-500 fill-current" viewBox="0 0 24 24">
+                <path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h6v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/>
+              </svg>
+              <span className="text-xl font-bold text-white tracking-tight">NexCart</span>
             </div>
-          </Grid>
+            <p className="text-sm text-gray-400 max-w-sm leading-relaxed">
+              Elevating your everyday through curated, premium essentials. Designed for the modern style.
+            </p>
+          </div>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" className="font-semibold mb-4 text-white">
-              Solutions
-            </Typography>
-            <div className="flex flex-col space-y-2">
-              {[
-                "Marketing",
-                "Analytics",
-                "Commerce",
-                "Insights",
-                "Support",
-              ].map((item) => (
-                <Button
-                  key={item}
-                  sx={{
-                    color: "#9ca3af",
-                    justifyContent: "flex-start",
-                    textTransform: "none",
-                    p: 0,
-                    minWidth: "auto",
-                    "&:hover": { color: "#ffffff" },
-                  }}
-                >
-                  {item}
-                </Button>
-              ))}
-            </div>
-          </Grid>
+          {/* Column 1: Company */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">COMPANY</h4>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li><Link to="#" className="hover:text-white transition-colors">About</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">Jobs</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">Press</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">Partners</Link></li>
+            </ul>
+          </div>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" className="font-semibold mb-4 text-white">
-              Documentation
-            </Typography>
-            <div className="flex flex-col space-y-2">
-              {["Guides", "API Status"].map((item) => (
-                <Button
-                  key={item}
-                  sx={{
-                    color: "#9ca3af",
-                    justifyContent: "flex-start",
-                    textTransform: "none",
-                    p: 0,
-                    minWidth: "auto",
-                    "&:hover": { color: "#ffffff" },
-                  }}
-                >
-                  {item}
-                </Button>
-              ))}
-            </div>
-          </Grid>
+          {/* Column 2: Resources */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">RESOURCES</h4>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li><Link to="#" className="hover:text-white transition-colors">Support</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">Contact</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">Gift Cards</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">Insights</Link></li>
+            </ul>
+          </div>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" className="font-semibold mb-4 text-white">
-              Legal
-            </Typography>
-            <div className="flex flex-col space-y-2">
-              {["Claim", "Privacy", "Terms"].map((item) => (
-                <Button
-                  key={item}
-                  sx={{
-                    color: "#9ca3af",
-                    justifyContent: "flex-start",
-                    textTransform: "none",
-                    p: 0,
-                    minWidth: "auto",
-                    "&:hover": { color: "#ffffff" },
-                  }}
-                >
-                  {item}
-                </Button>
-              ))}
-            </div>
-          </Grid>
-        </Grid>
+          {/* Column 3: Legal */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">LEGAL</h4>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li><Link to="#" className="hover:text-white transition-colors">Privacy</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">Terms</Link></li>
+              <li><Link to="#" className="hover:text-white transition-colors">About</Link></li>
+            </ul>
+          </div>
+        </div>
 
-        <Grid
-            item
-            xs={12}
-            className="pt-8 border-t border-gray-800 mt-8 text-center"
-          >
-            <Typography variant="body2" sx={{ color: "#9ca3af", pb: 1 }}>
-              &copy; {new Date().getFullYear()} My Company. All rights reserved.
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#9ca3af" }}>
-              Made with ❤️ by{" "}
-              <Link
-                href="https://www.facebook.com/angthanh.943948"
-                underline="hover"
-                sx={{ color: "#9ca3af", "&:hover": { color: "#ffffff" } }}
-              >
-                Billian
-              </Link>
-            </Typography>
-          </Grid>
-      </Box>
-    </Box>
+        {/* Bottom Bar */}
+        <div className="border-t border-gray-800/80 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-4">
+          <p>&copy; {new Date().getFullYear()} NexCart. All Rights Reserved.</p>
+          <div className="flex items-center gap-2 cursor-pointer hover:text-gray-300 transition-colors">
+            <LanguageIcon sx={{ fontSize: 18 }} />
+            <span>United States (USD)</span>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 };
 
 export default Footer;
+
