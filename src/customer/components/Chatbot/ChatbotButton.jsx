@@ -15,7 +15,7 @@ const ChatbotButton = ({ isOpen, onToggle }) => {
         <div className="flex items-center gap-2">
           <AutoAwesomeIcon className="animate-pulse" sx={{ fontSize: 22 }} />
           <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-in-out whitespace-nowrap text-xs font-bold tracking-wider">
-            Gemini AI
+            NexCart AI
           </span>
         </div>
       )}

@@ -1,10 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import LanguageIcon from "@mui/icons-material/Language";
 
 const Footer = () => {
+  const location = useLocation();
+  const isHome = location && (location.pathname === '/' || location.pathname === ''|| location.pathname === '/home');
+
   return (
-    <footer className="bg-[#0B132B] text-gray-300 font-sans mt-20">
+    <footer className={`bg-[#0B132B] text-gray-300 font-sans ${isHome ? 'mt-0' : 'mt-20'}`}>
       <div className="max-w-7xl mx-auto px-6 py-14">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
           {/* Brand Info */}

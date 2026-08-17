@@ -23,25 +23,42 @@ import {
 import { navigation } from "./navigation";
 import { useNavigate } from "react-router-dom";
 import { Avatar, Menu, MenuItem } from "@mui/material";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 
 export default function Navigation() {
+  const user = JSON.parse(localStorage.getItem('user'));
+  const cartItems = JSON.parse(localStorage.getItem('cart')) || [];
+  const wishlistItems = JSON.parse(localStorage.getItem('wishlist')) || [];
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const openUserMenu = Boolean(anchorEl);
   const handleCategoryClick = (category, section, item, close) => {
-    navigate(`/${category.id}/${section.id}/${item.id}`);
-    close();
+    if (item?.href && item.href !== '#') {
+      navigate(item.href);
+    } else if (category && section && item) {
+      navigate(`/${category.id}/${section.id}/${item.id}`);
+    } else if (category && section) {
+      navigate(`/${category.id}/${section.id}`);
+    } else if (category) {
+      navigate(`/${category.id}`);
+    }
+    if (close) close();
   };
-    const handleCloseUserMenu = (event) => {
-    
+  const handleCloseUserMenu = (event) => {
+    setAnchorEl(null);
   };
 
   const handleUserClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
   const handleOpen = () => {
-    
+
   };
   return (
     <div className="bg-white z-50">
@@ -115,8 +132,12 @@ export default function Navigation() {
                     {category.sections.map((section) => (
                       <div key={section.name}>
                         <p
+                          onClick={() => {
+                            navigate(`/${category.id}/${section.id}`);
+                            setOpen(false);
+                          }}
                           id={`${category.id}-${section.id}-heading-mobile`}
-                          className="font-medium text-gray-900"
+                          className="font-bold text-gray-900 hover:text-indigo-600 cursor-pointer transition-colors"
                         >
                           {section.name}
                         </p>
@@ -129,7 +150,12 @@ export default function Navigation() {
                             <li key={item.name} className="flow-root">
                               <a
                                 href={item.href}
-                                className="-m-2 block p-2 text-gray-500"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  navigate(item.href);
+                                  setOpen(false);
+                                }}
+                                className="-m-2 block p-2 text-gray-500 cursor-pointer hover:text-indigo-600 transition-colors"
                               >
                                 {item.name}
                               </a>
@@ -217,7 +243,7 @@ export default function Navigation() {
               <div className="ml-4 flex lg:ml-0">
                 <a href="#">
                   <span className="sr-only">Ecommerce-system</span>
-                  <img alt="" src=".\nexCart.svg" className="h-12 w-auto" />
+                  <img alt="" src=".\nexCart.svg" className="h-12 w-auto" onClick={() => navigate('/')} />
                 </a>
               </div>
 
@@ -227,7 +253,10 @@ export default function Navigation() {
                   {navigation.categories.map((category) => (
                     <Popover key={category.name} className="flex">
                       <div className="relative flex">
-                        <PopoverButton className="group relative flex items-center justify-center text-sm font-medium text-gray-700 transition-colors duration-200 ease-out hover:text-gray-800 data-open:text-indigo-600">
+                        <PopoverButton
+                          onClick={() => navigate(`/${category.id}`)}
+                          className="group relative flex items-center justify-center text-sm font-medium text-gray-700 transition-colors duration-200 ease-out hover:text-indigo-600 data-open:text-indigo-600 cursor-pointer"
+                        >
                           {category.name}
                           <span
                             aria-hidden="true"
@@ -239,79 +268,92 @@ export default function Navigation() {
                         transition
                         className="absolute inset-x-0 top-full z-20 w-full bg-white text-sm text-gray-500 transition data-closed:opacity-0 data-enter:duration-200 data-enter:ease-out data-leave:duration-150 data-leave:ease-in"
                       >
-                        {/* Presentational element used to render the bottom shadow, if we put the shadow on the actual panel it pokes out the top, so we use this shorter element to hide the top of the shadow */}
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-0 top-1/2 bg-white shadow-sm"
-                        />
-                        <div className="relative bg-white">
-                          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-16">
-                              <div className="col-start-2 grid grid-cols-2 gap-x-8">
-                                {category.featured.map((item) => (
-                                  <div
-                                    key={item.name}
-                                    className="group relative text-base sm:text-sm"
-                                  >
-                                    <img
-                                      alt={item.imageAlt}
-                                      src={item.imageSrc}
-                                      className="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
-                                    />
-                                    <a
-                                      href={item.href}
-                                      className="mt-6 block font-medium text-gray-900"
-                                    >
-                                      <span
-                                        aria-hidden="true"
-                                        className="absolute inset-0 z-10"
-                                      />
-                                      {item.name}
-                                    </a>
-                                    <p aria-hidden="true" className="mt-1">
-                                      Shop now
-                                    </p>
+                        {({ close }) => (
+                          <>
+                            {/* Presentational element used to render the bottom shadow */}
+                            <div
+                              aria-hidden="true"
+                              className="absolute inset-0 top-1/2 bg-white shadow-sm"
+                            />
+                            <div className="relative bg-white">
+                              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                                <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-16">
+                                  <div className="col-start-2 grid grid-cols-2 gap-x-8">
+                                    {category.featured.map((item) => (
+                                      <div
+                                        key={item.name}
+                                        className="group relative text-base sm:text-sm"
+                                      >
+                                        <img
+                                          alt={item.imageAlt}
+                                          src={item.imageSrc}
+                                          className="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
+                                        />
+                                        <a
+                                          href={item.href}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            if (item.href) navigate(item.href);
+                                            close();
+                                          }}
+                                          className="mt-6 block font-medium text-gray-900 cursor-pointer"
+                                        >
+                                          <span
+                                            aria-hidden="true"
+                                            className="absolute inset-0 z-10"
+                                          />
+                                          {item.name}
+                                        </a>
+                                        <p aria-hidden="true" className="mt-1">
+                                          Shop now
+                                        </p>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                              <div className="row-start-1 grid grid-cols-3 gap-x-8 gap-y-10 text-sm">
-                                {category.sections.map((section) => (
-                                  <div key={section.name}>
-                                    <p
-                                      id={`${section.name}-heading`}
-                                      className="font-medium text-gray-900"
-                                    >
-                                      {section.name}
-                                    </p>
-                                    <ul
-                                      role="list"
-                                      aria-labelledby={`${section.name}-heading`}
-                                      className="mt-6 space-y-6 sm:mt-4 sm:space-y-4"
-                                    >
-                                      {section.items.map((item) => (
-                                        <li key={item.name} className="flex">
-                                          <p
-                                            onClick={() =>
-                                              handleCategoryClick(
-                                                category,
-                                                section,
-                                                item,
-                                                close,
-                                              )
-                                            }
-                                            className="hover:text-gray-800"
-                                          >
-                                            {item.name}
-                                          </p>
-                                        </li>
-                                      ))}
-                                    </ul>
+                                  <div className="row-start-1 grid grid-cols-3 gap-x-8 gap-y-10 text-sm">
+                                    {category.sections.map((section) => (
+                                      <div key={section.name}>
+                                        <p
+                                          onClick={() => {
+                                            navigate(`/${category.id}/${section.id}`);
+                                            close();
+                                          }}
+                                          id={`${section.name}-heading`}
+                                          className="font-bold text-gray-900 hover:text-indigo-600 cursor-pointer transition-colors"
+                                        >
+                                          {section.name}
+                                        </p>
+                                        <ul
+                                          role="list"
+                                          aria-labelledby={`${section.name}-heading`}
+                                          className="mt-6 space-y-6 sm:mt-4 sm:space-y-4"
+                                        >
+                                          {section.items.map((item) => (
+                                            <li key={item.name} className="flex">
+                                              <p
+                                                onClick={() =>
+                                                  handleCategoryClick(
+                                                    category,
+                                                    section,
+                                                    item,
+                                                    close,
+                                                  )
+                                                }
+                                                className="hover:text-indigo-600 cursor-pointer transition-colors"
+                                              >
+                                                {item.name}
+                                              </p>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </div>
+                          </>
+                        )}
                       </PopoverPanel>
                     </Popover>
                   ))}
@@ -319,7 +361,11 @@ export default function Navigation() {
                     <a
                       key={page.name}
                       href={page.href}
-                      className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(page.href);
+                      }}
+                      className="flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600 cursor-pointer transition-colors"
                     >
                       {page.name}
                     </a>
@@ -327,50 +373,115 @@ export default function Navigation() {
                 </div>
               </PopoverGroup>
 
-               <div className="ml-auto flex items-center">
+              <div className="ml-auto flex items-center">
                 <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
                   {true ? (
                     <div>
-                      <Avatar
-                        className="text-white"
+                      <div
                         onClick={handleUserClick}
-                        aria-controls={open ? "basic-menu" : undefined}
-                        aria-haspopup="true"
-                        aria-expanded={open ? "true" : undefined}
-                        // onClick={handleUserClick}
-                        sx={{
-                          bgcolor: '#653aae',
-                          color: "white",
-                          cursor: "pointer",
-                        }}
+                        className="flex items-center gap-1.5 cursor-pointer group p-1.5 rounded-full hover:bg-gray-100/80 transition-all duration-200"
                       >
-                        R
-                      </Avatar>
-                      {/* <Button
-                        id="basic-button"
-                        aria-controls={open ? "basic-menu" : undefined}
-                        aria-haspopup="true"
-                        aria-expanded={open ? "true" : undefined}
-                        onClick={handleUserClick}
-                      >
-                        Dashboard
-                      </Button> */}
+                        <Avatar
+                          src={user?.avatarUrl}
+                          sx={{
+                            width: 38,
+                            height: 38,
+                            bgcolor: '#4f46e5',
+                            color: "white",
+                            fontWeight: 'bold',
+                            fontSize: '13px',
+                            boxShadow: '0 2px 8px rgba(79, 70, 229, 0.25)',
+                            border: '2px solid white',
+                          }}
+                        >
+                          {user?.firstName && user?.lastName
+                            ? (user.firstName.charAt(0) + user.lastName.charAt(0)).toUpperCase()
+                            : (user?.firstName?.charAt(0) || "P").toUpperCase()}
+                        </Avatar>
+                        <KeyboardArrowDownIcon
+                          className={`text-gray-400 transition-transform duration-300 ${openUserMenu ? "rotate-180 text-indigo-600" : "group-hover:text-gray-700"}`}
+                          sx={{ fontSize: 18 }}
+                        />
+                      </div>
+
                       <Menu
-                        id="basic-menu"
+                        id="user-menu"
                         anchorEl={anchorEl}
                         open={openUserMenu}
                         onClose={handleCloseUserMenu}
-                        MenuListProps={{
-                          "aria-labelledby": "basic-button",
+                        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                        SlotProps={{
+                          paper: {
+                            elevation: 0,
+                            sx: {
+                              overflow: 'visible',
+                              filter: 'drop-shadow(0px 10px 30px rgba(0, 0, 0, 0.12))',
+                              mt: 1.5,
+                              borderRadius: '20px',
+                              padding: '8px',
+                              minWidth: 230,
+                              border: '1px solid rgba(243, 244, 246, 1)',
+                              '& .MuiMenuItem-root': {
+                                borderRadius: '12px',
+                                padding: '10px 14px',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#374151',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  backgroundColor: '#f4f6ff',
+                                  color: '#4f46e5',
+                                },
+                              },
+                            },
+                          },
                         }}
                       >
-                        <MenuItem >
-                          Profile
+                        {/* Menu User Header Card */}
+                        <div className="px-3.5 py-3 mb-2 bg-[#f8f9fc] rounded-2xl border border-gray-100 flex items-center gap-3">
+                          <Avatar
+                            src={user?.avatarUrl}
+                            sx={{ width: 34, height: 34, bgcolor: '#4f46e5', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            {user?.firstName && user?.lastName
+                              ? (user.firstName.charAt(0) + user.lastName.charAt(0)).toUpperCase()
+                              : (user?.firstName?.charAt(0) || "P").toUpperCase()}
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-extrabold text-gray-900 truncate">
+                              {user?.firstName || "Premium"} {user?.lastName || "Member"}
+                            </p>
+                            <p className="text-[11px] text-gray-500 truncate">
+                              {user?.email || "nexcart.user@example.com"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/account/setting'); }} className="gap-3">
+                          <PersonOutlinedIcon sx={{ fontSize: 18, color: '#4f46e5' }} />
+                          <span>My Profile</span>
                         </MenuItem>
-                        <MenuItem >
-                          My Orders
+
+                        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/account/order'); }} className="gap-3">
+                          <Inventory2OutlinedIcon sx={{ fontSize: 18, color: '#6366f1' }} />
+                          <span>My Orders</span>
                         </MenuItem>
-                        <MenuItem >Logout</MenuItem>
+
+                        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/account/setting'); }} className="gap-3">
+                          <SettingsOutlinedIcon sx={{ fontSize: 18, color: '#64748b' }} />
+                          <span>Settings</span>
+                        </MenuItem>
+
+                        <div className="my-1.5 border-t border-gray-100" />
+
+                        <MenuItem
+                          onClick={() => { handleCloseUserMenu(); localStorage.setItem("isLoggedIn", "false"); navigate('/login'); }}
+                          className="gap-3 hover:!bg-red-50"
+                        >
+                          <LogoutOutlinedIcon sx={{ fontSize: 18, color: '#ef4444' }} />
+                          <span className="text-red-500 font-bold">Log Out</span>
+                        </MenuItem>
                       </Menu>
                     </div>
                   ) : (
@@ -384,29 +495,43 @@ export default function Navigation() {
                 </div>
 
 
-                {/* Search */}
-                <div className="flex lg:ml-6">
-                  <a href="#" className="p-2 text-gray-400 hover:text-gray-500">
-                    <span className="sr-only">Search</span>
-                    <MagnifyingGlassIcon
+
+
+                {/* Wishlist */}
+                <div className="ml-4 flow-root lg:ml-6">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/wishlist')}
+                    className="group -m-2 flex items-center p-2 cursor-pointer border-none bg-transparent"
+                    title="View Wishlist"
+                  >
+                    <FavoriteBorderIcon
                       aria-hidden="true"
-                      className="size-6"
+                      className="text-gray-400 group-hover:text-rose-500 transition-colors"
+                      sx={{ fontSize: 22 }}
                     />
-                  </a>
+                    <span className="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-rose-600">
+                      {wishlistItems.length}
+                    </span>
+                  </button>
                 </div>
 
                 {/* Cart */}
                 <div className="ml-4 flow-root lg:ml-6">
-                  <a href="#" className="group -m-2 flex items-center p-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/cart')}
+                    className="group -m-2 flex items-center p-2 cursor-pointer border-none bg-transparent"
+                    title="View Cart"
+                  >
                     <ShoppingBagIcon
                       aria-hidden="true"
-                      className="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                      className="size-6 shrink-0 text-gray-400 group-hover:text-indigo-600 transition-colors"
                     />
-                    <span className="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
-                      0
+                    <span className="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-indigo-600">
+                      {cartItems.length}
                     </span>
-                    <span className="sr-only">items in cart, view bag</span>
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>

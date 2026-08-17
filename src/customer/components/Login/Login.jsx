@@ -12,8 +12,38 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Navigate home or product on sign in
-    navigate("/");
+    const inputEmail = email.trim().toLowerCase();
+    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+
+    // Check registered accounts or stored currentUser
+    const matchedUser = registeredUsers.find(
+      (u) => u.email.toLowerCase() === inputEmail && u.password === password
+    ) || (
+      (currentUser && currentUser.email.toLowerCase() === inputEmail && (currentUser.password === password || !currentUser.password))
+        ? currentUser
+        : null
+    ) || (
+      // Demo fallback if logging in with default demo email
+      (inputEmail === "nexcart.user@example.com" && password === "password123")
+        ? {
+            firstName: "Premium",
+            lastName: "Member",
+            email: "nexcart.user@example.com",
+            password: "password123",
+            avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
+            isVerified: true
+          }
+        : null
+    );
+
+    if (matchedUser) {
+      localStorage.setItem("user", JSON.stringify(matchedUser));
+      localStorage.setItem("isLoggedIn", "true");
+      navigate("/");
+    } else {
+      alert("Email hoặc mật khẩu không chính xác! Vui lòng thử lại hoặc đăng ký tài khoản mới.");
+    }
   };
 
   return (

@@ -23,8 +23,40 @@ const SignUp = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Navigate after successful sign up
-    navigate("/");
+    if (formData.password !== formData.confirmPassword) {
+      alert("Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.");
+      return;
+    }
+
+    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
+    const isEmailTaken = registeredUsers.some(
+      (u) => u.email.toLowerCase() === formData.email.trim().toLowerCase()
+    );
+
+    if (isEmailTaken) {
+      alert("Email này đã được đăng ký! Vui lòng đăng nhập hoặc sử dụng email khác.");
+      return;
+    }
+
+    const newUser = {
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      phone: "",
+      phonePrefix: "+1",
+      city: "",
+      district: "",
+      specificAddress: "",
+      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
+      isVerified: true
+    };
+
+    localStorage.setItem("registeredUsers", JSON.stringify([...registeredUsers, newUser]));
+    localStorage.setItem("user", JSON.stringify(newUser));
+
+    alert("Đăng ký tài khoản thành công! Bạn sẽ được chuyển hướng sang trang Đăng nhập.");
+    navigate("/login");
   };
 
   return (

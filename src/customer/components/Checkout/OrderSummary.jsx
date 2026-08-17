@@ -22,18 +22,52 @@ const checkoutItems = [
   }
 ];
 
-const OrderSummary = () => {
+const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => {
   const navigate = useNavigate();
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(false);
 
   const handlePlaceOrder = (e) => {
     e.preventDefault();
-    navigate("/account/order");
+    if (!savedAddress || savedAddress.length === 0) {
+      alert("Chưa có địa chỉ giao hàng! Vui lòng điền và lưu địa chỉ mới.");
+      return;
+    }
+    if (!selectedAddress) {
+      alert("Vui lòng chọn một địa chỉ giao hàng từ danh sách Saved Delivery Addresses!");
+      return;
+    }
+    if (!paymentMethod) {
+      alert("Vui lòng chọn phương thức thanh toán!");
+      return;
+    }
+
+    const generatedOrderId = "NX-" + Math.floor(10000 + Math.random() * 90000);
+    const orderData = {
+      orderId: generatedOrderId,
+      subtotal: subtotal,
+      tax: taxes,
+      total: total,
+      items: items,
+      address: selectedAddress,
+      paymentMethod: paymentMethod,
+    };
+
+    localStorage.setItem("pendingOrder", JSON.stringify(orderData));
+    navigate("/checkout/qr", { state: { order: orderData } });
   };
 
-  const subtotal = 440.00;
-  const taxes = 35.20;
+
+
+  const [items, setItems] = useState(() => {
+    return JSON.parse(localStorage.getItem("checkoutCart")) || JSON.parse(localStorage.getItem("cart")) || [];
+  });
+
+  const subtotal = items.reduce((acc, item) => {
+    return acc + item.price * (item.quantity || 1);
+  }, 0);
+
+  const taxes = subtotal * 0.08;
   const total = subtotal + taxes;
 
   return (
@@ -46,12 +80,12 @@ const OrderSummary = () => {
 
         {/* Product List */}
         <div className="space-y-4">
-          {checkoutItems.map((item) => (
+          {items.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <img src={item.imageUrl} alt={item.title} className="w-14 h-14 rounded-lg object-cover bg-gray-50 shrink-0 border border-gray-100" />
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">{item.title}</h4>
+                  <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">{item.title} x {item.quantity}</h4>
                   <p className="text-[11px] text-gray-500">{item.meta}</p>
                 </div>
               </div>
@@ -112,7 +146,7 @@ const OrderSummary = () => {
             onClick={handlePlaceOrder}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-lg hover:shadow-indigo-500/25 transition-all cursor-pointer"
           >
-            <span>Place Order</span>
+            <span>CHECKOUT</span>
             <LockOutlinedIcon sx={{ fontSize: 16 }} />
           </button>
 

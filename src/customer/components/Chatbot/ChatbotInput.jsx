@@ -18,7 +18,7 @@ const ChatbotInput = ({ onSendMessage }) => {
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Ask Gemini AI anything..."
+          placeholder="Ask NexCart Assistant anything..."
           className="flex-1 bg-[#f8f9fc] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2.5 text-xs text-gray-900 placeholder-gray-400 transition-all"
         />
         <button
@@ -30,7 +30,7 @@ const ChatbotInput = ({ onSendMessage }) => {
         </button>
       </form>
       <p className="text-[9px] text-gray-400 text-center mt-2">
-        NexCart AI can assist with shopping & sizing.
+        NexCart Assistant can assist with shopping & sizing.
       </p>
     </div>
   );

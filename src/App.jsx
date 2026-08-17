@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import Navigation from './customer/components/Navigation/Navigation.jsx'
 import './App.css'
 import Footer from './customer/components/Footer/Footer'
@@ -8,14 +7,14 @@ import { Outlet } from 'react-router-dom'
 function App() {
   return (
     <div className="">
-      <Navigation/>
+      <Navigation />
       <div>
-        <Outlet/>
+        <Outlet />
       </div>
-      <ChatbotWidget/>
-      <Footer/>
+      <ChatbotWidget />
+      <Footer />
     </div>
-  ) 
+  )
 }
 
 export default App

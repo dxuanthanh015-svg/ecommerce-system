@@ -1,12 +1,12 @@
 import React from "react";
 import { createBrowserRouter } from "react-router-dom";
 import { customerRoutes } from "../customer/Routers/CustomerRouters";
+import { adminRoutes } from "../admin/Routers/AdminRouters";
 import { storeManagerRoutes } from "../storeManager/Routers/StoreManagerRouters";
 import Login from "../customer/components/Login/Login";
 import SignUp from "../customer/Signup/SignUp";
 
 export const AppRouters = createBrowserRouter([
-  // Standalone Auth Routes (No Header/Footer)
   {
     path: "/login",
     element: <Login />,
@@ -15,10 +15,7 @@ export const AppRouters = createBrowserRouter([
     path: "/signup",
     element: <SignUp />,
   },
-
-  // Store Manager Routes (/store-manager/*)
-  storeManagerRoutes,
-
-  // Customer Routes (/, /product, /cart, /checkout, /order, etc.)
+  adminRoutes,
   customerRoutes,
+  storeManagerRoutes
 ]);

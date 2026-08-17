@@ -3,15 +3,25 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 
-const CartItem = ({ item, onRemove }) => {
+const CartItem = ({ item, onRemove, onUpdateQuantity }) => {
   const [quantity, setQuantity] = useState(item?.quantity || 1);
 
   const handleDecrease = () => {
-    if (quantity > 1) setQuantity(quantity - 1);
+    if (quantity > 1) {
+      const nextQty = quantity - 1;
+      setQuantity(nextQty);
+      if (onUpdateQuantity) {
+        onUpdateQuantity(item.id, nextQty);
+      }
+    }
   };
 
   const handleIncrease = () => {
-    setQuantity(quantity + 1);
+    const nextQty = quantity + 1;
+    setQuantity(nextQty);
+    if (onUpdateQuantity) {
+      onUpdateQuantity(item.id, nextQty);
+    }
   };
 
   return (

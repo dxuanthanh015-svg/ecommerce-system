@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
-  const handleClickCard = () => navigate(`/product/${product?.id || 5}`);
+  const handleClickCard = () => navigate(`/product/${product?.id}`);
 
   const hasDiscount = product?.discountedPrice && product?.discountedPrice < product?.price;
   const badgeText = product?.badge || (hasDiscount ? `${product.discountPersent}% OFF` : null);

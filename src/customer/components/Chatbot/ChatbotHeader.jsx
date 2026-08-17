@@ -14,7 +14,7 @@ const ChatbotHeader = ({ onReset, onClose }) => {
           <h3 className="text-sm font-bold tracking-tight">NexCart AI</h3>
           <div className="flex items-center gap-1.5 text-[10px] text-indigo-100">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Powered by Gemini API</span>
+            <span>AI Assistant Online</span>
           </div>
         </div>
       </div>
