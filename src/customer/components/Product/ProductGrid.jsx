@@ -16,6 +16,7 @@ export default function ProductGrid({ productsList, filterState = {}, sortOption
 
   
   const categoryFiltered = productsList.filter(item => {
+    const visibleMatch = item.isVisible !== true; // When true -> hide from user, when false -> show
     const flashSaleMatch = flashSaleLocation ? item.isFlashSale === true : true;
     const trendingMatch = trendingLocation ? item.isTrending === true : true;
     const searchQueryLower = searchQuery ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
@@ -28,7 +29,7 @@ export default function ProductGrid({ productsList, filterState = {}, sortOption
     const matchThird = thirdLavelCategory
       ? item.thirdLavelCategory?.toLowerCase() === thirdLavelCategory.toLowerCase()
       : true;
-    return matchTop && matchSecond && matchThird && searchQueryLower&& flashSaleMatch && trendingMatch;
+    return visibleMatch && matchTop && matchSecond && matchThird && searchQueryLower && flashSaleMatch && trendingMatch;
   });
 
 

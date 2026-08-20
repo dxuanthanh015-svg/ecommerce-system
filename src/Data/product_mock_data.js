@@ -46,7 +46,9 @@ export const product_mock_data = [
     isTrending: false,
     stockLeft: 5,
     claimedPercent: 80,
-    flashSaleEndTime: "2026-08-15T23:59:59"
+    flashSaleEndTime: "2026-08-15T23:59:59",
+    isManager: false
+
   },
   {
     id: "fs-003",
@@ -1848,6 +1850,5 @@ export const product_mock_data = [
   }
 ];
 
-// Helper named exports
 export const productsSale = product_mock_data.filter((product) => product.isFlashSale);
 export const products = product_mock_data;

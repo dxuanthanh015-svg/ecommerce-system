@@ -10,12 +10,14 @@ import OrderPage from "../pages/OrderPage/OrderPage.jsx";
 import OrderDetailPage from "../pages/OrderDetailPage/OrderDetailPage.jsx";
 import SettingPage from "../pages/SettingPage/SettingPage.jsx";
 import WishlistPage from "../pages/WishlistPage/WishlistPage.jsx";
-import { BrowserRouter } from "react-router-dom";
+import CustomerStorePage from "../pages/CustomerStorePage/CustomerStorePage.jsx";
+import ProtectedRoute from "./ProtectedRoute.jsx";
 
 export const customerRoutes = {
   path: "/",
   element: <App />,
   children: [
+    /* Public Routes - Accessible by everyone */
     {
       path: "/",
       element: <HomePage />,
@@ -33,77 +35,97 @@ export const customerRoutes = {
       element: <ProductDetailsPage />,
     },
     {
-      path: "/cart",
-      element: <CartPage />,
+      path: "/productdetails/:productId",
+      element: <ProductDetailsPage />,
     },
-    {
-      path: "/wishlist",
-      element: <WishlistPage />,
-    },
-    {
-      path: "/checkout",
-      element: <CheckOutPage />,
-    },
-    {
-      path: "/checkout/qr",
-      element: <QrCode />,
-    },
-    {
-      path: "/order",
-      element: <OrderPage />,
-    },
-    {
-      path: "/orderdetail",
-      element: <OrderDetailPage />,
-    },
-    {
-      path: "/setting",
-      element: <SettingPage />,
-    },
-    {
-      path: "/profile",
-      element: <SettingPage />,
-    },
-    {
-      path: "/account/setting",
-      element: <SettingPage />,
-    },
-    {
-      path: "/account/profile",
-      element: <SettingPage />,
-    },
-
     {
       path: "/product/:productId",
       element: <ProductDetailsPage />,
     },
     {
-      path: "/account/order",
-      element: <OrderPage />,
+      path: "/store/:storeId",
+      element: <CustomerStorePage />,
     },
     {
-      path: "/account/order/:orderId",
-      element: <OrderDetailPage />,
-    },
-    {
-      path: "/:topLavelCategory/:secondLavelCategory/:thirdLavelCategory",
-      element: <ProductPage />
-    },
-    {
-      path: "/:topLavelCategory/:secondLavelCategory",
-      element: <ProductPage />
-    },
-    {
-      path: "/:topLavelCategory",
-      element: <ProductPage />
+      path: "/store-interface/:storeId",
+      element: <CustomerStorePage />,
     },
     {
       path: "/flashsale",
-      element: <ProductPage />
+      element: <ProductPage />,
     },
     {
       path: "/trending",
-      element: <ProductPage />
+      element: <ProductPage />,
+    },
+
+    /* Protected Routes - Only accessible when logged in */
+    {
+      element: <ProtectedRoute />,
+      children: [
+        {
+          path: "/cart",
+          element: <CartPage />,
+        },
+        {
+          path: "/wishlist",
+          element: <WishlistPage />,
+        },
+        {
+          path: "/checkout",
+          element: <CheckOutPage />,
+        },
+        {
+          path: "/checkout/qr",
+          element: <QrCode />,
+        },
+        {
+          path: "/order",
+          element: <OrderPage />,
+        },
+        {
+          path: "/orderdetail",
+          element: <OrderDetailPage />,
+        },
+        {
+          path: "/setting",
+          element: <SettingPage />,
+        },
+        {
+          path: "/profile",
+          element: <SettingPage />,
+        },
+        {
+          path: "/account/setting",
+          element: <SettingPage />,
+        },
+        {
+          path: "/account/profile",
+          element: <SettingPage />,
+        },
+        {
+          path: "/account/order",
+          element: <OrderPage />,
+        },
+        {
+          path: "/account/order/:orderId",
+          element: <OrderDetailPage />,
+        },
+      ],
+    },
+
+    /* Category Filter Public Routes */
+    {
+      path: "/:topLavelCategory/:secondLavelCategory/:thirdLavelCategory",
+      element: <ProductPage />,
+    },
+    {
+      path: "/:topLavelCategory/:secondLavelCategory",
+      element: <ProductPage />,
+    },
+    {
+      path: "/:topLavelCategory",
+      element: <ProductPage />,
     },
   ],
 };

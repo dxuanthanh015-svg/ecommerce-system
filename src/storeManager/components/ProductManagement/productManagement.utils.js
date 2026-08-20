@@ -2,8 +2,8 @@ import { PRODUCT_PAGE_SIZE } from "./productManagement.data";
 
 const LOW_STOCK_THRESHOLD = 5;
 
-export const getProductInventoryStatus = (stockCount = 0) => {
-  const normalizedStock = Number(stockCount) || 0;
+export const getProductInventoryStatus = (stockCount) => {
+  const normalizedStock = Number(stockCount);
 
   if (normalizedStock === 0) {
     return {

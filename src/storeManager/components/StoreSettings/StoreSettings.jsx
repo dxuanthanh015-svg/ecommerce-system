@@ -11,7 +11,30 @@ import {
 } from "./storeSettings.data";
 
 export default function StoreSettings() {
-  const initialSettings = useMemo(() => createStoreSettingsState(), []);
+  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
+
+  const initialSettings = useMemo(() => {
+    return createStoreSettingsState({
+      brandIdentity: {
+        storeName: currentStore.name || "My Store",
+        contactEmail: currentStore.email || "store@nexcart.com",
+        bio: currentStore.description || "Official NexCart Partner Store.",
+        logoImage: currentStore.imageUrl || "/nexCart.svg",
+      },
+      payoutDetails: {
+        bankName: currentStore.bankInfo?.bankName || "",
+        accountHolder: currentStore.bankInfo?.accountName || currentStore.owner || "",
+        accountNumber: currentStore.bankInfo?.accountNumber || "",
+      },
+      fulfillmentCenter: {
+        streetAddress: currentStore.address || "Manhattan, New York",
+        city: "New York",
+        state: "NY",
+        zipCode: "10001",
+      },
+    });
+  }, [currentStore.id]);
+
   const [storeSettings, setStoreSettings] = useState(initialSettings);
   const [savedSettings, setSavedSettings] = useState(initialSettings);
 
@@ -34,8 +57,34 @@ export default function StoreSettings() {
   const handleSave = () => {
     const payload = buildStoreSettingsPayload(storeSettings);
 
-    console.log("Saved Configuration:", payload);
+    // Synchronize back to currentStore
+    const updatedStore = {
+      ...currentStore,
+      name: payload.brandIdentity.storeName,
+      email: payload.brandIdentity.contactEmail,
+      imageUrl: payload.brandIdentity.logoImage,
+      description: payload.brandIdentity.bio,
+      address: payload.fulfillmentCenter.streetAddress,
+      bankInfo: {
+        ...currentStore.bankInfo,
+        bankName: payload.payoutDetails.bankName,
+        accountHolder: payload.payoutDetails.accountHolder,
+        accountNumber: payload.payoutDetails.accountNumber,
+      }
+    };
+
+    localStorage.setItem("currentStore", JSON.stringify(updatedStore));
+
+    // Update in allStores & stores
+    const allStores = JSON.parse(localStorage.getItem("allStores")) || [];
+    const updatedAllStores = allStores.map((s) =>
+      String(s.id) === String(updatedStore.id) ? updatedStore : s
+    );
+    localStorage.setItem("allStores", JSON.stringify(updatedAllStores));
+    localStorage.setItem("stores", JSON.stringify(updatedAllStores));
+
     setSavedSettings(cloneStoreSettings(storeSettings));
+    alert("Cài đặt thông tin gian hàng đã được cập nhật thành công!");
   };
 
   return (

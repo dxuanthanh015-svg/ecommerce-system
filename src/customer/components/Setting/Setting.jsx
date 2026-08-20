@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import SettingSidebar from "./SettingSidebar";
 import ProfileForm from "./ProfileForm";
+import ApplyStoreManager from "../ApplyStoreManager/ApplyStoreManager";
 
 const defaultUserData = {
   firstName: "",
@@ -22,6 +23,20 @@ const Setting = () => {
   const handleSaveProfile = (updatedData) => {
     setUserData(updatedData);
     localStorage.setItem("user", JSON.stringify(updatedData));
+
+    // Update the corresponding user in registeredUsers array
+    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
+    const userIndex = registeredUsers.findIndex(
+      (u) => u.email.toLowerCase() === updatedData.email.toLowerCase()
+    );
+
+    if (userIndex > -1) {
+      registeredUsers[userIndex] = { ...registeredUsers[userIndex], ...updatedData };
+      localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
+    } else {
+      localStorage.setItem("registeredUsers", JSON.stringify([...registeredUsers, updatedData]));
+    }
+
     alert("Thông tin cá nhân đã được lưu thành công!");
   };
 
@@ -42,18 +57,20 @@ const Setting = () => {
           {/* Right Main Content Area */}
           <div className="flex-1 space-y-6">
             {/* Header Title & Subtitle */}
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                {activeTab === "profile" && "Personal Information"}
-                {activeTab === "security" && "Security & Password"}
-                {activeTab === "addresses" && "Saved Addresses"}
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                {activeTab === "profile" && "Manage your personal details and how we can reach you."}
-                {activeTab === "security" && "Keep your account secure with a strong password."}
-                {activeTab === "addresses" && "Manage your shipping and billing addresses."}
-              </p>
-            </div>
+            {activeTab !== "apply-store" && (
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                  {activeTab === "profile" && "Personal Information"}
+                  {activeTab === "security" && "Security & Password"}
+                  {activeTab === "addresses" && "Saved Addresses"}
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                  {activeTab === "profile" && "Manage your personal details and how we can reach you."}
+                  {activeTab === "security" && "Keep your account secure with a strong password."}
+                  {activeTab === "addresses" && "Manage your shipping and billing addresses."}
+                </p>
+              </div>
+            )}
 
             {/* Content Form Component */}
             {activeTab === "profile" && (
@@ -62,6 +79,10 @@ const Setting = () => {
                 onSave={handleSaveProfile}
                 onCancel={() => { }}
               />
+            )}
+
+            {activeTab === "apply-store" && (
+              <ApplyStoreManager />
             )}
 
             {activeTab === "security" && (

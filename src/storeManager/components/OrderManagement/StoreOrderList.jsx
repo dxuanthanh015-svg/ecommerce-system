@@ -45,32 +45,56 @@ const defaultOrders = [
   }
 ];
 
+import { getStoreOrderRevenue, updateStoreOrderStatus } from "../../../customer/utils/orderInventoryUtils";
+
 const StoreOrderList = ({
-  ordersList = defaultOrders,
   onExport,
   onCreateOrder,
   onConfirmOrder,
   onShipOrder,
   onCancelOrder
 }) => {
-  const [orders, setOrders] = useState(ordersList);
+  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
+
+  const [orders, setOrders] = useState(() => {
+    const revenueData = getStoreOrderRevenue(currentStore?.id);
+    if (revenueData && revenueData.orders && revenueData.orders.length > 0) {
+      return revenueData.orders.map((o) => ({
+        orderId: o.orderId,
+        customerName: o.customer || o.customerName || "Customer",
+        customerEmail: o.customerEmail || "customer@example.com",
+        date: o.formattedDate || (o.date ? new Date(o.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "Today"),
+        totalAmount: Number(o.totalAmount) || Number(o.total) || 0,
+        paymentStatus: o.paymentMethod ? "Paid" : "Paid",
+        orderStatus: o.status || "Pending",
+      }));
+    }
+    return defaultOrders;
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
 
   // Confirm Order Handler
   const handleConfirm = (id) => {
+    if (currentStore.id) {
+      updateStoreOrderStatus(currentStore.id, id, "Processing");
+    }
     if (onConfirmOrder) {
       onConfirmOrder(id);
     } else {
       setOrders((prev) =>
-        prev.map((o) => (o.orderId === id ? { ...o, orderStatus: "Packing" } : o))
+        prev.map((o) => (o.orderId === id ? { ...o, orderStatus: "Processing" } : o))
       );
     }
   };
 
   // Ship Order Handler
   const handleShip = (id) => {
+    if (currentStore.id) {
+      updateStoreOrderStatus(currentStore.id, id, "Shipped");
+    }
     if (onShipOrder) {
       onShipOrder(id);
     } else {
@@ -82,6 +106,9 @@ const StoreOrderList = ({
 
   // Cancel Order Handler
   const handleCancel = (id) => {
+    if (currentStore.id) {
+      updateStoreOrderStatus(currentStore.id, id, "Cancelled");
+    }
     if (onCancelOrder) {
       onCancelOrder(id);
     } else {

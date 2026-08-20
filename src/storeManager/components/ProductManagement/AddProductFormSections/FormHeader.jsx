@@ -7,10 +7,9 @@ const FormHeader = ({ isEdit, productId, handleSubmit }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 mb-1">
-          <span 
-            onClick={() => navigate('/store-manager/products')} 
+          <span
+            onClick={() => navigate('/store-manager/products')}
             className="hover:text-indigo-600 cursor-pointer"
           >
             Products

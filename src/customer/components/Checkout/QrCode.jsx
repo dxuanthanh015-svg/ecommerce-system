@@ -6,6 +6,9 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
 
+import { processOrderPayment } from "../../utils/orderInventoryUtils";
+import { getUserCart, saveUserCart } from "../../utils/cartUtils";
+
 const QrCode = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,9 +20,12 @@ const QrCode = () => {
     items: JSON.parse(localStorage.getItem("cart")) || []
   };
 
+  const currentUser = JSON.parse(localStorage.getItem("user")) || {};
+  const allStores = JSON.parse(localStorage.getItem("allStores")) || store_manager_mock_data;
+
   // Find store info based on first item's id_store / storeId
   const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
-  const storeInfo = store_manager_mock_data.find((s) => s.id === firstItemStoreId) || store_manager_mock_data[0];
+  const storeInfo = allStores.find((s) => String(s.id) === String(firstItemStoreId)) || allStores[0];
 
   // Timer: 15 minutes (900 seconds)
   const [timeLeft, setTimeLeft] = useState(900);
@@ -44,18 +50,22 @@ const QrCode = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const storeBank = storeInfo.bankInfo.bankName;
-  const storeAccount = storeInfo.bankInfo.accountNumber;
-  const storeName = storeInfo.bankInfo.accountName;
-  const qrData = storeInfo.bankInfo.qrCodeUrl
+  const storeBank = storeInfo?.bankInfo?.bankName || "MBBank";
+  const storeAccount = storeInfo?.bankInfo?.accountNumber || "0000123456789";
+  const storeName = storeInfo?.bankInfo?.accountName || storeInfo?.name || "STORE OWNER";
+  const qrData = storeInfo?.bankInfo?.qrCodeUrl
     ? `${storeInfo.bankInfo.qrCodeUrl}?amount=${Math.round((pendingOrder.total || 0) * 25000)}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(storeName)}`
     : `https://img.vietqr.io/image/${storeBank}-${storeAccount}-compact2.png?amount=${Math.round((pendingOrder.total || 0) * 25000)}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(storeName)}`;
 
-  const fallbackQr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`STORE: ${storeInfo.name} | ORDER: ${pendingOrder.orderId} | AMOUNT: $${pendingOrder.total}`)}`;
+  const fallbackQr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`STORE: ${storeInfo?.name} | ORDER: ${pendingOrder.orderId} | AMOUNT: $${pendingOrder.total}`)}`;
 
   const [qrSrc, setQrSrc] = useState(qrData);
 
   const handlePaid = () => {
+    // 1. Process stock deduction and store order revenue tracking
+    processOrderPayment(pendingOrder, currentUser);
+
+    // 2. Save to customer order history
     const existingOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
     const newOrder = {
       orderId: pendingOrder.orderId,
@@ -71,15 +81,22 @@ const QrCode = () => {
 
     localStorage.setItem("userOrders", JSON.stringify([newOrder, ...existingOrders]));
 
-    // Filter out paid items from full cart
-    const fullCart = JSON.parse(localStorage.getItem("cart")) || [];
-    const paidItemIds = (pendingOrder.items || []).map((i) => i.id);
-    const remainingCart = fullCart.filter((item) => !paidItemIds.includes(item.id));
+    // 3. Filter out paid items from user cart
+    const fullCart = getUserCart();
+    const paidItems = pendingOrder.items || [];
+    const remainingCart = fullCart.filter((item) => {
+      return !paidItems.some(
+        (paid) =>
+          String(paid.id) === String(item.id) &&
+          (paid.size || "M") === (item.size || "M")
+      );
+    });
 
-    localStorage.setItem("cart", JSON.stringify(remainingCart));
+    saveUserCart(remainingCart);
     localStorage.removeItem("checkoutCart");
     localStorage.removeItem("pendingOrder");
 
+    alert(`Thanh toán đơn hàng ${pendingOrder.orderId} thành công! Kho hàng và doanh thu đã được cập nhật.`);
     navigate("/account/order");
   };
 

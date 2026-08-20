@@ -5,22 +5,7 @@ import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import AutorenewOutlinedIcon from "@mui/icons-material/AutorenewOutlined";
 
-const checkoutItems = [
-  {
-    id: 1,
-    title: "Silk Minimalist Bl...",
-    meta: "Color: White, Size: M",
-    price: 145.00,
-    imageUrl: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?q=80&w=600&auto=format&fit=crop"
-  },
-  {
-    id: 2,
-    title: "Navy Leather Cr...",
-    meta: "Color: Navy",
-    price: 295.00,
-    imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=600&auto=format&fit=crop"
-  }
-];
+
 
 const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => {
   const navigate = useNavigate();

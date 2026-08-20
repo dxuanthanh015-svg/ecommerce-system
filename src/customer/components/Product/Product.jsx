@@ -4,6 +4,7 @@ import ProductTopControls from "./ProductTopControls";
 import ProductMobileFilterDialog from "./ProductMobileFilterDialog";
 import ProductFilterSidebar from "./ProductFilterSidebar";
 import ProductGrid from "./ProductGrid";
+import { product_mock_data } from "../../../Data/product_mock_data";
 
 const defaultSearch = "";
 
@@ -20,7 +21,11 @@ export default function Product({ data }) {
   const [filterState, setFilterState] = useState(defaultFilterState);
   const [sortOption, setSortOption] = useState("featured");
   const [searchQuery, setSearchQuery] = useState(defaultSearch);
-  const productsList = data && data.length > 0 ? data : [];
+  
+  const savedProducts = JSON.parse(localStorage.getItem("products"));
+  const productsList = (savedProducts && savedProducts.length > 0)
+    ? savedProducts
+    : (data && data.length > 0 ? data : product_mock_data);
 
   const handleFilterChange = (sectionId, value, checked) => {
     setFilterState((prev) => {

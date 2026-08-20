@@ -4,15 +4,22 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 
 const SettingSidebar = ({ activeTab, setActiveTab, userData }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.setItem("isLoggedIn", "false");
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("user");
+    localStorage.removeItem("currentStore");
+    localStorage.removeItem("currentProducts");
+    localStorage.removeItem("orderRevenue");
     navigate("/login");
   };
+
+  const user = JSON.parse(localStorage.getItem("user")) || {};
 
   return (
     <div className="w-full lg:w-72 bg-[#f0f4fc]/80 rounded-3xl p-5 border border-indigo-50/80 shrink-0 flex flex-col justify-between self-start">
@@ -43,8 +50,8 @@ const SettingSidebar = ({ activeTab, setActiveTab, userData }) => {
             type="button"
             onClick={() => setActiveTab("profile")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "profile"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-                : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
               }`}
           >
             <PersonOutlinedIcon sx={{ fontSize: 18 }} />
@@ -56,39 +63,58 @@ const SettingSidebar = ({ activeTab, setActiveTab, userData }) => {
             type="button"
             onClick={() => navigate("/account/order")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "orders"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-                : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
               }`}
           >
             <Inventory2OutlinedIcon sx={{ fontSize: 18 }} />
             <span>Orders</span>
           </button>
 
-          {/* Addresses */}
-          <button
-            type="button"
-            onClick={() => navigate("/checkout")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "addresses"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-                : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
-              }`}
-          >
-            <LocationOnOutlinedIcon sx={{ fontSize: 18 }} />
-            <span>Addresses</span>
-          </button>
+
 
           {/* Security */}
           <button
             type="button"
             onClick={() => setActiveTab("security")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "security"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-                : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
               }`}
           >
             <ShieldOutlinedIcon sx={{ fontSize: 18 }} />
             <span>Security</span>
           </button>
+
+          {/* Apply Store Manager */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("apply-store")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "apply-store"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+              }`}
+          >
+            <StorefrontOutlinedIcon sx={{ fontSize: 18 }} />
+            <span>Apply Store Manager</span>
+          </button>
+
+          {user.isManager && (
+            <button
+              type="button"
+              onClick={() => navigate("/store-manager/dashboard")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "my-store"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+                }`}
+            >
+              <StorefrontOutlinedIcon sx={{ fontSize: 18 }} />
+              <span>My Store</span>
+            </button>
+          )
+          }
+
+
         </nav>
       </div>
 

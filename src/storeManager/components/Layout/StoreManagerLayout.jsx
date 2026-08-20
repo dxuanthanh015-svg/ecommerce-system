@@ -1,9 +1,16 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import StoreSidebar from "./StoreSidebar";
 import StoreHeader from "./StoreHeader";
 
 const StoreManagerLayout = () => {
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  if (!isLoggedIn || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <div className="flex min-h-screen bg-[#f8f9fc] font-sans antialiased">
       {/* Fixed Left Sidebar */}

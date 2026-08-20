@@ -29,11 +29,26 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import { getUserCart } from "../../utils/cartUtils";
+import { useEffect } from "react";
 
 export default function Navigation() {
   const user = JSON.parse(localStorage.getItem('user'));
-  const cartItems = JSON.parse(localStorage.getItem('cart')) || [];
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' && !!user;
+  const [cartCount, setCartCount] = useState(() => getUserCart().length);
   const wishlistItems = JSON.parse(localStorage.getItem('wishlist')) || [];
+
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      setCartCount(getUserCart().length);
+    };
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    window.addEventListener("storage", handleCartUpdate);
+    return () => {
+      window.removeEventListener("cartUpdated", handleCartUpdate);
+      window.removeEventListener("storage", handleCartUpdate);
+    };
+  }, []);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -375,7 +390,7 @@ export default function Navigation() {
 
               <div className="ml-auto flex items-center">
                 <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
-                  {true ? (
+                  {isLoggedIn ? (
                     <div>
                       <div
                         onClick={handleUserClick}
@@ -476,7 +491,14 @@ export default function Navigation() {
                         <div className="my-1.5 border-t border-gray-100" />
 
                         <MenuItem
-                          onClick={() => { handleCloseUserMenu(); localStorage.setItem("isLoggedIn", "false"); navigate('/login'); }}
+                          onClick={() => {
+                            handleCloseUserMenu();
+                            localStorage.setItem("isLoggedIn", "false");
+                            localStorage.removeItem("user");
+                            localStorage.removeItem("currentStore");
+                            localStorage.removeItem("currentProducts")
+                            navigate('/login');
+                          }}
                           className="gap-3 hover:!bg-red-50"
                         >
                           <LogoutOutlinedIcon sx={{ fontSize: 18, color: '#ef4444' }} />
@@ -485,12 +507,22 @@ export default function Navigation() {
                       </Menu>
                     </div>
                   ) : (
-                    <Button
-                      onClick={handleOpen}
-                      className="text-sm font-medium text-gray-700 hover:text-gray-800"
-                    >
-                      Signin
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate('/login')}
+                        className="text-xs font-bold text-gray-700 hover:text-indigo-600 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/signup')}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm shadow-indigo-500/20"
+                      >
+                        Sign Up
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -529,7 +561,7 @@ export default function Navigation() {
                       className="size-6 shrink-0 text-gray-400 group-hover:text-indigo-600 transition-colors"
                     />
                     <span className="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-indigo-600">
-                      {cartItems.length}
+                      {cartCount}
                     </span>
                   </button>
                 </div>

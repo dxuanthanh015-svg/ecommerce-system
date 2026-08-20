@@ -7,6 +7,8 @@ import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 
+import { getUserCart, saveUserCart } from "../../utils/cartUtils";
+
 const WishList = () => {
   const navigate = useNavigate();
   const [wishlist, setWishlist] = useState(() => {
@@ -32,15 +34,20 @@ const WishList = () => {
   };
 
   const handleAddToCart = (item) => {
-    const currentCart = JSON.parse(localStorage.getItem("cart")) || [];
+    const currentCart = getUserCart();
     const existingIndex = currentCart.findIndex((c) => String(c.id) === String(item.id));
 
     if (existingIndex > -1) {
-      currentCart[existingIndex].quantity = (currentCart[existingIndex].quantity || 1) + 1;
+      const updatedItem = {
+        ...currentCart[existingIndex],
+        quantity: (currentCart[existingIndex].quantity || 1) + 1,
+      };
+      currentCart.splice(existingIndex, 1);
+      currentCart.unshift(updatedItem);
     } else {
-      currentCart.push({
+      currentCart.unshift({
         id: item.id,
-        id_store: item.id_store || "store-001",
+        id_store: item.id_store || item.storeId || "store-001",
         title: item.title,
         price: item.discountedPrice || item.price,
         quantity: 1,
@@ -50,7 +57,7 @@ const WishList = () => {
       });
     }
 
-    localStorage.setItem("cart", JSON.stringify(currentCart));
+    saveUserCart(currentCart);
     alert(`Đã thêm "${item.title}" vào giỏ hàng!`);
     navigate("/cart");
   };

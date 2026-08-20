@@ -8,26 +8,27 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import HomeSectionCarousel from "../Home/HomeSectionCarousel/HomeSectionCarousel";
 import { product_mock_data } from "../../../Data/product_mock_data";
 import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
+import { getUserCart, saveUserCart } from "../../utils/cartUtils";
 
 const Cart = () => {
   const navigate = useNavigate();
-  const [items, setItems] = useState(() => {
-    return JSON.parse(localStorage.getItem("cart")) || [];
-  });
+  const [items, setItems] = useState(() => getUserCart());
 
   // Group cart items by store
   const storeGroups = useMemo(() => {
     const groups = {};
+    const allProducts = JSON.parse(localStorage.getItem("products")) || product_mock_data;
+    const allStores = JSON.parse(localStorage.getItem("allStores")) || JSON.parse(localStorage.getItem("stores")) || store_manager_mock_data;
 
     items.forEach((item) => {
-      const foundProduct = product_mock_data.find((p) => String(p.id) === String(item.id));
-      const storeId = item.id_store || item.storeId || foundProduct?.id_store || "store-001";
+      const foundProduct = allProducts.find((p) => String(p.id) === String(item.id));
+      const storeId = item.id_store || item.storeId || foundProduct?.id_store || foundProduct?.storeId || "store-001";
 
       if (!groups[storeId]) {
-        const storeInfo = store_manager_mock_data.find((s) => s.id === storeId) || {
+        const storeInfo = allStores.find((s) => String(s.id) === String(storeId)) || {
           id: storeId,
-          name: "NexCart Official Store",
-          rating: 4.9,
+          name: foundProduct?.brand || "Official Partner Store",
+          rating: 5.0,
         };
         groups[storeId] = {
           store: storeInfo,
@@ -70,7 +71,7 @@ const Cart = () => {
   const handleRemoveItem = (id) => {
     const updated = items.filter((item) => item.id !== id);
     setItems(updated);
-    localStorage.setItem("cart", JSON.stringify(updated));
+    saveUserCart(updated);
   };
 
   const handleUpdateQuantity = (id, newQty) => {
@@ -78,7 +79,7 @@ const Cart = () => {
       item.id === id ? { ...item, quantity: newQty } : item
     );
     setItems(updated);
-    localStorage.setItem("cart", JSON.stringify(updated));
+    saveUserCart(updated);
   };
 
   const handleCheckOut = () => {

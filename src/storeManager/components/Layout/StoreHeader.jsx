@@ -5,6 +5,11 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 const StoreHeader = () => {
+  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const managerName = currentStore.owner || `${user.firstName || 'Store'} ${user.lastName || 'Manager'}`;
+  const avatarUrl = user.avatarUrl || currentStore.imageUrl;
+
   return (
     <header className="bg-white border-b border-gray-100 py-3.5 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 font-sans">
       {/* Search Input Box */}
@@ -45,15 +50,25 @@ const StoreHeader = () => {
         <div className="h-6 w-px bg-gray-200 mx-1" />
 
         {/* Account Profile Avatar */}
-        <button
-          type="button"
-          className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer text-gray-700"
-        >
-          <AccountCircleIcon sx={{ fontSize: 26 }} className="text-gray-600" />
-          <span className="text-xs font-bold text-gray-900 hidden md:inline">
-            Manager Admin
-          </span>
-        </button>
+        <div className="flex items-center gap-2.5 p-1 hover:bg-gray-50 rounded-xl transition-colors">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={managerName}
+              className="w-8 h-8 rounded-full object-cover border border-indigo-100 shadow-2xs"
+            />
+          ) : (
+            <AccountCircleIcon sx={{ fontSize: 28 }} className="text-gray-600" />
+          )}
+          <div className="hidden md:flex flex-col text-left">
+            <span className="text-xs font-bold text-gray-900 leading-tight">
+              {managerName}
+            </span>
+            <span className="text-[10px] text-gray-400 font-medium">
+              {currentStore.name || "Store Admin"}
+            </span>
+          </div>
+        </div>
       </div>
     </header>
   );

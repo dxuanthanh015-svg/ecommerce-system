@@ -33,14 +33,12 @@ export const ProductFormProvider = ({ children, initialData, isEdit }) => {
   const [formData, setFormData] = useState(defaultProductState);
   const [newOptionName, setNewOptionName] = useState("");
 
-  // Initialize data
   useEffect(() => {
     if (initialData) {
       setFormData(prev => ({ ...prev, ...initialData }));
     }
   }, [initialData]);
 
-  // Sync Matrix when variants change
   useEffect(() => {
     setFormData(prev => {
       const newMatrix = generateVariantMatrix(prev.variants, prev.generatedMatrix);
@@ -57,7 +55,6 @@ export const ProductFormProvider = ({ children, initialData, isEdit }) => {
     setFormData(prev => ({ ...prev, visibility: val }));
   }, []);
 
-  // Media Logic
   const addMediaImages = useCallback((newImages) => {
     setFormData(prev => ({
       ...prev,
@@ -82,7 +79,6 @@ export const ProductFormProvider = ({ children, initialData, isEdit }) => {
     }));
   }, []);
 
-  // Variant Logic
   const addOption = useCallback(() => {
     setFormData(prev => ({
       ...prev,
@@ -121,7 +117,7 @@ export const ProductFormProvider = ({ children, initialData, isEdit }) => {
   const removeValueFromOption = useCallback((optionId, valueToRemove) => {
     setFormData(prev => ({
       ...prev,
-      variants: prev.variants.map(v => 
+      variants: prev.variants.map(v =>
         v.id === optionId ? { ...v, values: v.values.filter(val => val !== valueToRemove) } : v
       )
     }));
@@ -151,8 +147,8 @@ export const ProductFormProvider = ({ children, initialData, isEdit }) => {
     handleMatrixChange,
     setFormData
   }), [
-    formData, isEdit, handleChange, setVisibility, addMediaImages, removeMediaImage, 
-    setMainImage, addOption, removeOption, updateOptionName, addValueToOption, 
+    formData, isEdit, handleChange, setVisibility, addMediaImages, removeMediaImage,
+    setMainImage, addOption, removeOption, updateOptionName, addValueToOption,
     removeValueFromOption, handleMatrixChange
   ]);
 

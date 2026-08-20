@@ -14,14 +14,13 @@ const ProductTableRow = ({
   const {
     id,
     title,
-    sku,
-    category,
-    price,
-    stockCount = 0,
-    isVisible = true,
+    secondLavelCategory,
+    discountedPrice,
+    quantity,
+    isVisible = false,
     imageUrl
   } = product;
-  const statusBadge = getProductInventoryStatus(stockCount);
+  const statusBadge = getProductInventoryStatus(quantity);
 
   return (
     <tr className="hover:bg-gray-50/60 transition-colors border-b border-gray-50 font-sans">
@@ -37,21 +36,19 @@ const ProductTableRow = ({
             <h4 className="text-xs sm:text-sm font-bold text-gray-900 line-clamp-1">
               {title}
             </h4>
-            <p className="text-[11px] font-medium text-gray-400">
-              SKU: {sku || `SKU-${id}`}
-            </p>
+
           </div>
         </div>
       </td>
 
       {/* Category */}
-      <td className="py-4 px-6 text-xs font-medium text-gray-600">
-        {category}
+      <td className="py-4 px-6 text-xs font-bold text-gray-900">
+        {secondLavelCategory}
       </td>
 
       {/* Price */}
       <td className="py-4 px-6 text-xs sm:text-sm font-bold text-gray-900">
-        ${typeof price === "number" ? price.toFixed(2) : price}
+        ${typeof discountedPrice === "number" ? discountedPrice.toFixed(2) : discountedPrice}
       </td>
 
       <td className="py-4 px-6">
@@ -62,15 +59,13 @@ const ProductTableRow = ({
         <button
           type="button"
           onClick={() => onToggleVisibility && onToggleVisibility(id)}
-          className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer ${
-            isVisible ? "bg-indigo-600" : "bg-gray-200"
-          }`}
+          className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer ${isVisible ? "bg-indigo-600" : "bg-gray-200"
+            }`}
           aria-label="Toggle product visibility"
         >
           <div
-            className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
-              isVisible ? "translate-x-5" : "translate-x-0"
-            }`}
+            className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${isVisible ? "translate-x-5" : "translate-x-0"
+              }`}
           />
         </button>
       </td>

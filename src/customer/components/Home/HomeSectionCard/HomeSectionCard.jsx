@@ -7,7 +7,10 @@ const HomeSectionCard = ({ product }) => {
   const originalPrice = product?.discountedPrice ? product?.price : null;
 
   return (
-    <div className="cursor-pointer flex flex-col bg-white rounded-md overflow-hidden border border-gray-100/80 hover:shadow-lg transition-all duration-300 mx-2 my-2 group">
+    <div
+      onClick={() => navigate(`/product/${product?.id}`)}
+      className="cursor-pointer flex flex-col bg-white rounded-md overflow-hidden border border-gray-100/80 hover:shadow-lg transition-all duration-300 mx-2 my-2 group"
+    >
       {/* Image Container */}
       <div className="relative aspect-[3/4] sm:h-[340px] w-full bg-[#f4f4f6] overflow-hidden">
         {/* Badge */}
@@ -22,7 +25,6 @@ const HomeSectionCard = ({ product }) => {
           src={product?.imageUrl || product?.image}
           alt={product?.title || "Product image"}
           role="presentation"
-          onClick={() => navigate(`/product/${product?.id}`)}
         />
       </div>
 

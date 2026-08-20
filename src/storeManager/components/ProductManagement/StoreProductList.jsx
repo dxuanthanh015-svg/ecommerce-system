@@ -4,8 +4,8 @@ import AddIcon from "@mui/icons-material/Add";
 import ProductTableFilter from "./ProductTableFilter";
 import ProductTableRow from "./ProductTableRow";
 import ProductPagination from "./ProductPagination";
+import { product_mock_data } from "../../../Data/product_mock_data";
 import {
-  DEFAULT_PRODUCTS,
   PRODUCT_PAGE_SIZE,
   PRODUCT_STATUS_OPTIONS,
 } from "./productManagement.data";
@@ -15,23 +15,45 @@ import {
   paginateProducts,
 } from "./productManagement.utils";
 
+
+
 const StoreProductList = ({
-  productsList = DEFAULT_PRODUCTS,
+  productsList,
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
   onToggleVisibility
 }) => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState(productsList);
+  const [products, setProducts] = useState(() => {
+    if (productsList) return productsList;
+    const activeUser = JSON.parse(localStorage.getItem("user"));
+    const currentStore = JSON.parse(localStorage.getItem("currentStore"));
+    const saved = JSON.parse(localStorage.getItem("products")) || product_mock_data;
+    const currentProduct = JSON.parse(localStorage.getItem('currentProducts')) || product_mock_data;
+    if (currentProduct) {
+      return currentProduct;
+    }
+
+
+    if (activeUser?.isManager && currentStore?.id) {
+      const myStoreProducts = saved.filter(
+        (item) => String(item.id_store || item.storeId) === String(currentStore.id)
+      );
+      return myStoreProducts;
+    }
+  });
+
+  useEffect(() => {
+    if (productsList) {
+      setProducts(productsList);
+    }
+  }, [productsList]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedStatus, setSelectedStatus] = useState("All Statuses");
   const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    setProducts(productsList);
-  }, [productsList]);
 
   const categories = useMemo(() => getProductCategories(products), [products]);
 
@@ -39,11 +61,26 @@ const StoreProductList = ({
     if (onToggleVisibility) {
       onToggleVisibility(id);
     } else {
-      setProducts((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, isVisible: !item.isVisible } : item
-        )
-      );
+      setProducts((prev) => {
+        // Tính giá trị mới từ state hiện tại
+        const targetItem = prev.find((item) => item.id === id);
+        const newIsVisible = targetItem ? !targetItem.isVisible : true;
+
+        // Cập nhật currentProducts
+        const updatedCurrent = prev.map((item) =>
+          item.id === id ? { ...item, isVisible: newIsVisible } : item
+        );
+        localStorage.setItem("currentProducts", JSON.stringify(updatedCurrent));
+
+        // Cập nhật products (dùng cùng giá trị newIsVisible)
+        const allProds = JSON.parse(localStorage.getItem("products")) || [];
+        const updatedAll = allProds.map((item) =>
+          item.id === id ? { ...item, isVisible: newIsVisible } : item
+        );
+        localStorage.setItem("products", JSON.stringify(updatedAll));
+
+        return updatedCurrent;
+      });
     }
   };
 
@@ -52,7 +89,19 @@ const StoreProductList = ({
     if (onDeleteProduct) {
       onDeleteProduct(id);
     } else {
-      setProducts((prev) => prev.filter((item) => item.id !== id));
+      if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+        setProducts((prev) => {
+          const updatedCurrentProduct = prev.filter((item) => item.id !== id);
+          localStorage.setItem("currentProducts", JSON.stringify(updatedCurrentProduct));
+
+          const product = JSON.parse(localStorage.getItem('products'))
+          const updatedProducts = product.filter((item) =>
+            item.id != id
+          );
+          localStorage.setItem("products", JSON.stringify(updatedProducts));
+          return updatedCurrentProduct;
+        });
+      }
     }
   };
 
@@ -135,7 +184,7 @@ const StoreProductList = ({
                 <th className="py-4 px-6">CATEGORY</th>
                 <th className="py-4 px-6">PRICE</th>
                 <th className="py-4 px-6">STATUS</th>
-                <th className="py-4 px-6">VISIBLE</th>
+                <th className="py-4 px-6">HIDDEN</th>
                 <th className="py-4 px-6 text-right">ACTIONS</th>
               </tr>
             </thead>
@@ -173,3 +222,5 @@ const StoreProductList = ({
 };
 
 export default StoreProductList;
+
+

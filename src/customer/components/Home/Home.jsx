@@ -38,7 +38,9 @@ const categories = [
 ];
 
 const Home = () => {
-  const trendingProduct = product_mock_data.filter(product => product.isTrending === true).slice(0, 10);
+  const savedProducts = JSON.parse(localStorage.getItem("products"));
+  const allProducts = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
+  const trendingProduct = allProducts.filter(product => product.isTrending === true && product.isVisible !== true).slice(0, 10);
   return (
     <div className="w-full bg-white min-h-screen">
       <MainCarousal />

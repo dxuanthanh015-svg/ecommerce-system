@@ -1,6 +1,6 @@
 import React from "react";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { productsSale } from "../../../../Data/product_mock_data";
+import { product_mock_data } from "../../../../Data/product_mock_data";
 import CircleIcon from "@mui/icons-material/Circle";
 import FlashSaleCountdown from "./FlashSaleCountDown";
 import { salePoster } from "./salePoster";
@@ -8,6 +8,11 @@ import { useNavigate } from "react-router-dom";
 
 export default function FlashSaleSection() {
   const navigate = useNavigate();
+  const savedProducts = JSON.parse(localStorage.getItem("products"));
+  const allProducts = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
+  const flashSaleItems = allProducts.filter((p) => p.isFlashSale === true);
+  const displayItems = flashSaleItems.length > 0 ? flashSaleItems : salePoster;
+
   return (
     <section className="py-12 bg-indigo-50 rounded-md">
       <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -33,32 +38,38 @@ export default function FlashSaleSection() {
 
         {/* Product Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-[320px]/w-full sm:w-[1100px] mx-auto">
-          {salePoster.map((item) => (
-            <div key={item.id} className="group flex flex-col justify-between space-y-7">
+          {displayItems.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => navigate(`/product/${item.id}`)}
+              className="group flex flex-col justify-between space-y-7 cursor-pointer"
+            >
               <div>
                 {/* Image & Badge */}
                 <div className="aspect-[3/4] rounded-md bg-gray-100 overflow-hidden mb-3 relative shadow-xs group-hover:shadow-md transition-all duration-300">
                   <span className="absolute top-3 left-3 z-10 bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm">
-                    {item.discountPersent}
+                    {item.discountPersent ? `${item.discountPersent}% OFF` : "-20%"}
                   </span>
                   <img
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out cursor-pointer"
                     src={item.imageUrl}
-                    alt={item.name}
+                    alt={item.title || item.name}
                   />
                 </div>
 
                 {/* Info */}
-                <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-1 truncate">
-                  {item.name}
+                <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-1 truncate group-hover:text-indigo-600 transition-colors">
+                  {item.title || item.name}
                 </h3>
                 <div className="flex items-baseline gap-2 mb-3">
                   <span className="text-base sm:text-lg font-bold text-gray-900">
-                    ${item.discountedPrice.toFixed(2)}
+                    ${(item.discountedPrice || item.price || 0).toFixed(2)}
                   </span>
-                  <span className="text-xs sm:text-sm text-gray-400 line-through">
-                    ${item.price.toFixed(2)}
-                  </span>
+                  {item.price && (
+                    <span className="text-xs sm:text-sm text-gray-400 line-through">
+                      ${item.price.toFixed(2)}
+                    </span>
+                  )}
                 </div>
               </div>
 

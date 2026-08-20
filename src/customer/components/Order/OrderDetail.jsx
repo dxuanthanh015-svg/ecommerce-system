@@ -88,6 +88,7 @@ const OrderDetail = () => {
                 <button
                   type="button"
                   className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0"
+                  onClick={() => navigate(`/product/${item.id}`)}
                 >
                   <StarBorderIcon sx={{ fontSize: 16 }} />
                   <span>Rate & Review</span>
