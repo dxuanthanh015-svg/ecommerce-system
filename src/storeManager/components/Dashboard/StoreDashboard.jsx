@@ -74,7 +74,7 @@ const StoreDashboard = () => {
   const lowStockItems = useMemo(() => {
     const savedProducts = JSON.parse(localStorage.getItem("products"));
     const allProducts = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
-    
+
     // Filter products belonging to this store
     const storeProducts = allProducts.filter(
       (p) => String(p.id_store || p.storeId) === String(currentStore?.id)
@@ -94,7 +94,7 @@ const StoreDashboard = () => {
   // Calculate real 7-day revenue chart data
   const chartData = useMemo(() => {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const last7Days = [];
+    const last7days = [];
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -107,14 +107,14 @@ const StoreDashboard = () => {
         .filter((o) => o.date && new Date(o.date).toDateString() === dateString)
         .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
 
-      last7Days.push({
+      last7days.push({
         day: dayName,
         value: Math.round(dayRev),
         rawRevenue: dayRev,
       });
     }
 
-    return last7Days;
+    return last7days;
   }, [orders]);
 
   const handleApproveOrder = (orderId) => {
