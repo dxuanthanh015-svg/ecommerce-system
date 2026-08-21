@@ -91,31 +91,80 @@ const StoreDashboard = () => {
       .slice(0, 5);
   }, [currentStore.id]);
 
-  // Calculate real 7-day revenue chart data
-  const chartData = useMemo(() => {
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const last7days = [];
+const chartData = useMemo(() => {
+  const now = new Date();
 
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dayName = dayNames[d.getDay()];
-      const dateString = d.toDateString();
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const last7days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(now.getDate() - (6 - i));
+    const dateStr = d.toDateString();
+    
+    const value = orders
+      .filter((o) => o.date && new Date(o.date).toDateString() === dateStr)
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
 
-      // Find revenue for this day
-      const dayRev = orders
-        .filter((o) => o.date && new Date(o.date).toDateString() === dateString)
-        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+    return { label: dayNames[d.getDay()], value: Math.round(value) };
+  });
 
-      last7days.push({
-        day: dayName,
-        value: Math.round(dayRev),
-        rawRevenue: dayRev,
-      });
-    }
+  const last30days = [
+    { label: "Day 1-5", min: 26, max: 30 },
+    { label: "Day 6-10", min: 21, max: 25 },
+    { label: "Day 11-15", min: 16, max: 20 },
+    { label: "Day 16-20", min: 11, max: 15 },
+    { label: "Day 21-25", min: 6, max: 10 },
+    { label: "Day 26-30", min: 0, max: 5 },
+  ].map((range) => {
+    const value = orders
+      .filter((o) => {
+        if (!o.date) return false;
+        const diffDays = Math.floor((now - new Date(o.date)) / (1000 * 60 * 60 * 24));
+        return diffDays >= range.min && diffDays <= range.max;
+      })
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
 
-    return last7days;
-  }, [orders]);
+    return { label: range.label, value: Math.round(value) };
+  });
+
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const thismonth = [
+    { label: "Week 1", start: 1, end: 7 },
+    { label: "Week 2", start: 8, end: 14 },
+    { label: "Week 3", start: 15, end: 21 },
+    { label: "Week 4", start: 22, end: 31 },
+  ].map((week) => {
+    const value = orders
+      .filter((o) => {
+        if (!o.date) return false;
+        const d = new Date(o.date);
+        return (
+          d.getMonth() === currentMonth &&
+          d.getFullYear() === currentYear &&
+          d.getDate() >= week.start &&
+          d.getDate() <= week.end
+        );
+      })
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+
+    return { label: week.label, value: Math.round(value) };
+  });
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const thisyear = monthNames.map((monthLabel, monthIdx) => {
+    const value = orders
+      .filter((o) => {
+        if (!o.date) return false;
+        const d = new Date(o.date);
+        return d.getFullYear() === currentYear && d.getMonth() === monthIdx;
+      })
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+
+    return { label: monthLabel, value: Math.round(value) };
+  });
+
+  return { last7days, last30days, thismonth, thisyear };
+}, [orders]);
 
   const handleApproveOrder = (orderId) => {
     if (!currentStore.id) return;
@@ -136,6 +185,7 @@ const StoreDashboard = () => {
   return (
     <div className="space-y-8 font-sans pb-12">
       {/* Top Header & Actions Bar */}
+      {console.log(chartData)}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
@@ -203,7 +253,7 @@ const StoreDashboard = () => {
       {/* Middle Grid: Revenue Overview & Low Stock Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         <div className="lg:col-span-8">
-          <RevenueChartCard chartData={chartData} />
+          <RevenueChartCard customData={chartData} />
         </div>
         <div className="lg:col-span-4">
           <LowStockAlertsCard items={lowStockItems} />

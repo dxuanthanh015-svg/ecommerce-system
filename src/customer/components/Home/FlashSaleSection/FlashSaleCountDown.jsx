@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 
 export default function FlashSaleCountdown() {
-  // Đặt thời gian kết thúc (ví dụ: 4 giờ 22 phút 59 giây từ thời điểm hiện tại)
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 4,
@@ -11,7 +10,6 @@ export default function FlashSaleCountdown() {
   });
 
   useEffect(() => {
-    // Tính tổng số giây còn lại
     let totalSeconds =
       timeLeft.days * 86400 +
       timeLeft.hours * 3600 +
@@ -40,7 +38,6 @@ export default function FlashSaleCountdown() {
     return () => clearInterval(timer);
   }, []);
 
-  // Format số luôn có 2 chữ số (ví dụ: 05 thay vì 5)
   const formatTime = (num) => String(num).padStart(2, '0');
 
   const timeUnits = [
@@ -52,7 +49,6 @@ export default function FlashSaleCountdown() {
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 bg-[#e9eef9] px-3.5 py-2 rounded-2xl border border-indigo-100/60 shadow-xs">
-      {/* Icon + Label */}
       <div className="flex items-center gap-1 text-[#431fc3] mr-1">
         <AccessTimeFilledIcon className="animate-pulse" sx={{ fontSize: 20 }} />
         <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline-block">
@@ -60,7 +56,6 @@ export default function FlashSaleCountdown() {
         </span>
       </div>
 
-      {/* Timer Display */}
       <div className="flex items-center gap-1.5">
         {timeUnits.map((item, idx) => (
           <React.Fragment key={idx}>

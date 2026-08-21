@@ -38,7 +38,7 @@ export default function FlashSaleSection() {
 
         {/* Product Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-[320px]/w-full sm:w-[1100px] mx-auto">
-          {displayItems.map((item) => (
+          {displayItems.slice(0,9).map((item) => (
             <div
               key={item.id}
               onClick={() => navigate(`/product/${item.id}`)}
