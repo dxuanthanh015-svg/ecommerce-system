@@ -5,51 +5,11 @@ import OrderTableFilter from "./OrderTableFilter";
 import OrderTableRow from "./OrderTableRow";
 import OrderPagination from "./OrderPagination";
 
-// Default Reusable API Schema for demonstration
-const defaultOrders = [
-  {
-    orderId: "#ORD-9021",
-    customerName: "Emma Stone",
-    customerEmail: "emma.s@example.com",
-    date: "Oct 24, 2023 10:42 AM",
-    totalAmount: 1249.00,
-    paymentStatus: "Paid",
-    orderStatus: "Pending"
-  },
-  {
-    orderId: "#ORD-9020",
-    customerName: "John Doe",
-    customerEmail: "john.doe@example.com",
-    date: "Oct 23, 2023 14:15 PM",
-    totalAmount: 45.50,
-    paymentStatus: "Unpaid",
-    orderStatus: "Pending"
-  },
-  {
-    orderId: "#ORD-9019",
-    customerName: "Alice Wong",
-    customerEmail: "alice.w@example.com",
-    date: "Oct 22, 2023 09:30 AM",
-    totalAmount: 320.00,
-    paymentStatus: "Paid",
-    orderStatus: "Packing"
-  },
-  {
-    orderId: "#ORD-9018",
-    customerName: "Michael Johnson",
-    customerEmail: "mjohnson@example.com",
-    date: "Oct 20, 2023 16:45 PM",
-    totalAmount: 89.99,
-    paymentStatus: "Paid",
-    orderStatus: "Completed"
-  }
-];
 
 import { getStoreOrderRevenue, updateStoreOrderStatus } from "../../../customer/utils/orderInventoryUtils";
+import { useSearchParams } from "react-router-dom";
 
 const StoreOrderList = ({
-  onExport,
-  onCreateOrder,
   onConfirmOrder,
   onShipOrder,
   onCancelOrder
@@ -74,7 +34,8 @@ const StoreOrderList = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParam, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParam.get("page") || "1", 10);
 
   // Confirm Order Handler
   const handleConfirm = (id) => {
@@ -132,6 +93,13 @@ const StoreOrderList = ({
     return matchesSearch && matchesStatus;
   });
 
+  const orderRowPerPage = 8;
+  const page = Math.ceil(filteredOrders.length / orderRowPerPage);
+  const currentPageData = filteredOrders.slice(
+    (currentPage - 1) * orderRowPerPage,
+    currentPage * orderRowPerPage
+  );
+
   return (
     <div className="space-y-6 font-sans">
       {/* Title & Top Actions Bar */}
@@ -143,26 +111,6 @@ const StoreOrderList = ({
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Review and process recent customer orders.
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onExport}
-            className="border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
-          >
-            <FileDownloadOutlinedIcon sx={{ fontSize: 18 }} />
-            <span>Export</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onCreateOrder}
-            className="bg-[#5B21B6] hover:bg-purple-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
-          >
-            <AddIcon sx={{ fontSize: 18 }} />
-            <span>Create Order</span>
-          </button>
         </div>
       </div>
 
@@ -189,8 +137,8 @@ const StoreOrderList = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => (
+              {currentPageData.length > 0 ? (
+                currentPageData.map((order) => (
                   <OrderTableRow
                     key={order.orderId}
                     order={order}
@@ -213,11 +161,11 @@ const StoreOrderList = ({
         {/* Pagination Sub-component */}
         <OrderPagination
           currentPage={currentPage}
-          totalPages={3}
-          showingFrom={filteredOrders.length > 0 ? 1 : 0}
-          showingTo={filteredOrders.length}
-          totalEntries={24}
-          onPageChange={(page) => setCurrentPage(page)}
+          totalPages={page}
+          showingFrom={currentPage > 1 ? (currentPage - 1) * orderRowPerPage + 1 : 1}
+          showingTo={currentPage === page ? filteredOrders.length : currentPage * orderRowPerPage}
+          totalEntries={filteredOrders.length}
+          onPageChange={(event, newPage) => setSearchParams({ page: newPage })}
         />
       </div>
 

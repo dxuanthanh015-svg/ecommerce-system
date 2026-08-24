@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import OrderCard from "./OrderCard";
 import SearchIcon from "@mui/icons-material/Search";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -11,23 +11,34 @@ import PaginationItem from '@mui/material/PaginationItem';
 const Order = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = parseInt(searchParams.get("page") || "1", 10);
 
-  const [orders] = useState(() => {
+  const [orders, setOrders] = useState(() => {
     const userOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
     return [...userOrders];
   });
+
+  const handleConfirmReceived = (orderId) => {
+    const updatedOrders = orders.map((o) =>
+      o.orderId === orderId ? { ...o, status: "Delivered" } : o
+    );
+    setOrders(updatedOrders);
+    localStorage.setItem("userOrders", JSON.stringify(updatedOrders));
+  };
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
 
+  const handleChangePage = (event, newPage) => {
+    setSearchParams({ page: newPage });
+  };
+
   const itemPerPage = 4;
   const totalPages = Math.ceil(orders.length / itemPerPage);
   const startIndex = (page - 1) * itemPerPage;
   const currentOrders = orders.slice(startIndex, startIndex + itemPerPage);
-
-  const handleChangePage = (event, newPage) => { setPage(newPage); };
 
 
   const filteredOrders = currentOrders.filter((order) => {
@@ -86,7 +97,7 @@ const Order = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           {filteredOrders.length > 0 ? (
             filteredOrders.map((order) => (
-              <OrderCard key={order.orderId} order={order} />
+              <OrderCard key={order.orderId} order={order} onConfirmReceived={handleConfirmReceived} />
             ))
           ) : (
             <div className="col-span-full bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-2xs">

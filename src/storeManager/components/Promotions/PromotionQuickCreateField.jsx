@@ -11,6 +11,8 @@ const PromotionQuickCreateField = ({
   type = "text",
   placeholder,
   options,
+  min,
+  max,
   className = "",
 }) => {
   return (
@@ -41,6 +43,8 @@ const PromotionQuickCreateField = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          min={min}
+          max={max}
           className={baseInputClassName}
         />
       )}

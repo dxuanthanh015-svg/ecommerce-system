@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import PendingActionsTwoToneIcon from '@mui/icons-material/PendingActionsTwoTone';
+import FreeCancellationRoundedIcon from '@mui/icons-material/FreeCancellationRounded';
 
 const getStatusBadge = (status) => {
   switch (status) {
@@ -13,7 +15,7 @@ const getStatusBadge = (status) => {
           <span>Delivered</span>
         </span>
       );
-    case "In Transit":
+    case "Shipped":
       return (
         <span className="bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <LocalShippingOutlinedIcon sx={{ fontSize: 14 }} />
@@ -26,6 +28,20 @@ const getStatusBadge = (status) => {
         <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <AccessTimeOutlinedIcon sx={{ fontSize: 14 }} />
           <span>Processing</span>
+        </span>
+      );
+    case "Pending":
+      return (
+        <span className="bg-yellow-50 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+          <PendingActionsTwoToneIcon sx={{ fontSize: 14 }} />
+          <span>Pending</span>
+        </span>
+      );
+    case "Cancelled":
+      return (
+        <span className="bg-yellow-50 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+          <FreeCancellationRoundedIcon sx={{ fontSize: 14 }} />
+          <span>Cancelled</span>
         </span>
       );
   }
@@ -48,8 +64,8 @@ const OrderCard = ({ order, product }) => {
 
   const maxDisplay = 2;
   const displayItems = items.slice(0, maxDisplay);
-  const extraCount = currentOrder.extraCount !== undefined 
-    ? currentOrder.extraCount 
+  const extraCount = currentOrder.extraCount !== undefined
+    ? currentOrder.extraCount
     : (items.length > maxDisplay ? items.length - maxDisplay : 0);
 
   return (
@@ -88,7 +104,7 @@ const OrderCard = ({ order, product }) => {
 
         {/* Total & Action Button */}
         <div className="text-right space-y-3">
-          <div>
+          <div className="flex flex-col items-center">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
               TOTAL
             </span>
@@ -97,12 +113,16 @@ const OrderCard = ({ order, product }) => {
             </span>
           </div>
 
-          <button
-            onClick={() => navigate(`/account/order/${orderId}`)}
-            className="border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-800 font-bold text-xs px-5 py-2 rounded-xl transition-all cursor-pointer"
-          >
-            View Details
-          </button>
+          <div className="flex flex-col items-end gap-2">
+
+
+            <button
+              onClick={() => navigate(`/account/order/${orderId}`)}
+              className="border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-800 font-bold text-xs px-5 py-2 rounded-xl transition-all cursor-pointer"
+            >
+              View Details
+            </button>
+          </div>
         </div>
       </div>
     </div>

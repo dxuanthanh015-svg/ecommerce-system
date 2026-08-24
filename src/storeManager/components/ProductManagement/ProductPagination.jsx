@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { buildPaginationItems } from "./productManagement.utils";
 
 const ProductPagination = ({
@@ -7,6 +7,11 @@ const ProductPagination = ({
   onPageChange
 }) => {
   const paginationItems = buildPaginationItems(currentPage, totalPages);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
+
 
   return (
     <div className="p-4 sm:p-5 flex items-center justify-between border-t border-gray-100 font-sans">

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import OrderTableFilter from "./OrderTableFilter";
@@ -56,7 +57,8 @@ const StoreOrderList = ({
   const [orders, setOrders] = useState(ordersList);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
   // Confirm Order Handler
   const handleConfirm = (id) => {
@@ -190,7 +192,7 @@ const StoreOrderList = ({
           showingFrom={filteredOrders.length > 0 ? 1 : 0}
           showingTo={filteredOrders.length}
           totalEntries={24}
-          onPageChange={(page) => setCurrentPage(page)}
+          onPageChange={(page) => setSearchParams({ page })}
         />
       </div>
 

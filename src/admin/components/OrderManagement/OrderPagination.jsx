@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 const OrderPagination = ({
   currentPage = 1,
@@ -8,6 +8,11 @@ const OrderPagination = ({
   totalEntries = 24,
   onPageChange
 }) => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
+
+
   return (
     <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 font-sans">
       {/* Left Text */}

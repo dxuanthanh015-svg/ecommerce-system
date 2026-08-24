@@ -1,13 +1,18 @@
-import React from "react";
+import { useEffect } from "react";
 
 const OrderPagination = ({
-  currentPage = 1,
-  totalPages = 3,
-  showingFrom = 1,
-  showingTo = 4,
-  totalEntries = 24,
-  onPageChange
+  currentPage,
+  totalPages,
+  showingFrom,
+  showingTo,
+  totalEntries,
+  onPageChange,
 }) => {
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
+
   return (
     <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 font-sans">
       {/* Left Text */}
@@ -26,25 +31,24 @@ const OrderPagination = ({
           &lt;
         </button>
 
-        {[1, 2, 3].map((page) => (
+        {new Array(totalPages).fill(0).map((_, index) => (
           <button
-            key={page}
+            key={index}
             type="button"
-            onClick={() => onPageChange && onPageChange(page)}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              currentPage === page
-                ? "bg-indigo-600 text-white shadow-xs"
-                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-            }`}
+            onClick={(event) => onPageChange(event, index + 1)}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === index + 1
+              ? "bg-indigo-600 text-white shadow-xs"
+              : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+              }`}
           >
-            {page}
+            {index + 1}
           </button>
         ))}
 
         <button
           type="button"
           disabled={currentPage >= totalPages}
-          onClick={() => onPageChange && onPageChange(currentPage + 1)}
+          onClick={(event) => onPageChange(event, currentPage + 1)}
           className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-40 text-xs font-semibold cursor-pointer transition-colors"
         >
           &gt;

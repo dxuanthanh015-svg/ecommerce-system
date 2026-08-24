@@ -4,7 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 const statusTabs = [
   "All",
   "Pending",
-  "Packing",
+  "Processing",
   "Shipped",
   "Delivered",
   "Cancelled",
@@ -43,11 +43,10 @@ const OrderTableFilter = ({
               key={tab}
               type="button"
               onClick={() => onStatusChange(tab)}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                isActive
+              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${isActive
                   ? "bg-indigo-600 text-white shadow-2xs"
                   : "border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
+                }`}
             >
               {tab}
             </button>

@@ -10,6 +10,8 @@ const PromotionCampaignList = ({
   selectedPromotionId,
   onTabChange,
   onSelectPromotion,
+  onDeletePromotion,
+  onToggleStatus,
 }) => {
   return (
     <section className="rounded-2xl border border-[#e5e7f2] bg-white shadow-sm">
@@ -44,6 +46,8 @@ const PromotionCampaignList = ({
               promotion={promotion}
               isSelected={promotion.id === selectedPromotionId}
               onSelect={onSelectPromotion}
+              onDelete={onDeletePromotion}
+              onToggleStatus={onToggleStatus}
             />
           ))
         ) : (

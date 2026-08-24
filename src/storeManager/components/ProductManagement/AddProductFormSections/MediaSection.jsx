@@ -8,17 +8,14 @@ const MAX_IMAGES = 4;
 const MediaSection = ({ formData, handleChange }) => {
   const fileInputRef = useRef(null);
 
-  // images[] là mảng base64, imageUrl luôn = images[0] (cover)
-  const images = Array.isArray(formData.images) ? formData.images : 
+  const images = Array.isArray(formData.images) ? formData.images :
     (formData.imageUrl ? [formData.imageUrl] : []);
 
   const syncImages = (newImages) => {
-    // Cập nhật cả images[] và imageUrl (= ảnh đầu tiên)
     handleChange({ target: { name: "images", value: newImages } });
     handleChange({ target: { name: "imageUrl", value: newImages[0] || "" } });
   };
 
-  // Nén ảnh qua Canvas trước khi lưu base64
   const compressImage = (file, maxPx = 1000, quality = 0.75) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -27,7 +24,6 @@ const MediaSection = ({ formData, handleChange }) => {
         img.onload = () => {
           let { width, height } = img;
 
-          // Scale down nếu vượt maxPx
           if (width > maxPx || height > maxPx) {
             if (width > height) {
               height = Math.round((height / width) * maxPx);
@@ -57,7 +53,7 @@ const MediaSection = ({ formData, handleChange }) => {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = ""; // reset sớm để upload lại cùng file được
+    e.target.value = "";
 
     if (images.length >= MAX_IMAGES) {
       alert(`Bạn chỉ có thể upload tối đa ${MAX_IMAGES} ảnh.`);
@@ -104,7 +100,6 @@ const MediaSection = ({ formData, handleChange }) => {
         </span>
       </div>
 
-      {/* Image URL input (manual) */}
       <div>
         <label className="text-xs font-bold text-gray-700 block mb-1.5">
           Hoặc dán URL ảnh <span className="font-normal text-gray-400">(tùy chọn)</span>
@@ -148,15 +143,12 @@ const MediaSection = ({ formData, handleChange }) => {
         </div>
       </div>
 
-      {/* Image Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Existing images */}
         {images.map((src, index) => (
           <div
             key={index}
-            className={`relative aspect-square rounded-2xl overflow-hidden border-2 bg-gray-50 shadow-sm group transition-all ${
-              index === 0 ? "border-indigo-500" : "border-gray-200 hover:border-indigo-300"
-            }`}
+            className={`relative aspect-square rounded-2xl overflow-hidden border-2 bg-gray-50 shadow-sm group transition-all ${index === 0 ? "border-indigo-500" : "border-gray-200 hover:border-indigo-300"
+              }`}
           >
             <img
               src={src}
@@ -164,16 +156,13 @@ const MediaSection = ({ formData, handleChange }) => {
               className="w-full h-full object-cover"
             />
 
-            {/* Cover badge */}
             {index === 0 && (
               <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase shadow">
                 COVER
               </span>
             )}
 
-            {/* Hover overlay with actions */}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              {/* Set as cover */}
               {index !== 0 && (
                 <button
                   type="button"
@@ -184,7 +173,6 @@ const MediaSection = ({ formData, handleChange }) => {
                   <StarIcon sx={{ fontSize: 14 }} />
                 </button>
               )}
-              {/* Remove */}
               <button
                 type="button"
                 onClick={() => handleRemoveImage(index)}
@@ -195,14 +183,12 @@ const MediaSection = ({ formData, handleChange }) => {
               </button>
             </div>
 
-            {/* Index badge */}
             <span className="absolute bottom-2 right-2 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
               {index + 1}
             </span>
           </div>
         ))}
 
-        {/* Upload slot */}
         {canAddMore && (
           <div
             className="aspect-square rounded-2xl border-2 border-dashed border-indigo-200 bg-[#f8f9fc]/60 hover:bg-indigo-50/40 hover:border-indigo-400 transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 group"
@@ -219,13 +205,12 @@ const MediaSection = ({ formData, handleChange }) => {
               <CloudUploadOutlinedIcon sx={{ fontSize: 18 }} />
             </div>
             <p className="text-[10px] font-bold text-gray-400 group-hover:text-indigo-500 transition-colors text-center leading-tight px-1">
-              Upload ảnh<br/>
+              Upload ảnh<br />
               <span className="font-normal">({images.length}/{MAX_IMAGES})</span>
             </p>
           </div>
         )}
 
-        {/* Empty placeholder slots */}
         {Array.from({ length: Math.max(0, MAX_IMAGES - images.length - (canAddMore ? 1 : 0)) }).map((_, i) => (
           <div
             key={`empty-${i}`}

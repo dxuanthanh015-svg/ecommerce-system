@@ -84,10 +84,6 @@ export const customerRoutes = {
           element: <OrderPage />,
         },
         {
-          path: "/orderdetail",
-          element: <OrderDetailPage />,
-        },
-        {
           path: "/setting",
           element: <SettingPage />,
         },

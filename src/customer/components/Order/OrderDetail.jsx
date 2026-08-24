@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import OrderTracker from "./OrderTracker";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -6,12 +6,49 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
 
 const OrderDetail = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
   const userOrder = JSON.parse(localStorage.getItem("userOrders")).find((item) => item.orderId === orderId) || [];
-  const currentOrderId = orderId || orderDetailData.orderId;
+  const [currentStatus, setCurrentStatus] = useState(userOrder.status);
+  const [confirming, setConfirming] = useState(false);
+
+  // Scroll to top on mount (so reload lands at top of page)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const handleConfirmReceived = () => {
+    setConfirming(true);
+    try {
+      const storeId = JSON.parse(localStorage.getItem("currentStore"))?.id || "";
+      const allStoreRevenue = JSON.parse(localStorage.getItem("allStoreRevenue")) || {};
+      if (allStoreRevenue[storeId]) {
+        allStoreRevenue[storeId].orders = allStoreRevenue[storeId].orders.map((o) =>
+          o.orderId === orderId ? { ...o, status: "Delivered" } : o
+        );
+        localStorage.setItem("allStoreRevenue", JSON.stringify(allStoreRevenue));
+
+        const activeCurrentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
+        if (String(activeCurrentStore?.id) === String(storeId)) {
+          localStorage.setItem("orderRevenue", JSON.stringify(allStoreRevenue[storeId]));
+        }
+      }
+
+      const userOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
+      const updatedUserOrders = userOrders.map((o) =>
+        o.orderId === orderId ? { ...o, status: "Delivered" } : o
+      );
+      localStorage.setItem("userOrders", JSON.stringify(updatedUserOrders));
+
+      // Update UI state
+      setCurrentStatus("Delivered");
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   return (
 
@@ -41,12 +78,12 @@ const OrderDetail = () => {
 
           <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 w-fit">
             <CheckCircleOutlinedIcon sx={{ fontSize: 16 }} />
-            <span>{userOrder.status}</span>
+            <span>{currentStatus}</span>
           </span>
         </div>
 
         {/* Order Tracker Stepper */}
-        <OrderTracker activeStep={1} />
+        <OrderTracker activeStep={currentStatus} />
 
         {/* Main Content 2 Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -84,15 +121,29 @@ const OrderDetail = () => {
                   </div>
                 </div>
 
-                {/* Rate & Review Button */}
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0"
-                  onClick={() => navigate(`/product/${item.id}`)}
-                >
-                  <StarBorderIcon sx={{ fontSize: 16 }} />
-                  <span>Rate & Review</span>
-                </button>
+                {/* Rate & Review + Order Received Buttons */}
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+                    onClick={() => navigate(`/product/${item.id}`)}
+                  >
+                    <StarBorderIcon sx={{ fontSize: 16 }} />
+                    <span>Rate &amp; Review</span>
+                  </button>
+
+                  {currentStatus === "Shipped" && (
+                    <button
+                      type="button"
+                      disabled={confirming}
+                      onClick={handleConfirmReceived}
+                      className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-green-200 cursor-pointer"
+                    >
+                      <TaskAltIcon sx={{ fontSize: 16 }} />
+                      <span>{confirming ? "Confirming..." : "Order Received"}</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

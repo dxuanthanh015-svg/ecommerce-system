@@ -17,7 +17,6 @@ const WishList = () => {
       const parsed = JSON.parse(saved);
       if (parsed.length > 0) return parsed;
     }
-    return defaultWishlistMock;
   });
 
   const handleRemoveFromWishlist = (id) => {

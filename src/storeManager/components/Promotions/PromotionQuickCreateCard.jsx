@@ -4,15 +4,19 @@ import CampaignRoundedIcon from "@mui/icons-material/CampaignRounded";
 import PromotionQuickCreateField from "./PromotionQuickCreateField";
 
 const PromotionQuickCreateCard = ({
-  title,
+  title = "Create New Voucher",
+  formData,
   draft,
-  discountTypes,
-  draftButtonLabel,
-  publishButtonLabel,
+  discountTypes = ["Percentage", "Flat Amount", "Free Shipping"],
+  draftButtonLabel = "Save as Draft",
+  publishButtonLabel = "Publish Voucher",
+  onFormChange,
   onDraftChange,
   onSaveDraft,
   onPublish,
 }) => {
+  const form = formData || draft || {};
+  const handleChange = onFormChange || onDraftChange;
   return (
     <section className="rounded-2xl border border-[#e5e7f2] bg-white p-5 shadow-sm">
       <h2 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -23,8 +27,8 @@ const PromotionQuickCreateCard = ({
           <PromotionQuickCreateField
             label="Voucher Code"
             name="code"
-            value={draft.code}
-            onChange={onDraftChange}
+            value={form.code || ""}
+            onChange={handleChange}
             placeholder="e.g. SUMMER24"
           />
 
@@ -32,20 +36,53 @@ const PromotionQuickCreateCard = ({
             <PromotionQuickCreateField
               label="Discount Type"
               name="discountType"
-              value={draft.discountType}
-              onChange={onDraftChange}
+              value={form.discountType || "Percentage"}
+              onChange={handleChange}
               options={discountTypes}
             />
 
             <PromotionQuickCreateField
               label="Value"
               name="value"
-              value={draft.value}
-              onChange={onDraftChange}
+              value={form.value || ""}
+              onChange={handleChange}
               type="number"
+              min={0}
               placeholder="20"
             />
           </div>
+
+          <div className="grid grid-cols-[1fr_1fr] gap-3">
+            <PromotionQuickCreateField
+              label="Min Order Value"
+              name="minOrderValue"
+              value={form.minOrderValue || ""}
+              onChange={handleChange}
+              type="number"
+              min={0}
+              placeholder="500"
+            />
+
+            <PromotionQuickCreateField
+              label="Max Discount Amount"
+              name="maxDiscountAmount"
+              value={form.maxDiscountAmount || ""}
+              onChange={handleChange}
+              type="number"
+              min={0}
+              placeholder="800"
+            />
+          </div>
+
+          <PromotionQuickCreateField
+            label="Usage Limit"
+            name="usageLimit"
+            value={form.usageLimit || ""}
+            onChange={handleChange}
+            placeholder="100"
+            type="number"
+            min={0}
+          />
 
           <div>
             <p className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
@@ -57,8 +94,8 @@ const PromotionQuickCreateCard = ({
                 <PromotionQuickCreateField
                   label=""
                   name="startDate"
-                  value={draft.startDate}
-                  onChange={onDraftChange}
+                  value={form.startDate || ""}
+                  onChange={handleChange}
                   type="date"
                 />
               </div>
@@ -68,8 +105,8 @@ const PromotionQuickCreateCard = ({
                 <PromotionQuickCreateField
                   label=""
                   name="endDate"
-                  value={draft.endDate}
-                  onChange={onDraftChange}
+                  value={form.endDate || ""}
+                  onChange={handleChange}
                   type="date"
                 />
               </div>
@@ -80,8 +117,8 @@ const PromotionQuickCreateCard = ({
             <input
               type="checkbox"
               name="limitPerCustomer"
-              checked={draft.limitPerCustomer}
-              onChange={onDraftChange}
+              checked={!!form.limitPerCustomer}
+              onChange={handleChange}
               className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
             />
             <span>Limit usage per customer</span>

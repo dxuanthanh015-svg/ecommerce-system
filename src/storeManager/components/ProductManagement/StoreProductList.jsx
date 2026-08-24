@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import ProductTableFilter from "./ProductTableFilter";
 import ProductTableRow from "./ProductTableRow";
@@ -53,7 +53,8 @@ const StoreProductList = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedStatus, setSelectedStatus] = useState("All Statuses");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
   const categories = useMemo(() => getProductCategories(products), [products]);
 
@@ -125,7 +126,7 @@ const StoreProductList = ({
   );
 
   useEffect(() => {
-    setCurrentPage(1);
+    setSearchParams({ page: 1 });
   }, [searchTerm, selectedCategory, selectedStatus]);
 
   const paginationData = useMemo(
@@ -135,7 +136,7 @@ const StoreProductList = ({
 
   useEffect(() => {
     if (currentPage !== paginationData.currentPage) {
-      setCurrentPage(paginationData.currentPage);
+      setSearchParams({ page: paginationData.currentPage });
     }
   }, [currentPage, paginationData.currentPage]);
 
@@ -214,7 +215,7 @@ const StoreProductList = ({
         <ProductPagination
           currentPage={paginationData.currentPage}
           totalPages={paginationData.totalPages}
-          onPageChange={(page) => setCurrentPage(page)}
+          onPageChange={(page) => setSearchParams({ page })}
         />
       </div>
     </div>

@@ -1,5 +1,3 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 const getInitials = (name) => {
@@ -15,9 +13,8 @@ const OrderTableRow = ({
   order,
   onConfirmOrder,
   onShipOrder,
-  onCancelOrder
+  onCancelOrder,
 }) => {
-  const navigate = useNavigate();
   const {
     orderId,
     customerName = "Customer Name",
@@ -33,8 +30,7 @@ const OrderTableRow = ({
   return (
     <tr className="hover:bg-gray-50/60 transition-colors border-b border-gray-50 font-sans">
       {/* Order ID */}
-      <td 
-        onClick={() => navigate(`/store-manager/orders/${orderId.replace("#", "")}`)}
+      <td
         className="py-4 px-6 font-extrabold text-gray-900 text-xs sm:text-sm cursor-pointer hover:text-indigo-600 transition-colors"
       >
         {orderId}
@@ -70,11 +66,10 @@ const OrderTableRow = ({
       {/* Payment Status Badge */}
       <td className="py-4 px-6">
         <span
-          className={`px-3 py-1 rounded-full text-[11px] font-bold inline-block ${
-            paymentStatus?.toLowerCase() === "paid"
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-amber-100 text-amber-800"
-          }`}
+          className={`px-3 py-1 rounded-full text-[11px] font-bold inline-block ${paymentStatus?.toLowerCase() === "paid"
+            ? "bg-emerald-100 text-emerald-800"
+            : "bg-amber-100 text-amber-800"
+            }`}
         >
           {paymentStatus}
         </span>
@@ -103,7 +98,7 @@ const OrderTableRow = ({
             </>
           )}
 
-          {(orderStatus?.toLowerCase() === "packing" || orderStatus?.toLowerCase() === "confirmed") && (
+          {(orderStatus?.toLowerCase() === "packing" || orderStatus?.toLowerCase() === "processing") && (
             <>
               <button
                 type="button"
@@ -123,9 +118,15 @@ const OrderTableRow = ({
             </>
           )}
 
-          {(orderStatus?.toLowerCase() === "shipped" || orderStatus?.toLowerCase() === "delivered" || orderStatus?.toLowerCase() === "completed") && (
+          {(orderStatus?.toLowerCase() === "shipped") && (
             <span className="text-gray-400 italic text-xs font-semibold px-2 py-1">
-              Completed
+              Shipping
+            </span>
+          )}
+
+          {(orderStatus?.toLowerCase() === "delivered") && (
+            <span className="text-gray-400 italic text-xs font-semibold px-2 py-1">
+              Delivered
             </span>
           )}
 

@@ -12,43 +12,6 @@ import LowStockAlertsCard from "./LowStockAlertsCard";
 import RecentOrdersTable from "./RecentOrdersTable";
 import { product_mock_data } from "../../../Data/product_mock_data";
 
-const defaultMockOrders = [
-  {
-    orderId: "#ORD-9012",
-    customer: "Sarah Jenkins",
-    date: "Today, 10:45 AM",
-    total: 124.50,
-    status: "Pending",
-  },
-  {
-    orderId: "#ORD-9011",
-    customer: "Michael Chen",
-    date: "Today, 09:30 AM",
-    total: 85.00,
-    status: "Pending",
-  },
-  {
-    orderId: "#ORD-9010",
-    customer: "Emily Rodriguez",
-    date: "Yesterday, 04:15 PM",
-    total: 210.75,
-    status: "Processing",
-  },
-  {
-    orderId: "#ORD-9009",
-    customer: "David Thompson",
-    date: "Yesterday, 02:20 PM",
-    total: 45.00,
-    status: "Processing",
-  },
-  {
-    orderId: "#ORD-9008",
-    customer: "Jessica Lee",
-    date: "Yesterday, 11:10 AM",
-    total: 150.25,
-    status: "Shipped",
-  },
-];
 
 import { getStoreOrderRevenue, updateStoreOrderStatus } from "../../../customer/utils/orderInventoryUtils";
 

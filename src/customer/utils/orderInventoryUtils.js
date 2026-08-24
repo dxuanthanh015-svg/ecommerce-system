@@ -1,12 +1,10 @@
 import { product_mock_data } from "../../Data/product_mock_data";
 
-/**
- * Initialize orderRevenue for a newly created store
- */
+
 export const initStoreOrderRevenue = (store) => {
   if (!store || !store.id) return;
   const allStoreRevenue = JSON.parse(localStorage.getItem("allStoreRevenue")) || {};
-  
+
   const initialRevenue = {
     storeId: store.id,
     storeName: store.name || "My Store",
@@ -62,17 +60,12 @@ export const getStoreOrderRevenue = (storeId) => {
   return storeData;
 };
 
-/**
- * Process order payment:
- * 1. Deduct in-stock quantity of each purchased product in localStorage["products"] and currentProducts
- * 2. Group items by store and update orderRevenue for each respective store
- */
+
 export const processOrderPayment = (pendingOrder, currentUser = {}) => {
   if (!pendingOrder || !pendingOrder.items || pendingOrder.items.length === 0) return;
 
   const purchasedItems = pendingOrder.items;
 
-  // 1. DEDUCT IN-STOCK QUANTITY OF PRODUCTS
   const savedProducts = JSON.parse(localStorage.getItem("products"));
   const allProducts = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
 
@@ -83,7 +76,6 @@ export const processOrderPayment = (pendingOrder, currentUser = {}) => {
     const totalBoughtQty = matchedPurchased.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
     const newTotalQuantity = Math.max(0, (Number(prod.quantity) || 0) - totalBoughtQty);
 
-    // Update size quantities if available
     let updatedSizes = prod.size;
     if (Array.isArray(prod.size)) {
       updatedSizes = prod.size.map((s) => {
@@ -112,7 +104,6 @@ export const processOrderPayment = (pendingOrder, currentUser = {}) => {
 
   localStorage.setItem("products", JSON.stringify(updatedProducts));
 
-  // Sync to currentProducts if present
   const currentProducts = JSON.parse(localStorage.getItem("currentProducts"));
   if (currentProducts && currentProducts.length > 0) {
     const updatedCurrent = currentProducts.map((cp) => {
@@ -122,11 +113,9 @@ export const processOrderPayment = (pendingOrder, currentUser = {}) => {
     localStorage.setItem("currentProducts", JSON.stringify(updatedCurrent));
   }
 
-  // 2. GROUP PURCHASED ITEMS BY STORE AND RECORD STORE ORDER REVENUE
   const allStoreRevenue = JSON.parse(localStorage.getItem("allStoreRevenue")) || {};
   const activeCurrentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
 
-  // Group items by storeId
   const storeGroups = {};
   purchasedItems.forEach((item) => {
     const storeId = item.id_store || item.storeId || "store-001";
@@ -165,6 +154,8 @@ export const processOrderPayment = (pendingOrder, currentUser = {}) => {
       totalAmount: storeTotal,
       subtotal: storeSubtotal,
       tax: storeTax,
+      discountAmount: Number(pendingOrder.discountAmount) || 0,
+      voucherCode: pendingOrder.voucherCode || null,
       status: "Pending",
       paymentMethod: pendingOrder.paymentMethod || "VietQR",
       items: items.map((item) => ({
@@ -228,8 +219,6 @@ export const updateStoreOrderStatus = (storeId, orderId, newStatus) => {
       localStorage.setItem("orderRevenue", JSON.stringify(allStoreRevenue[storeId]));
     }
   }
-
-  // Also sync in userOrders if customer views it
   const userOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
   const updatedUserOrders = userOrders.map((o) =>
     o.orderId === orderId ? { ...o, status: newStatus } : o

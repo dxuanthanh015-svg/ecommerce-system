@@ -8,6 +8,7 @@ import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
 
 import { processOrderPayment } from "../../utils/orderInventoryUtils";
 import { getUserCart, saveUserCart } from "../../utils/cartUtils";
+import { consumeVoucher } from "../../../storeManager/components/Promotions/voucher.utils";
 
 const QrCode = () => {
   const navigate = useNavigate();
@@ -65,12 +66,24 @@ const QrCode = () => {
     // 1. Process stock deduction and store order revenue tracking
     processOrderPayment(pendingOrder, currentUser);
 
+    // 2. Consume voucher usage and revenue impact
+    if (pendingOrder.voucherCode && pendingOrder.discountAmount > 0) {
+      const voucherStoreId = pendingOrder.storeId || firstItemStoreId;
+      consumeVoucher(
+        pendingOrder.voucherCode,
+        voucherStoreId,
+        currentUser.id || "guest",
+        pendingOrder.orderId,
+        pendingOrder.discountAmount
+      );
+    }
+
     // 2. Save to customer order history
     const existingOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
     const newOrder = {
       orderId: pendingOrder.orderId,
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
-      status: "Processing",
+      status: "Pending",
       subtotal: pendingOrder.subtotal,
       tax: pendingOrder.tax,
       total: pendingOrder.total,
