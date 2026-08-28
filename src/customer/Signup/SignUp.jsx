@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import { authService } from "../../services/authService";
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,44 +23,31 @@ const SignUp = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     if (formData.password !== formData.confirmPassword) {
       alert("Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.");
       return;
     }
 
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
-    const isEmailTaken = registeredUsers.some(
-      (u) => u.email.toLowerCase() === formData.email.trim().toLowerCase()
-    );
-
-    if (isEmailTaken) {
-      alert("Email này đã được đăng ký! Vui lòng đăng nhập hoặc sử dụng email khác.");
-      return;
+    try {
+      setIsSubmitting(true);
+      await authService.register({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+      alert("Đăng ký tài khoản thành công! Bạn sẽ được chuyển hướng sang trang Đăng nhập.");
+      navigate("/login");
+    } catch (err) {
+      alert(err.message || "Đăng ký thất bại! Vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const newUser = {
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      email: formData.email.trim(),
-      password: formData.password,
-      phone: "",
-      phonePrefix: "+1",
-      city: "",
-      district: "",
-      specificAddress: "",
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
-      isVerified: true
-    };
-
-    localStorage.setItem("registeredUsers", JSON.stringify([...registeredUsers, newUser]));
-    localStorage.setItem("user", JSON.stringify(newUser));
-
-    alert("Đăng ký tài khoản thành công! Bạn sẽ được chuyển hướng sang trang Đăng nhập.");
-    navigate("/login");
   };
-
   return (
     <div
       className="min-h-screen w-full flex items-center justify-center p-4 bg-cover bg-center relative font-sans"
@@ -232,10 +221,27 @@ const SignUp = () => {
 
           <button
             type="submit"
-            className="w-full bg-[#1E293B] hover:bg-[#0F172A] text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md mt-6"
+            disabled={isSubmitting}
+            className={`w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all mt-6 shadow-md ${
+              isSubmitting
+                ? "bg-gray-500 cursor-not-allowed opacity-80"
+                : "bg-[#1E293B] hover:bg-[#0F172A] cursor-pointer"
+            }`}
           >
-            <span>Create Account</span>
-            <ArrowForwardIcon sx={{ fontSize: 16 }} />
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <>
+                <span>Create Account</span>
+                <ArrowForwardIcon sx={{ fontSize: 16 }} />
+              </>
+            )}
           </button>
         </form>
 

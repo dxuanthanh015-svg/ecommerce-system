@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -10,130 +10,158 @@ import KpiCard from "./KpiCard";
 import RevenueChartCard from "./RevenueChartCard";
 import LowStockAlertsCard from "./LowStockAlertsCard";
 import RecentOrdersTable from "./RecentOrdersTable";
-import { product_mock_data } from "../../../Data/product_mock_data";
-
-
-import { getStoreOrderRevenue, updateStoreOrderStatus } from "../../../customer/utils/orderInventoryUtils";
+import { storeService, orderService, productService, authService } from "../../../services";
 
 const StoreDashboard = () => {
   const navigate = useNavigate();
-  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
-  const user = JSON.parse(localStorage.getItem("user")) || {};
-  const storeDisplayName = currentStore.name || user.firstName || "Your Store";
+  const [currentStore, setCurrentStore] = useState(null);
+  const [storeDisplayName, setStoreDisplayName] = useState("Your Store");
+  const [storeRevenueData, setStoreRevenueData] = useState({ todayRevenue: 0, totalRevenue: 0, orders: [] });
+  const [lowStockItems, setLowStockItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load real store orders and revenue from localStorage
-  const [storeRevenueData, setStoreRevenueData] = useState(() => {
-    return getStoreOrderRevenue(currentStore?.id) || {
-      storeId: currentStore?.id,
-      todayRevenue: 0,
-      totalRevenue: 0,
-      orders: [],
+  // Lấy store & user từ Mock Server
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const [store, user] = await Promise.all([
+          storeService.getCurrentStore(),
+          authService.getCurrentUser(),
+        ]);
+        setCurrentStore(store);
+        setStoreDisplayName(store?.name || user?.firstName || "Your Store");
+      } catch (e) {
+        console.error("[Dashboard] Error loading store/user:", e);
+      }
     };
-  });
+    init();
+  }, []);
+
+  // Tải orders + low stock sau khi có store
+  useEffect(() => {
+    if (!currentStore) return;
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Luôn lấy revenue theo đúng storeId — KHÔNG dùng fetchOrderRevenue() (dữ liệu chung)
+        const revenue = await orderService.fetchStoreRevenueById(currentStore.id) ||
+          { todayRevenue: 0, totalRevenue: 0, orders: [] };
+
+        // Re-calculate revenue để đảm bảo đồng bộ với orders hiện tại
+        const syncedRevenue = await orderService.recalculateStoreRevenue(currentStore.id) || revenue;
+
+        // Lọc thêm đảm bảo chỉ tính orders của store này - đồng bộ logic với Analytics
+        const todayStr = new Date().toDateString();
+        const allOrders = syncedRevenue.orders || [];
+        const orders = allOrders.filter((o) => {
+          const orderStoreId = o.storeId || o.id_store || o.items?.[0]?.id_store || o.items?.[0]?.storeId;
+          return orderStoreId && String(orderStoreId).trim() === String(currentStore.id).trim();
+        });
+
+        // Dùng giá trị đã sync từ API thay vì tính toán lại
+        setStoreRevenueData({ 
+          ...syncedRevenue, 
+          orders 
+        });
+
+        // Lấy sản phẩm low stock từ /currentProducts
+        const prods = await productService.fetchCurrentProducts();
+        const low = prods
+          .filter((p) => (Number(p.quantity) || 0) < 5)
+          .map((p) => ({
+            id: p.id,
+            name: p.title,
+            sku: `SKU-${(p.id_store || "NX").toString().substring(0, 4).toUpperCase()}-${p.id}`,
+            count: Number(p.quantity) || 0,
+          }))
+          .slice(0, 5);
+        setLowStockItems(low);
+      } catch (err) {
+        console.error("[Dashboard] Error loading data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [currentStore]);
 
   const orders = storeRevenueData.orders || [];
 
-  // Calculate real low stock items for this store
-  const lowStockItems = useMemo(() => {
-    const savedProducts = JSON.parse(localStorage.getItem("products"));
-    const allProducts = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-    // Filter products belonging to this store
-    const storeProducts = allProducts.filter(
-      (p) => String(p.id_store || p.storeId) === String(currentStore?.id)
-    );
+    const last7days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(now.getDate() - (6 - i));
+      const dateStr = d.toDateString();
+      const value = orders
+        .filter((o) => o.date && new Date(o.date).toDateString() === dateStr)
+        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+      return { label: dayNames[d.getDay()], value: Math.round(value) };
+    });
 
-    return storeProducts
-      .filter((p) => (Number(p.quantity) || 0) < 5)
-      .map((p) => ({
-        id: p.id,
-        name: p.title,
-        sku: `SKU-${p.id_store ? p.id_store.substring(0, 4).toUpperCase() : "NX"}-${p.id}`,
-        count: Number(p.quantity) || 0,
-      }))
-      .slice(0, 5);
-  }, [currentStore.id]);
+    const last30days = [
+      { label: "Day 1-5", min: 26, max: 30 },
+      { label: "Day 6-10", min: 21, max: 25 },
+      { label: "Day 11-15", min: 16, max: 20 },
+      { label: "Day 16-20", min: 11, max: 15 },
+      { label: "Day 21-25", min: 6, max: 10 },
+      { label: "Day 26-30", min: 0, max: 5 },
+    ].map((range) => {
+      const value = orders
+        .filter((o) => {
+          if (!o.date) return false;
+          const diffDays = Math.floor((now - new Date(o.date)) / (1000 * 60 * 60 * 24));
+          return diffDays >= range.min && diffDays <= range.max;
+        })
+        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+      return { label: range.label, value: Math.round(value) };
+    });
 
-const chartData = useMemo(() => {
-  const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const thismonth = [
+      { label: "Week 1", start: 1, end: 7 },
+      { label: "Week 2", start: 8, end: 14 },
+      { label: "Week 3", start: 15, end: 21 },
+      { label: "Week 4", start: 22, end: 31 },
+    ].map((week) => {
+      const value = orders
+        .filter((o) => {
+          if (!o.date) return false;
+          const d = new Date(o.date);
+          return d.getMonth() === currentMonth && d.getFullYear() === currentYear &&
+            d.getDate() >= week.start && d.getDate() <= week.end;
+        })
+        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+      return { label: week.label, value: Math.round(value) };
+    });
 
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const last7days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(now.getDate() - (6 - i));
-    const dateStr = d.toDateString();
-    
-    const value = orders
-      .filter((o) => o.date && new Date(o.date).toDateString() === dateStr)
-      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const thisyear = monthNames.map((monthLabel, monthIdx) => {
+      const value = orders
+        .filter((o) => {
+          if (!o.date) return false;
+          const d = new Date(o.date);
+          return d.getFullYear() === currentYear && d.getMonth() === monthIdx;
+        })
+        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
+      return { label: monthLabel, value: Math.round(value) };
+    });
 
-    return { label: dayNames[d.getDay()], value: Math.round(value) };
-  });
+    return { last7days, last30days, thismonth, thisyear };
+  }, [orders]);
 
-  const last30days = [
-    { label: "Day 1-5", min: 26, max: 30 },
-    { label: "Day 6-10", min: 21, max: 25 },
-    { label: "Day 11-15", min: 16, max: 20 },
-    { label: "Day 16-20", min: 11, max: 15 },
-    { label: "Day 21-25", min: 6, max: 10 },
-    { label: "Day 26-30", min: 0, max: 5 },
-  ].map((range) => {
-    const value = orders
-      .filter((o) => {
-        if (!o.date) return false;
-        const diffDays = Math.floor((now - new Date(o.date)) / (1000 * 60 * 60 * 24));
-        return diffDays >= range.min && diffDays <= range.max;
-      })
-      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-
-    return { label: range.label, value: Math.round(value) };
-  });
-
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const thismonth = [
-    { label: "Week 1", start: 1, end: 7 },
-    { label: "Week 2", start: 8, end: 14 },
-    { label: "Week 3", start: 15, end: 21 },
-    { label: "Week 4", start: 22, end: 31 },
-  ].map((week) => {
-    const value = orders
-      .filter((o) => {
-        if (!o.date) return false;
-        const d = new Date(o.date);
-        return (
-          d.getMonth() === currentMonth &&
-          d.getFullYear() === currentYear &&
-          d.getDate() >= week.start &&
-          d.getDate() <= week.end
-        );
-      })
-      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-
-    return { label: week.label, value: Math.round(value) };
-  });
-
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const thisyear = monthNames.map((monthLabel, monthIdx) => {
-    const value = orders
-      .filter((o) => {
-        if (!o.date) return false;
-        const d = new Date(o.date);
-        return d.getFullYear() === currentYear && d.getMonth() === monthIdx;
-      })
-      .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-
-    return { label: monthLabel, value: Math.round(value) };
-  });
-
-  return { last7days, last30days, thismonth, thisyear };
-}, [orders]);
-
-  const handleApproveOrder = (orderId) => {
-    if (!currentStore.id) return;
-    updateStoreOrderStatus(currentStore.id, orderId, "Processing");
-    const updated = getStoreOrderRevenue(currentStore.id);
-    setStoreRevenueData(updated);
+  const handleApproveOrder = async (orderId) => {
+    if (!currentStore?.id) return;
+    await orderService.updateOrderStatusInAllRevenue(orderId, "Processing", currentStore.id);
+    setStoreRevenueData((prev) => ({
+      ...prev,
+      orders: prev.orders.map((o) =>
+        o.orderId === orderId ? { ...o, status: "Processing" } : o
+      ),
+    }));
     alert(`Đã duyệt thành công đơn hàng ${orderId}!`);
   };
 
@@ -148,7 +176,6 @@ const chartData = useMemo(() => {
   return (
     <div className="space-y-8 font-sans pb-12">
       {/* Top Header & Actions Bar */}
-      {console.log(chartData)}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">

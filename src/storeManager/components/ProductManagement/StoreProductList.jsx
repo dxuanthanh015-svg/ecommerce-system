@@ -4,7 +4,6 @@ import AddIcon from "@mui/icons-material/Add";
 import ProductTableFilter from "./ProductTableFilter";
 import ProductTableRow from "./ProductTableRow";
 import ProductPagination from "./ProductPagination";
-import { product_mock_data } from "../../../Data/product_mock_data";
 import {
   PRODUCT_PAGE_SIZE,
   PRODUCT_STATUS_OPTIONS,
@@ -15,7 +14,7 @@ import {
   paginateProducts,
 } from "./productManagement.utils";
 
-
+import { productService } from "../../../services";
 
 const StoreProductList = ({
   productsList,
@@ -25,30 +24,28 @@ const StoreProductList = ({
   onToggleVisibility
 }) => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState(() => {
-    if (productsList) return productsList;
-    const activeUser = JSON.parse(localStorage.getItem("user"));
-    const currentStore = JSON.parse(localStorage.getItem("currentStore"));
-    const saved = JSON.parse(localStorage.getItem("products")) || product_mock_data;
-    const currentProduct = JSON.parse(localStorage.getItem('currentProducts')) || product_mock_data;
-    if (currentProduct) {
-      return currentProduct;
-    }
-
-
-    if (activeUser?.isManager && currentStore?.id) {
-      const myStoreProducts = saved.filter(
-        (item) => String(item.id_store || item.storeId) === String(currentStore.id)
-      );
-      return myStoreProducts;
-    }
-  });
+  const [products, setProducts] = useState(productsList || []);
+  const [loading, setLoading] = useState(!productsList);
 
   useEffect(() => {
     if (productsList) {
       setProducts(productsList);
+      return;
     }
-  }, [productsList]);
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await productService.fetchCurrentProducts();
+        setProducts(data || []);
+      } catch (err) {
+        console.error("Error loading produc ts:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProducts();
+  }, []);
+
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -58,50 +55,27 @@ const StoreProductList = ({
 
   const categories = useMemo(() => getProductCategories(products), [products]);
 
-  const handleToggle = (id) => {
+  const handleToggle = async (id) => {
     if (onToggleVisibility) {
       onToggleVisibility(id);
     } else {
-      setProducts((prev) => {
-        // Tính giá trị mới từ state hiện tại
-        const targetItem = prev.find((item) => item.id === id);
-        const newIsVisible = targetItem ? !targetItem.isVisible : true;
-
-        // Cập nhật currentProducts
-        const updatedCurrent = prev.map((item) =>
-          item.id === id ? { ...item, isVisible: newIsVisible } : item
-        );
-        localStorage.setItem("currentProducts", JSON.stringify(updatedCurrent));
-
-        // Cập nhật products (dùng cùng giá trị newIsVisible)
-        const allProds = JSON.parse(localStorage.getItem("products")) || [];
-        const updatedAll = allProds.map((item) =>
-          item.id === id ? { ...item, isVisible: newIsVisible } : item
-        );
-        localStorage.setItem("products", JSON.stringify(updatedAll));
-
-        return updatedCurrent;
-      });
+      const res = await productService.toggleProductVisibility(id);
+      setProducts((prev) =>
+        prev.map((item) =>
+          String(item.id || item._id) === String(id) ? { ...item, isVisible: res.isVisible } : item
+        )
+      );
     }
   };
 
   // Handle Delete
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (onDeleteProduct) {
       onDeleteProduct(id);
     } else {
       if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-        setProducts((prev) => {
-          const updatedCurrentProduct = prev.filter((item) => item.id !== id);
-          localStorage.setItem("currentProducts", JSON.stringify(updatedCurrentProduct));
-
-          const product = JSON.parse(localStorage.getItem('products'))
-          const updatedProducts = product.filter((item) =>
-            item.id != id
-          );
-          localStorage.setItem("products", JSON.stringify(updatedProducts));
-          return updatedCurrentProduct;
-        });
+        await productService.deleteProduct(id);
+        setProducts((prev) => prev.filter((item) => String(item.id || item._id) !== String(id)));
       }
     }
   };
@@ -148,7 +122,6 @@ const StoreProductList = ({
             Products
           </h1>
         </div>
-
         <button
           type="button"
           onClick={() =>
@@ -193,7 +166,7 @@ const StoreProductList = ({
               {filteredProducts.length > 0 ? (
                 paginationData.items.map((product) => (
                   <ProductTableRow
-                    key={product.id}
+                    key={product.id || product._id}
                     product={product}
                     onToggleVisibility={handleToggle}
                     onEdit={handleEdit}
@@ -204,7 +177,7 @@ const StoreProductList = ({
               ) : (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-gray-500 font-medium text-xs">
-                    No products found matching your filters.
+                    {loading ? "Loading products..." : "No products found matching your filters."}
                   </td>
                 </tr>
               )}

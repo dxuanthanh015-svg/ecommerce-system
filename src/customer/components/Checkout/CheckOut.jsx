@@ -1,28 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ExistedDeliveryAddress from "./ExistedDeliveryAddress";
 import DeliveryAddressForm from "./DeliveryAddressForm";
 import OrderSummary from "./OrderSummary";
-import { useEffect } from "react";
+import { authService } from "../../../services";
 
 export default function CheckOut() {
   const navigate = useNavigate();
-  const [savedAddress, setSavedAddress] = useState(() => {
-    const localData = localStorage.getItem("savedAddresses");
-    return localData ? JSON.parse(localData) : [];
-  });
+  const [savedAddress, setSavedAddress] = useState([]);
   const [editingAddress, setEditingAddress] = useState(null);
-  const [selectedAddress, setSelectedAddress] = useState(savedAddress ? savedAddress[0] : null);
+  const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("creditCard");
 
   useEffect(() => {
-    localStorage.setItem("savedAddresses", JSON.stringify(savedAddress));
-  }, [savedAddress]);
+    const loadUserAddresses = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (user?.savedAddresses && Array.isArray(user.savedAddresses)) {
+          setSavedAddress(user.savedAddresses);
+          setSelectedAddress(user.savedAddresses[0] || null);
+        } else if (user?.address || user?.specificAddress) {
+          const defaultAddr = {
+            id: `addr-${Date.now()}`,
+            fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Customer",
+            phone: user.phone || "",
+            streetAddress: user.specificAddress || user.address || "",
+            city: user.city || "New York",
+            district: user.district || "",
+            state: "NY",
+            zipCode: "10001",
+          };
+          setSavedAddress([defaultAddr]);
+          setSelectedAddress(defaultAddr);
+        }
+      } catch (err) {
+        console.error("Error loading user addresses:", err);
+      }
+    };
+    loadUserAddresses();
+  }, []);
 
-  const handleRemove = (id) => {
-    setSavedAddress(savedAddress.filter((addr) => addr.id !== id));
+  const handleRemove = async (id) => {
+    const updated = savedAddress.filter((addr) => addr.id !== id);
+    setSavedAddress(updated);
     if (selectedAddress?.id === id) {
-      setSelectedAddress(null);
+      setSelectedAddress(updated[0] || null);
+    }
+    try {
+      await authService.updateProfile({ savedAddresses: updated });
+    } catch (e) {
+      console.warn("Error updating user addresses:", e.message);
     }
   };
 

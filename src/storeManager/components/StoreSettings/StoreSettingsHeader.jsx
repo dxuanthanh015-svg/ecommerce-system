@@ -1,16 +1,29 @@
 import React from "react";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 
-export default function StoreSettingsHeader({ onDiscard, onSave }) {
+export default function StoreSettingsHeader({
+  onDiscard,
+  onSave,
+  hasUnsavedChanges,
+  isSaving,
+}) {
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
       <div className="max-w-3xl">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-[48px]">
-          Store Settings &amp; Profile
-        </h1>
-        <p className="mt-3 text-base leading-7 text-slate-600 sm:text-lg">
-          Manage your brand identity, operational details, and financial
-          information to ensure a seamless premium experience for your
-          customers.
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+            Store Settings &amp; Profile
+          </h1>
+          {hasUnsavedChanges && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 border border-amber-200 animate-pulse">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              Unsaved changes
+            </span>
+          )}
+        </div>
+        <p className="mt-2.5 text-sm leading-relaxed text-slate-500 sm:text-base">
+          Manage your brand identity, operations, customer policies, and financial payout accounts in one place.
         </p>
       </div>
 
@@ -18,16 +31,25 @@ export default function StoreSettingsHeader({ onDiscard, onSave }) {
         <button
           type="button"
           onClick={onDiscard}
-          className="min-w-40 rounded-xl border border-[#cfd4e6] bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          disabled={!hasUnsavedChanges}
+          className={`min-w-36 inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition ${
+            hasUnsavedChanges
+              ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs cursor-pointer"
+              : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed opacity-60"
+          }`}
         >
+          <RestartAltOutlinedIcon sx={{ fontSize: 18 }} />
           Discard Changes
         </button>
+
         <button
           type="button"
           onClick={onSave}
-          className="min-w-44 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+          disabled={isSaving}
+          className="min-w-44 inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition hover:bg-indigo-700 hover:shadow-indigo-300 disabled:opacity-70 cursor-pointer"
         >
-          Save Configuration
+          <SaveOutlinedIcon sx={{ fontSize: 18 }} />
+          {isSaving ? "Saving..." : "Save Configuration"}
         </button>
       </div>
     </div>

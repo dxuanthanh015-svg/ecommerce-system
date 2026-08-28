@@ -7,201 +7,254 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import { orderService } from "../../../services";
 
 const OrderDetail = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
-  const userOrder = JSON.parse(localStorage.getItem("userOrders")).find((item) => item.orderId === orderId) || [];
-  const [currentStatus, setCurrentStatus] = useState(userOrder.status);
-  const [confirming, setConfirming] = useState(false);
 
-  // Scroll to top on mount (so reload lands at top of page)
+  const [userOrder, setUserOrder] = useState(null);
+  const [currentStatus, setCurrentStatus] = useState("Pending");
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+    const loadOrder = async () => {
+      try {
+        setLoading(true);
+        const order = await orderService.fetchUserOrderById(orderId);
+        if (order) {
+          setUserOrder(order);
+          setCurrentStatus(order.status || "Pending");
+        }
+      } catch (err) {
+        console.error("Error loading order detail:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadOrder();
+  }, [orderId]);
 
-  const handleConfirmReceived = () => {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fc]/60 py-16 font-sans flex items-center justify-center">
+        <p className="text-gray-500 font-medium">Loading order details...</p>
+      </div>
+    );
+  }
+
+  if (!userOrder) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fc]/60 py-16 font-sans">
+        <div className="max-w-md mx-auto text-center px-4">
+          <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-4">
+            <h2 className="text-xl font-bold text-gray-900">Order Not Found</h2>
+            <p className="text-sm text-gray-500">
+              We couldn't find details for order #{orderId}. It may have been deleted or archived.
+            </p>
+            <button
+              onClick={() => navigate("/account/order")}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 transition"
+            >
+              <ArrowBackIcon sx={{ fontSize: 16 }} />
+              <span>Back to My Orders</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handleConfirmReceived = async () => {
     setConfirming(true);
     try {
-      const storeId = JSON.parse(localStorage.getItem("currentStore"))?.id || "";
-      const allStoreRevenue = JSON.parse(localStorage.getItem("allStoreRevenue")) || {};
-      if (allStoreRevenue[storeId]) {
-        allStoreRevenue[storeId].orders = allStoreRevenue[storeId].orders.map((o) =>
-          o.orderId === orderId ? { ...o, status: "Delivered" } : o
-        );
-        localStorage.setItem("allStoreRevenue", JSON.stringify(allStoreRevenue));
-
-        const activeCurrentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
-        if (String(activeCurrentStore?.id) === String(storeId)) {
-          localStorage.setItem("orderRevenue", JSON.stringify(allStoreRevenue[storeId]));
-        }
-      }
-
-      const userOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
-      const updatedUserOrders = userOrders.map((o) =>
-        o.orderId === orderId ? { ...o, status: "Delivered" } : o
-      );
-      localStorage.setItem("userOrders", JSON.stringify(updatedUserOrders));
-
-      // Update UI state
+      await orderService.updateOrderStatusInAllRevenue(orderId, "Delivered");
       setCurrentStatus("Delivered");
+    } catch (err) {
+      console.error("Error confirming order:", err);
     } finally {
       setConfirming(false);
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (window.confirm("Are you sure you want to cancel this order? The inventory will be returned to stock.")) {
+      try {
+        await orderService.updateOrderStatusInAllRevenue(orderId, "Cancelled");
+        setCurrentStatus("Cancelled");
+      } catch (err) {
+        console.error("Error cancelling order:", err);
+      }
+    }
+  };
+
+  const items = userOrder.items || [];
+  const shipping = userOrder.shippingAddress || {};
+  const recipientName = shipping.fullName || `${shipping.firstName || ""} ${shipping.lastName || ""}`.trim() || userOrder.customer || "Customer";
+  const addressLine = shipping.address || shipping.streetAddress || "Standard Delivery Address";
+  const cityLine = [shipping.district, shipping.city, shipping.state, shipping.zipCode].filter(Boolean).join(", ") || "City Center";
+  const phoneLine = shipping.phone || userOrder.phone || "No phone provided";
+
+  const subtotal = Number(userOrder.subtotal) || Number(userOrder.total) || 0;
+  const tax = Number(userOrder.tax) || 0;
+  const discount = Number(userOrder.discountAmount) || 0;
+  const total = Number(userOrder.total) || Number(userOrder.totalAmount) || (subtotal + tax - discount);
+
   return (
-
     <div className="bg-[#f8f9fc]/60 min-h-screen py-10 font-sans">
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back Button & Actions Row */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate("/account/order")}
+            className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <ArrowBackIcon sx={{ fontSize: 16 }} />
+            <span>Back to Orders</span>
+          </button>
 
-        {/* Back Button */}
-        <button
-          onClick={() => navigate("/account/order")}
-          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors mb-6 cursor-pointer"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} />
-          <span>Back to Orders</span>
-        </button>
+          {/* Quick Actions (Confirm / Cancel) */}
+          <div className="flex items-center gap-2">
+            {currentStatus === "Shipped" && (
+              <button
+                type="button"
+                onClick={handleConfirmReceived}
+                disabled={confirming}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+              >
+                <TaskAltIcon sx={{ fontSize: 16 }} />
+                <span>{confirming ? "Processing..." : "Order Received"}</span>
+              </button>
+            )}
+            {currentStatus === "Pending" && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                <CancelOutlinedIcon sx={{ fontSize: 16 }} />
+                <span>Cancel Order</span>
+              </button>
+            )}
+          </div>
+        </div>
 
-        {/* Page Title & Status */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        {/* Top Order Overview Banner */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-2xs mb-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-              Order #{userOrder.orderId}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+                Order #{userOrder.orderId}
+              </h1>
+              <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                currentStatus === "Delivered"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : currentStatus === "Cancelled"
+                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                  : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+              }`}>
+                {currentStatus}
+              </span>
+            </div>
             <p className="text-xs text-gray-500 mt-1">
-              Placed on {userOrder.date}
+              Placed on {userOrder.formattedDate || userOrder.date || "Recently"} • {items.length} item{items.length !== 1 ? "s" : ""}
             </p>
           </div>
 
-          <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 w-fit">
-            <CheckCircleOutlinedIcon sx={{ fontSize: 16 }} />
-            <span>{currentStatus}</span>
-          </span>
+          <div className="text-left md:text-right">
+            <span className="text-xs text-gray-400 font-medium">Total Paid</span>
+            <p className="text-2xl font-black text-gray-900">${total.toFixed(2)}</p>
+          </div>
         </div>
 
-        {/* Order Tracker Stepper */}
-        <OrderTracker activeStep={currentStatus} />
+        {/* Order Tracker */}
+        <div className="mb-6">
+          <OrderTracker status={currentStatus} />
+        </div>
 
-        {/* Main Content 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-          {/* Left Column: Product Items List */}
+        {/* Two-Column Grid: Order Items & Delivery/Summary Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Items List */}
           <div className="lg:col-span-8 space-y-4">
-            <h2 className="text-base font-bold text-gray-900 mb-2">
-              Items in this Order ({userOrder.items.length})
-            </h2>
-
-            {userOrder.items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl p-5 border border-gray-100 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:shadow-md transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="w-20 h-20 object-cover rounded-xl border border-gray-100 bg-gray-50 shrink-0"
-                  />
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-gray-900 line-clamp-1">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Color: <span className="font-semibold text-gray-700">{item.color}</span> | Size: <span className="font-semibold text-gray-700">{item.size}</span>
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Seller: {item.seller}
-                    </p>
-                    <p className="text-sm font-bold text-gray-900 pt-1">
-                      ${item.price.toFixed(2)} x {item.quantity}
-                    </p>
+            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-2xs">
+              <h2 className="text-base font-bold text-gray-900 mb-4">Purchased Items</h2>
+              <div className="divide-y divide-gray-100">
+                {items.map((item, idx) => (
+                  <div key={idx} className="py-4 first:pt-0 last:pb-0 flex items-center gap-4">
+                    <img
+                      src={item.imageUrl || "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=300"}
+                      alt={item.title}
+                      className="w-16 h-20 object-cover rounded-xl border border-gray-100 bg-gray-50 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Size: <span className="font-semibold text-gray-700">{item.size || "M"}</span> • Color: <span className="font-semibold text-gray-700">{item.color || "Default"}</span> • Qty: <span className="font-semibold text-gray-700">{item.quantity || 1}</span>
+                      </p>
+                      <p className="text-xs font-bold text-indigo-600 mt-1">
+                        ${(Number(item.price) || 0).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-extrabold text-gray-900">
+                        ${((Number(item.price) || 0) * (Number(item.quantity) || 1)).toFixed(2)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Rate & Review + Order Received Buttons */}
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-                    onClick={() => navigate(`/product/${item.id}`)}
-                  >
-                    <StarBorderIcon sx={{ fontSize: 16 }} />
-                    <span>Rate &amp; Review</span>
-                  </button>
-
-                  {currentStatus === "Shipped" && (
-                    <button
-                      type="button"
-                      disabled={confirming}
-                      onClick={handleConfirmReceived}
-                      className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-green-200 cursor-pointer"
-                    >
-                      <TaskAltIcon sx={{ fontSize: 16 }} />
-                      <span>{confirming ? "Confirming..." : "Order Received"}</span>
-                    </button>
-                  )}
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
 
-          {/* Right Column: Address & Summary */}
+          {/* Right Column: Address & Payment Summary */}
           <div className="lg:col-span-4 space-y-6">
-
-            {/* Delivery Address Card */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-2xs space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                <LocationOnOutlinedIcon className="text-indigo-600" sx={{ fontSize: 20 }} />
-                <h3 className="text-sm font-bold text-gray-900">
-                  Delivery Address
-                </h3>
-              </div>
-
-              <div className="space-y-1 text-xs text-gray-600">
-                <p className="font-bold text-gray-900 text-sm">
-                  {userOrder.shippingAddress.firstName + " " + userOrder.shippingAddress.lastName}
-                </p>
-                <p>{userOrder.shippingAddress.address}</p>
-                <p>{userOrder.shippingAddress.district}, {userOrder.shippingAddress.city}</p>
-                <div className="flex items-center gap-1 text-gray-500 pt-2">
+            {/* Delivery Address Box */}
+            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-2xs space-y-3">
+              <h2 className="text-base font-bold text-gray-900">Delivery Address</h2>
+              <div className="space-y-2 text-xs text-gray-600">
+                <div className="flex items-center gap-2 font-bold text-gray-900">
+                  <LocationOnOutlinedIcon sx={{ fontSize: 16 }} className="text-indigo-600" />
+                  <span>{recipientName}</span>
+                </div>
+                <p className="pl-6">{addressLine}</p>
+                <p className="pl-6">{cityLine}</p>
+                <div className="flex items-center gap-2 pl-6 pt-1 text-gray-500">
                   <LocalPhoneOutlinedIcon sx={{ fontSize: 14 }} />
-                  <span>{userOrder.shippingAddress.phone}</span>
+                  <span>{phoneLine}</span>
                 </div>
               </div>
             </div>
 
-            {/* Payment Summary Card */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-2xs space-y-4">
-              <h3 className="text-sm font-bold text-gray-900 pb-2 border-b border-gray-100">
-                Payment Summary
-              </h3>
-
-              <div className="space-y-2.5 text-xs text-gray-600">
-                <div className="flex justify-between">
+            {/* Payment Summary Box */}
+            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-2xs space-y-3">
+              <h2 className="text-base font-bold text-gray-900">Payment Breakdown</h2>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between text-gray-500">
                   <span>Subtotal</span>
-                  <span className="font-bold text-gray-900">${userOrder.subtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span className="font-bold text-emerald-600">Free</span>
+                <div className="flex justify-between text-gray-500">
+                  <span>Tax (8%)</span>
+                  <span className="font-semibold text-gray-900">${tax.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax</span>
-                  <span className="font-bold text-gray-900">${userOrder.tax.toFixed(2)}</span>
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-semibold">
+                    <span>Discount</span>
+                    <span>-${discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-100 pt-3 flex justify-between text-sm font-black text-gray-900">
+                  <span>Total</span>
+                  <span>${total.toFixed(2)}</span>
                 </div>
-              </div>
-
-              <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
-                <span className="text-sm font-bold text-gray-900">Total Paid</span>
-                <span className="text-base font-extrabold text-indigo-600">${userOrder.total.toFixed(2)}</span>
               </div>
             </div>
-
           </div>
-
         </div>
 
       </div>

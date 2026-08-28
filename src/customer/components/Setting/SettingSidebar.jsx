@@ -2,24 +2,23 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import { authService } from "../../../services";
 
 const SettingSidebar = ({ activeTab, setActiveTab, userData }) => {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("user");
-    localStorage.removeItem("currentStore");
-    localStorage.removeItem("currentProducts");
-    localStorage.removeItem("orderRevenue");
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (e) {
+      console.warn("Logout error:", e.message);
+    }
+    window.dispatchEvent(new Event("userSessionUpdated"));
     navigate("/login");
   };
-
-  const user = JSON.parse(localStorage.getItem("user")) || {};
 
   return (
     <div className="w-full lg:w-72 bg-[#f0f4fc]/80 rounded-3xl p-5 border border-indigo-50/80 shrink-0 flex flex-col justify-between self-start">
@@ -86,20 +85,8 @@ const SettingSidebar = ({ activeTab, setActiveTab, userData }) => {
             <span>Security</span>
           </button>
 
-          {/* Apply Store Manager */}
-          <button
-            type="button"
-            onClick={() => setActiveTab("apply-store")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "apply-store"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-              : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
-              }`}
-          >
-            <StorefrontOutlinedIcon sx={{ fontSize: 18 }} />
-            <span>Apply Store Manager</span>
-          </button>
-
-          {user.isManager && (
+          {/* Apply Store Manager or My Store */}
+          {userData?.isManager ? (
             <button
               type="button"
               onClick={() => navigate("/store-manager/dashboard")}
@@ -109,10 +96,21 @@ const SettingSidebar = ({ activeTab, setActiveTab, userData }) => {
                 }`}
             >
               <StorefrontOutlinedIcon sx={{ fontSize: 18 }} />
-              <span>My Store</span>
+              <span>My Store (Dashboard)</span>
             </button>
-          )
-          }
+          ) : (
+            <button
+              type="button"
+              onClick={() => setActiveTab("apply-store")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${activeTab === "apply-store"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+                }`}
+            >
+              <StorefrontOutlinedIcon sx={{ fontSize: 18 }} />
+              <span>Apply Store Manager</span>
+            </button>
+          )}
 
 
         </nav>

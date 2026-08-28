@@ -46,7 +46,7 @@ const OrderTracker = ({ activeStep }) => {
                 )}
               </div>
 
-              <span className={`text-[11px] font-bold mt-2 text-center max-w-[80px] ${isCurrent
+              <span className={`text-[11px] font-bold mt-2 text-center max-w-20 ${isCurrent
                 ? "text-indigo-600 font-extrabold"
                 : isCompleted
                   ? "text-gray-900"

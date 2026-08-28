@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Product from '../../components/Product/Product';
-import { product_mock_data } from '../../../Data/product_mock_data';
+import { productService } from '../../../services';
 
 const ProductPage = () => {
-  const savedProducts = JSON.parse(localStorage.getItem("products"));
-  const productsData = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
+  const [productsData, setProductsData] = useState([]);
+
+  useEffect(() => {
+    productService.fetchProducts()
+      .then((data) => setProductsData(data || []))
+      .catch((err) => console.error("Error loading products in ProductPage:", err));
+  }, []);
 
   return (
     <div>

@@ -1,13 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import StoreSidebar from "./StoreSidebar";
 import StoreHeader from "./StoreHeader";
+import { authService } from "../../../services";
 
 const StoreManagerLayout = () => {
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!isLoggedIn || !user) {
+  useEffect(() => {
+    const checkManager = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setCurrentUser(user);
+      } catch {
+        setCurrentUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkManager();
+  }, []);
+
+  if (loading) {
+    return null; // Đang kiểm tra phiên đăng nhập từ Mock Server
+  }
+
+  if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 

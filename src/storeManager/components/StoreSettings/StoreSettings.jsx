@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import BrandIdentitySection from "./BrandIdentitySection";
 import CustomerPoliciesSection from "./CustomerPoliciesSection";
 import FulfillmentCenterSection from "./FulfillmentCenterSection";
 import PayoutDetailsSection from "./PayoutDetailsSection";
+import StoreOperationsSection from "./StoreOperationsSection";
 import StoreSettingsHeader from "./StoreSettingsHeader";
 import {
   buildStoreSettingsPayload,
@@ -10,34 +13,85 @@ import {
   createStoreSettingsState,
 } from "./storeSettings.data";
 
-export default function StoreSettings() {
-  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
+import { storeService } from "../../../services";
 
-  const initialSettings = useMemo(() => {
+export default function StoreSettings() {
+  const [currentStore, setCurrentStore] = useState(null);
+
+  useEffect(() => {
+    const loadStore = async () => {
+      try {
+        const store = await storeService.getCurrentStore();
+        if (store) {
+          setCurrentStore(store);
+          const initState = createSettingsFromStore(store);
+          setStoreSettings(initState);
+          setSavedSettings(initState);
+        }
+      } catch (err) {
+        console.error("Error loading store:", err);
+      }
+    };
+    loadStore();
+  }, []);
+
+  const createSettingsFromStore = (store = {}) => {
     return createStoreSettingsState({
       brandIdentity: {
-        storeName: currentStore.name || "My Store",
-        contactEmail: currentStore.email || "store@nexcart.com",
-        bio: currentStore.description || "Official NexCart Partner Store.",
-        logoImage: currentStore.imageUrl || "/nexCart.svg",
+        storeName: store.name || "Aura Minimalist Goods",
+        contactEmail: store.email || "hello@auragoods.com",
+        phone: store.phone || "+1 (555) 234-5678",
+        category: store.category || "Home & Living",
+        bio: store.description || "Curated essential goods for the modern, mindful home.",
+        logoImage: store.imageUrl || "/nexCart.svg",
+        bannerImage: store.bannerUrl || store.bannerImage || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop",
       },
       payoutDetails: {
-        bankName: currentStore.bankInfo?.bankName || "",
-        accountHolder: currentStore.bankInfo?.accountName || currentStore.owner || "",
-        accountNumber: currentStore.bankInfo?.accountNumber || "",
+        bankName: store.bankInfo?.bankName || "Chase Bank",
+        accountHolder: store.bankInfo?.accountName || store.owner || "Aura Goods LLC",
+        routingNumber: store.bankInfo?.routingNumber || "123456789",
+        accountNumber: store.bankInfo?.accountNumber || "9876543210",
+        payoutSchedule: store.bankInfo?.payoutSchedule || "weekly",
       },
       fulfillmentCenter: {
-        streetAddress: currentStore.address || "Manhattan, New York",
-        city: "New York",
-        state: "NY",
-        zipCode: "10001",
+        streetAddress: store.address || "100 Innovation Drive, Suite 400",
+        city: store.city || "San Francisco",
+        state: store.state || "CA",
+        zipCode: store.zipCode || "94103",
+        country: store.country || "United States",
+        processingTime: store.shippingPolicy?.processingTime || "1-2 business days",
+        freeShippingThreshold: store.shippingPolicy?.freeShippingThreshold || 50,
+      },
+      customerPolicies: store.customerPolicies || {
+        returnWindowDays: 30,
+        freeReturns: true,
+        restockingFee: 0,
+        returnPolicyText: "Items can be returned within 30 days of receipt in original condition and packaging.",
+        shippingPolicyText: "Standard orders are processed within 1-2 business days. Express shipping is available at checkout.",
+        warrantyMonths: 12,
+        privacyPolicyText: "We value customer privacy and do not sell or share personal information with third parties.",
+      },
+      storeOperations: store.storeOperations || {
+        vacationMode: store.status === "paused" || false,
+        vacationMessage: "Our store is currently on vacation mode and will resume taking orders soon.",
+        emailNotifications: true,
+        lowStockThreshold: 5,
       },
     });
-  }, [currentStore.id]);
+  };
 
+  const initialSettings = useMemo(() => createSettingsFromStore(currentStore || {}), [currentStore]);
   const [storeSettings, setStoreSettings] = useState(initialSettings);
   const [savedSettings, setSavedSettings] = useState(initialSettings);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
+  // Compare settings to detect changes
+  const hasUnsavedChanges = useMemo(() => {
+    return JSON.stringify(storeSettings) !== JSON.stringify(savedSettings);
+  }, [storeSettings, savedSettings]);
+
+  // Section level field changes
   const handleSectionChange = (sectionKey) => (event) => {
     const { name, value } = event.target;
 
@@ -50,61 +104,93 @@ export default function StoreSettings() {
     }));
   };
 
-  const handleDiscard = () => {
-    setStoreSettings(cloneStoreSettings(savedSettings));
+  // Direct section replacement (e.g. for customer policies modal)
+  const handlePoliciesChange = (newPolicies) => {
+    setStoreSettings((prev) => ({
+      ...prev,
+      customerPolicies: {
+        ...prev.customerPolicies,
+        ...newPolicies,
+      },
+    }));
   };
 
-  const handleSave = () => {
-    const payload = buildStoreSettingsPayload(storeSettings);
+  const showToast = (message, type = "success") => {
+    setToastMessage({ message, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
 
-    // Synchronize back to currentStore
-    const updatedStore = {
-      ...currentStore,
-      name: payload.brandIdentity.storeName,
-      email: payload.brandIdentity.contactEmail,
-      imageUrl: payload.brandIdentity.logoImage,
-      description: payload.brandIdentity.bio,
-      address: payload.fulfillmentCenter.streetAddress,
-      bankInfo: {
-        ...currentStore.bankInfo,
-        bankName: payload.payoutDetails.bankName,
-        accountHolder: payload.payoutDetails.accountHolder,
-        accountNumber: payload.payoutDetails.accountNumber,
-      }
-    };
+  const handleDiscard = () => {
+    setStoreSettings(cloneStoreSettings(savedSettings));
+    showToast("Đã hoàn tác các thay đổi chưa lưu.", "info");
+  };
 
-    localStorage.setItem("currentStore", JSON.stringify(updatedStore));
-
-    // Update in allStores & stores
-    const allStores = JSON.parse(localStorage.getItem("allStores")) || [];
-    const updatedAllStores = allStores.map((s) =>
-      String(s.id) === String(updatedStore.id) ? updatedStore : s
-    );
-    localStorage.setItem("allStores", JSON.stringify(updatedAllStores));
-    localStorage.setItem("stores", JSON.stringify(updatedAllStores));
-
-    setSavedSettings(cloneStoreSettings(storeSettings));
-    alert("Cài đặt thông tin gian hàng đã được cập nhật thành công!");
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = buildStoreSettingsPayload(storeSettings);
+      await storeService.updateStoreSettings(currentStore?.id, payload);
+      setSavedSettings(cloneStoreSettings(storeSettings));
+      showToast("Cài đặt cửa hàng đã được lưu và cập nhật thành công!", "success");
+    } catch (err) {
+      console.error("Error saving store settings:", err);
+      showToast("Có lỗi xảy ra khi lưu cài đặt!", "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
-      <StoreSettingsHeader onDiscard={handleDiscard} onSave={handleSave} />
+    <div className="relative mx-auto w-full max-w-7xl pb-16">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl bg-slate-900 px-5 py-3.5 text-sm font-medium text-white shadow-2xl transition-all duration-300 animate-in slide-in-from-top-4">
+          {toastMessage.type === "success" ? (
+            <CheckCircleIcon sx={{ fontSize: 20, color: "#34d399" }} />
+          ) : (
+            <InfoOutlinedIcon sx={{ fontSize: 20, color: "#60a5fa" }} />
+          )}
+          <span>{toastMessage.message}</span>
+        </div>
+      )}
 
-      <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2.1fr)_minmax(300px,1fr)]">
+      {/* 1. Header */}
+      <StoreSettingsHeader
+        onDiscard={handleDiscard}
+        onSave={handleSave}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isSaving={isSaving}
+      />
+
+      {/* 2. Content Layout */}
+      <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2.1fr)_minmax(320px,1fr)]">
+        {/* Left Column: Brand Identity, Customer Policies, Operations */}
         <div className="space-y-6">
           <BrandIdentitySection
             values={storeSettings.brandIdentity}
             onChange={handleSectionChange("brandIdentity")}
           />
-          <CustomerPoliciesSection />
+
+          <CustomerPoliciesSection
+            values={storeSettings.customerPolicies}
+            onChange={handlePoliciesChange}
+          />
+
+          <StoreOperationsSection
+            values={storeSettings.storeOperations}
+            onChange={handleSectionChange("storeOperations")}
+          />
         </div>
 
-        <div className="space-y-5">
+        {/* Right Column: Payout Details & Fulfillment */}
+        <div className="space-y-6">
           <PayoutDetailsSection
             values={storeSettings.payoutDetails}
             onChange={handleSectionChange("payoutDetails")}
           />
+
           <FulfillmentCenterSection
             values={storeSettings.fulfillmentCenter}
             onChange={handleSectionChange("fulfillmentCenter")}

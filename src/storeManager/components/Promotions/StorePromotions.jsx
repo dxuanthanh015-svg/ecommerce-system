@@ -1,18 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import PromotionsHeader from "./PromotionsHeader";
 import PromotionStatsGrid from "./PromotionStatsGrid";
 import PromotionQuickCreateCard from "./PromotionQuickCreateCard";
 import PromotionCampaignList from "./PromotionCampaignList";
 import { promotionsPageConfig } from "./promotions.data";
 import { filterPromotionsByTab } from "./promotions.utils";
-import {
-  createVoucher,
-  loadVouchers,
-  getPromotionMetrics,
-  isVoucherCodeDuplicate,
-  removeVoucher,
-  toggleVoucherStatus,
-} from "./voucher.utils";
+import { voucherService, storeService } from "../../../services";
 
 const initialFormState = {
   code: "",
@@ -27,24 +20,85 @@ const initialFormState = {
 };
 
 const StorePromotions = () => {
-  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
-  const storeId = currentStore.id || "store-001";
-
-  // Vouchers state loaded directly from localStorage
-  const [vouchers, setVouchers] = useState(() => loadVouchers(storeId));
+  const [storeId, setStoreId] = useState("store-001");
+  const [vouchers, setVouchers] = useState([]);
   const [activeTab, setActiveTab] = useState(promotionsPageConfig.tabs[0]);
   const [formData, setFormData] = useState(initialFormState);
-  const [selectedPromotionId, setSelectedPromotionId] = useState(
-    vouchers[0]?.id || null,
-  );
+  const [selectedPromotionId, setSelectedPromotionId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Dynamic metrics computed from localStorage
-  const metrics = useMemo(() => getPromotionMetrics(storeId), [vouchers, storeId]);
+  // Load store and vouchers from Mock Server
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const store = await storeService.getCurrentStore();
+        const activeStoreId = store?.id || "store-001";
+        setStoreId(activeStoreId);
+        await loadStoreVouchers(activeStoreId);
+      } catch (err) {
+        console.error("Error init store promotions:", err);
+      }
+    };
+    init();
+  }, []);
+
+  const loadStoreVouchers = async (sId) => {
+    try {
+      setLoading(true);
+      const list = await voucherService.fetchVouchers(sId);
+      setVouchers(list || []);
+      if (list && list.length > 0 && !selectedPromotionId) {
+        setSelectedPromotionId(list[0].id);
+      }
+    } catch (err) {
+      console.error("Error loading vouchers:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Dynamic metrics computed from vouchers
+  const metrics = useMemo(() => {
+    const activeCount = vouchers.filter((v) => (v.status || "").toLowerCase() === "active").length;
+    const totalUsage = vouchers.reduce(
+      (sum, v) => sum + (Number(v.usedCount) || Number(v.usageCount) || 0),
+      0
+    );
+    const revenueImpact = vouchers.reduce(
+      (sum, v) => sum + (Number(v.revenueImpact) || Number(v.totalDiscountGiven) || 0),
+      0
+    );
+
+    return [
+      {
+        id: "active-vouchers",
+        label: "Active Vouchers",
+        value: activeCount,
+        iconKey: "voucher",
+        accent: "indigo",
+      },
+      {
+        id: "total-usage",
+        label: "Total Usage",
+        value: totalUsage,
+        iconKey: "usage",
+        accent: "slate",
+      },
+      {
+        id: "revenue-impact",
+        label: "Revenue Impact",
+        value: revenueImpact,
+        valueType: "currencyCompact",
+        iconKey: "impact",
+        accent: "violet",
+      },
+    ];
+  }, [vouchers]);
 
   // Filtered promotions based on selected tab
   const visiblePromotions = useMemo(
     () => filterPromotionsByTab(vouchers, activeTab),
-    [vouchers, activeTab],
+    [vouchers, activeTab]
   );
 
   const handleFormChange = (event) => {
@@ -59,20 +113,22 @@ const StorePromotions = () => {
     setFormData(initialFormState);
   };
 
-  const handleCreateVoucher = (status) => {
+  const handleCreateVoucher = async (status) => {
     const trimmedCode = formData.code?.trim().toUpperCase();
     if (!trimmedCode) {
       alert("Vui lòng nhập mã Voucher!");
       return;
     }
 
-    // 1. Check duplicate code
-    if (isVoucherCodeDuplicate(trimmedCode, storeId)) {
+    // Check duplicate code
+    const isDup = vouchers.some(
+      (v) => (v.code || "").toUpperCase() === trimmedCode
+    );
+    if (isDup) {
       alert(`Mã voucher "${trimmedCode}" đã tồn tại trong cửa hàng của bạn!`);
       return;
     }
 
-    // 2. Validate discount value
     const numValue = Number(formData.value) || 0;
     if (formData.discountType !== "Free Shipping" && numValue <= 0) {
       alert("Vui lòng nhập mức giảm giá hợp lệ lớn hơn 0!");
@@ -84,7 +140,6 @@ const StorePromotions = () => {
       return;
     }
 
-    // 3. Validate dates
     if (formData.startDate && formData.endDate) {
       if (new Date(formData.startDate) > new Date(formData.endDate)) {
         alert("Ngày bắt đầu không được lớn hơn ngày kết thúc!");
@@ -92,27 +147,75 @@ const StorePromotions = () => {
       }
     }
 
-    const newVoucher = createVoucher(formData, storeId, status);
-    if (!newVoucher) return;
+    try {
+      const normalizedType = formData.discountType?.toLowerCase();
+      let type = "percentage";
+      if (normalizedType.includes("flat") || normalizedType.includes("amount")) {
+        type = "amount";
+      } else if (normalizedType.includes("shipping")) {
+        type = "shipping";
+      }
 
-    // Update state directly from localStorage
-    setVouchers(loadVouchers(storeId));
-    setSelectedPromotionId(newVoucher.id);
-    setActiveTab(status === "Active" ? "Active" : "Draft");
-    resetForm();
-  };
+      const hasSchedule = formData.startDate || formData.endDate;
+      const scheduleLabel = hasSchedule
+        ? `${formData.startDate || "Starts now"} - ${formData.endDate || "No end date"}`
+        : "Starts immediately";
 
-  const handleDeletePromotion = (id) => {
-    removeVoucher(id);
-    setVouchers(loadVouchers(storeId));
-    if (selectedPromotionId === id) {
-      setSelectedPromotionId(null);
+      let description = `${formData.value || "0"}% off your campaign`;
+      if (type === "amount") {
+        description = `$${formData.value || "0"} off selected orders`;
+      } else if (type === "shipping") {
+        description = "Free shipping offer for selected shoppers";
+      }
+
+      const voucherDraft = {
+        code: trimmedCode,
+        title: trimmedCode,
+        description,
+        type,
+        discountType: type,
+        discountValue: numValue,
+        minOrderValue: Number(formData.minOrderValue) || 0,
+        maxDiscount: Number(formData.maxDiscountAmount) || 0,
+        maxDiscountAmount: Number(formData.maxDiscountAmount) || 0,
+        usageLimit: Number(formData.usageLimit) || 0,
+        usedCount: 0,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null,
+        scheduleLabel,
+        limitPerCustomer: Boolean(formData.limitPerCustomer),
+      };
+
+      const newVoucher = await voucherService.createVoucher(voucherDraft, storeId, status);
+      await loadStoreVouchers(storeId);
+      setSelectedPromotionId(newVoucher.id);
+      setActiveTab(status === "Active" ? "Active" : "Draft");
+      resetForm();
+    } catch (err) {
+      console.error("Error creating voucher:", err);
+      alert("Lỗi khi tạo voucher: " + err.message);
     }
   };
 
-  const handleToggleStatus = (id, newStatus) => {
-    toggleVoucherStatus(id, newStatus);
-    setVouchers(loadVouchers(storeId));
+  const handleDeletePromotion = async (id) => {
+    try {
+      await voucherService.deleteVoucher(id);
+      await loadStoreVouchers(storeId);
+      if (selectedPromotionId === id) {
+        setSelectedPromotionId(null);
+      }
+    } catch (err) {
+      console.error("Error deleting voucher:", err);
+    }
+  };
+
+  const handleToggleStatus = async (id, newStatus) => {
+    try {
+      await voucherService.updateVoucher(id, { status: newStatus });
+      await loadStoreVouchers(storeId);
+    } catch (err) {
+      console.error("Error updating voucher status:", err);
+    }
   };
 
   return (

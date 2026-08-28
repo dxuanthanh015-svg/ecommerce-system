@@ -1,15 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { product_mock_data } from "../../../../Data/product_mock_data";
 import CircleIcon from "@mui/icons-material/Circle";
 import FlashSaleCountdown from "./FlashSaleCountDown";
 import { salePoster } from "./salePoster";
 import { useNavigate } from "react-router-dom";
+import { productService } from "../../../../services";
 
 export default function FlashSaleSection() {
   const navigate = useNavigate();
-  const savedProducts = JSON.parse(localStorage.getItem("products"));
-  const allProducts = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
+  const [allProducts, setAllProducts] = useState(product_mock_data);
+
+  useEffect(() => {
+    productService.fetchProducts()
+      .then((data) => {
+        if (data && data.length > 0) setAllProducts(data);
+      })
+      .catch((err) => console.error("Error loading products in FlashSaleSection:", err));
+  }, []);
+
   const flashSaleItems = allProducts.filter((p) => p.isFlashSale === true);
   const displayItems = flashSaleItems.length > 0 ? flashSaleItems : salePoster;
 
@@ -58,6 +67,11 @@ export default function FlashSaleSection() {
                 </div>
 
                 {/* Info */}
+                {item.brand && (
+                  <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
+                    {item.brand}
+                  </p>
+                )}
                 <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-1 truncate group-hover:text-indigo-600 transition-colors">
                   {item.title || item.name}
                 </h3>

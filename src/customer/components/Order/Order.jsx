@@ -7,24 +7,42 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Pagination from '@mui/material/Pagination';
 import PaginationItem from '@mui/material/PaginationItem';
+import { orderService, authService } from "../../../services";
 
 const Order = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [orders, setOrders] = useState(() => {
-    const userOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
-    return [...userOrders];
-  });
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
+      const list = await orderService.fetchUserOrders(user?.email);
+      setOrders(list || []);
+    } catch (err) {
+      console.error("Error loading user orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleConfirmReceived = (orderId) => {
-    const updatedOrders = orders.map((o) =>
-      o.orderId === orderId ? { ...o, status: "Delivered" } : o
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem("userOrders", JSON.stringify(updatedOrders));
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const handleConfirmReceived = async (orderId) => {
+    try {
+      await orderService.updateOrderStatusInAllRevenue(orderId, "Delivered");
+      setOrders((prev) =>
+        prev.map((o) => (o.orderId === orderId ? { ...o, status: "Delivered" } : o))
+      );
+    } catch (err) {
+      console.error("Error confirming order delivered:", err);
+    }
   };
 
   useEffect(() => {
@@ -36,16 +54,15 @@ const Order = () => {
   };
 
   const itemPerPage = 4;
-  const totalPages = Math.ceil(orders.length / itemPerPage);
-  const startIndex = (page - 1) * itemPerPage;
-  const currentOrders = orders.slice(startIndex, startIndex + itemPerPage);
-
-
-  const filteredOrders = currentOrders.filter((order) => {
-    const matchesSearch = order.orderId.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch = (order.orderId || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredOrders.length / itemPerPage);
+  const startIndex = (page - 1) * itemPerPage;
+  const currentOrders = filteredOrders.slice(startIndex, startIndex + itemPerPage);
 
   return (
     <div className="bg-[#f8f9fc]/60 min-h-screen py-10 font-sans">
@@ -58,57 +75,77 @@ const Order = () => {
               Your Orders
             </h1>
             <p className="text-xs sm:text-sm text-gray-500">
-              Manage and track your recent purchases.
+              Track, view details, and manage your past and recent purchases
             </p>
           </div>
 
-          {/* Controls: Search & Filter */}
-          <div className="flex flex-col sm:flex-row items-center gap-3">
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             {/* Search Input */}
             <div className="relative w-full sm:w-64">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 18 }} />
+              <SearchIcon
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                sx={{ fontSize: 18 }}
+              />
               <input
                 type="text"
+                placeholder="Search by Order ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by Order ID"
-                className="w-full bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl pl-9 pr-4 py-2.5 text-xs text-gray-900 placeholder-gray-400 shadow-2xs transition-all"
+                className="w-full bg-white border border-gray-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 rounded-xl pl-10 pr-4 py-2 text-xs text-gray-900 placeholder-gray-400 outline-none transition shadow-2xs"
               />
             </div>
 
             {/* Status Filter Dropdown */}
-            <div className="relative w-full sm:w-44">
+            <div className="relative w-full sm:w-40">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2.5 text-xs text-gray-700 shadow-2xs appearance-none cursor-pointer pr-8 font-medium"
+                className="w-full appearance-none bg-white border border-gray-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 rounded-xl px-4 py-2 pr-8 text-xs font-semibold text-gray-700 outline-none transition cursor-pointer shadow-2xs"
               >
                 <option value="All">All Statuses</option>
-                <option value="Delivered">Delivered</option>
-                <option value="In Transit">In Transit</option>
+                <option value="Pending">Pending</option>
                 <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
               </select>
-              <KeyboardArrowDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" sx={{ fontSize: 18 }} />
+              <KeyboardArrowDownIcon
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                sx={{ fontSize: 18 }}
+              />
             </div>
           </div>
         </div>
 
-        {/* Orders Grid (2 Columns) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-          {filteredOrders.length > 0 ? (
-            filteredOrders.map((order) => (
-              <OrderCard key={order.orderId} order={order} onConfirmReceived={handleConfirmReceived} />
-            ))
-          ) : (
-            <div className="col-span-full bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-2xs">
-              <p className="text-gray-500 font-medium text-sm">No orders found matching your search.</p>
+        {/* Order Cards Stack */}
+        {currentOrders.length > 0 ? (
+          <div className="space-y-6">
+            {currentOrders.map((order) => (
+              <OrderCard
+                key={order.orderId || order.id}
+                order={order}
+                onConfirmReceived={handleConfirmReceived}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-2xs max-w-md mx-auto my-12">
+            <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 font-bold text-xl">
+              📦
             </div>
-          )}
-        </div>
+            <h3 className="text-lg font-extrabold text-gray-900 mb-2">No orders found</h3>
+            <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
+              {searchTerm || statusFilter !== "All"
+                ? "No orders match your current filters. Try changing your search query."
+                : "You haven't placed any orders yet. Start exploring our latest products!"}
+            </p>
+          </div>
+        )}
 
-        {/* Pagination Bar */}
-        <div className="flex items-center justify-center gap-2 mt-14 pt-8 border-t border-gray-100">
-          {totalPages > 1 && (
+        {/* Pagination Section */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center mt-12">
             <Pagination
               count={totalPages}
               page={page}
@@ -117,11 +154,24 @@ const Order = () => {
                 <PaginationItem
                   slots={{ previous: ArrowBackIcon, next: ArrowForwardIcon }}
                   {...item}
+                  sx={{
+                    '&.Mui-selected': {
+                      backgroundColor: '#4f46e5',
+                      color: '#ffffff',
+                      fontWeight: 'bold',
+                      '&:hover': {
+                        backgroundColor: '#4338ca',
+                      },
+                    },
+                    borderRadius: '12px',
+                    margin: '0 4px',
+                    fontSize: '0.85rem',
+                  }}
                 />
               )}
             />
-          )}
-        </div>
+          </div>
+        )}
 
       </div>
     </div>

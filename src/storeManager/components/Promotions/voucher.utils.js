@@ -1,12 +1,9 @@
 import { initialVouchers } from "./promotions.data";
 
+let memoryVouchers = [...initialVouchers];
+
 export const getStoreVoucher = () => {
-    let saveVoucher = JSON.parse(localStorage.getItem("voucher"));
-    if (!saveVoucher || saveVoucher.length === 0) {
-        localStorage.setItem("voucher", JSON.stringify([]));
-        return [];
-    }
-    return saveVoucher;
+    return memoryVouchers;
 };
 
 export const resolveVoucherStatus = (voucher) => {
@@ -23,11 +20,7 @@ export const resolveVoucherStatus = (voucher) => {
 };
 
 export const loadVouchers = (storeId) => {
-    let all = JSON.parse(localStorage.getItem("voucher"));
-    if (!all || all.length === 0) {
-        all = [];
-        localStorage.setItem("voucher", JSON.stringify([]));
-    }
+    const all = memoryVouchers;
     const filtered = storeId ? all.filter(v => String(v.storeId) === String(storeId)) : all;
     return filtered.map(v => ({
         ...v,
@@ -75,7 +68,7 @@ export const getPromotionMetrics = (storeId) => {
 
 export const createVoucher = (draft, storeId, status) => {
     if (!draft) return null;
-    const allVouchers = JSON.parse(localStorage.getItem("voucher")) || [];
+    const allVouchers = memoryVouchers;
     const resolvedCode = draft.code.trim().toUpperCase();
 
     const normalizedType = draft.discountType?.toLowerCase();
@@ -99,160 +92,135 @@ export const createVoucher = (draft, storeId, status) => {
     }
 
     const newVoucher = {
-        id: `v-${Date.now()}`,
+        id: `voucher-${Date.now()}`,
         code: resolvedCode,
+        storeId: storeId || "store-001",
+        title: resolvedCode,
         description,
-        discountType: draft.discountType,
-        value: Number(draft.value) || 0,
+        type,
+        discountType: draft.discountType || "Percentage",
+        discountValue: Number(draft.value) || 0,
         minOrderValue: Number(draft.minOrderValue) || 0,
         maxDiscountAmount: Number(draft.maxDiscountAmount) || 0,
         usageLimit: Number(draft.usageLimit) || 0,
         usedCount: 0,
         usageCount: 0,
-        startDate: draft.startDate || "",
-        endDate: draft.endDate || "",
-        limitPerCustomer: !!draft.limitPerCustomer,
-        usedBy: {},
-        status: status,
+        revenueImpact: 0,
+        startDate: draft.startDate || null,
+        endDate: draft.endDate || null,
         scheduleLabel,
-        type,
-        storeId: storeId,
+        limitPerCustomer: Boolean(draft.limitPerCustomer),
+        status: status || "Active",
+        createdAt: new Date().toISOString(),
     };
 
-    allVouchers.unshift(newVoucher);
-    localStorage.setItem("voucher", JSON.stringify(allVouchers));
+    memoryVouchers = [newVoucher, ...allVouchers];
     return newVoucher;
 };
 
-export const isVoucherCodeDuplicate = (code, storeId, excludeId = null) => {
-    const vouchers = loadVouchers(storeId);
-    return vouchers.some(
+export const isVoucherCodeDuplicate = (code, storeId) => {
+    if (!code) return false;
+    const allVouchers = memoryVouchers;
+    const trimmed = code.trim().toUpperCase();
+    return allVouchers.some(
+        (v) => (v.code || "").toUpperCase() === trimmed && String(v.storeId) === String(storeId)
+    );
+};
+
+export const removeVoucher = (voucherId) => {
+    const allVouchers = memoryVouchers;
+    memoryVouchers = allVouchers.filter((v) => v.id !== voucherId);
+};
+
+export const toggleVoucherStatus = (voucherId, newStatus) => {
+    const allVouchers = memoryVouchers;
+    memoryVouchers = allVouchers.map((v) =>
+        v.id === voucherId ? { ...v, status: newStatus } : v
+    );
+};
+
+export const voucherValidate = (code, storeId, subtotal, customerId) => {
+    if (!code) {
+        return { valid: false, error: "Vui lòng nhập mã giảm giá." };
+    }
+
+    const all = memoryVouchers;
+    const trimmed = code.trim().toUpperCase();
+    const voucher = all.find(
         (v) =>
-            v.id !== excludeId &&
-            String(v.code).trim().toUpperCase() === String(code).trim().toUpperCase()
+            (v.code || "").toUpperCase() === trimmed &&
+            String(v.storeId) === String(storeId)
     );
-};
 
-export const updateVoucher = (id, updates) => {
-    const allVouchers = JSON.parse(localStorage.getItem("voucher")) || [];
-    const index = allVouchers.findIndex(v => String(v.id) === String(id));
-    if (index !== -1) {
-        allVouchers[index] = { ...allVouchers[index], ...updates };
-        localStorage.setItem("voucher", JSON.stringify(allVouchers));
-        return allVouchers[index];
-    }
-    return null;
-};
-
-export const toggleVoucherStatus = (id, newStatus) => {
-    return updateVoucher(id, { status: newStatus });
-};
-
-export const removeVoucher = (id) => {
-    const allVouchers = JSON.parse(localStorage.getItem("voucher")) || [];
-    const updated = allVouchers.filter(v => String(v.id) !== String(id));
-    localStorage.setItem("voucher", JSON.stringify(updated));
-    return updated;
-};
-
-export const calculateDiscount = (voucher, subtotal = 0) => {
-    if (!voucher) return 0;
-    if (voucher.minOrderValue && subtotal < Number(voucher.minOrderValue)) {
-        return 0;
-    }
-    const val = Number(voucher.value) || 0;
-    if (voucher.discountType === "Percentage") {
-        const discount = (subtotal * val) / 100;
-        const maxCap = Number(voucher.maxDiscountAmount);
-        return maxCap > 0 ? Math.min(discount, maxCap) : discount;
-    }
-    if (voucher.discountType === "Flat Amount") {
-        return Math.min(val, subtotal);
-    }
-    if (voucher.discountType === "Free Shipping") {
-        return subtotal > 500 ? subtotal * 0.005 : 0;
-    }
-    return 0;
-};
-
-export const voucherValidate = (code, storeId, subtotal, currentUserId) => {
-    const allVouchers = loadVouchers(storeId);
-    const voucher = allVouchers.find(
-        (v) => String(v.code).trim().toUpperCase() === String(code).trim().toUpperCase()
-    );
     if (!voucher) {
-        return { error: "Voucher not found" };
-    }
-    const currentStatus = resolveVoucherStatus(voucher) || voucher.status;
-    if (currentStatus !== "Active") {
-        return { error: `Voucher is ${currentStatus.toLowerCase()}` };
-    }
-
-    if (voucher.startDate && new Date() < new Date(voucher.startDate)) {
-        return { error: "Voucher is not active yet" };
-    }
-    if (voucher.endDate && new Date() > new Date(voucher.endDate)) {
-        return { error: "Voucher is expired" };
-    }
-    if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) {
-        return { error: "Voucher has reached its usage limit" };
-    }
-    if (voucher.minOrderValue && subtotal < Number(voucher.minOrderValue)) {
         return {
-            error: `Subtotal is less than minimum order value, minimum is $${voucher.minOrderValue}`,
+            valid: false,
+            error: `Mã "${trimmed}" không tồn tại cho gian hàng này.`,
         };
     }
 
-    if (voucher.limitPerCustomer && currentUserId) {
-        const userUsage = voucher.usedBy?.[currentUserId] || 0;
-        if (userUsage >= 1) {
-            return { error: "You have already used this voucher" };
-        }
+    const currentStatus = resolveVoucherStatus(voucher);
+    if (currentStatus === "Expired") {
+        return { valid: false, error: "Mã giảm giá này đã hết hạn sử dụng." };
+    }
+    if (currentStatus === "Upcoming") {
+        return { valid: false, error: "Mã giảm giá này chưa đến thời gian áp dụng." };
+    }
+    if (currentStatus === "Draft") {
+        return { valid: false, error: "Mã giảm giá này hiện chưa được kích hoạt." };
     }
 
-    const discountAmount = calculateDiscount(voucher, subtotal);
+    const minSpend = Number(voucher.minOrderValue) || 0;
+    if (subtotal < minSpend) {
+        return {
+            valid: false,
+            error: `Đơn hàng tối thiểu phải từ $${minSpend.toFixed(2)} để sử dụng mã này.`,
+        };
+    }
+
+    let discountAmount = 0;
+    const numValue = Number(voucher.discountValue) || 0;
+    const maxDiscount = Number(voucher.maxDiscountAmount) || 0;
+
+    if (voucher.discountType === "Percentage" || voucher.type === "percentage") {
+        discountAmount = (subtotal * numValue) / 100;
+        if (maxDiscount > 0 && discountAmount > maxDiscount) {
+            discountAmount = maxDiscount;
+        }
+    } else if (voucher.discountType === "Fixed Amount" || voucher.type === "amount") {
+        discountAmount = Math.min(subtotal, numValue);
+    } else if (voucher.discountType === "Free Shipping" || voucher.type === "shipping") {
+        discountAmount = subtotal > 500 ? subtotal * 0.005 : 0;
+    }
 
     return {
         valid: true,
-        voucher,
-        discountAmount,
-        message:
-            voucher.discountType === "Percentage"
-                ? `${voucher.value}% off (max $${voucher.maxDiscountAmount || voucher.value})`
-                : voucher.discountType === "Flat Amount"
-                    ? `$${voucher.value} off`
-                    : "Free Shipping",
         code: voucher.code,
+        voucher,
+        discountAmount: Math.round(discountAmount * 100) / 100,
+        message: `Áp dụng mã "${voucher.code}" thành công!`,
     };
 };
 
-export const consumeVoucher = (voucherCode, storeId, userId = "guest", orderId = "", discountAmount = 0) => {
-    if (!voucherCode) return;
-    const allVouchers = JSON.parse(localStorage.getItem("voucher")) || [];
-    const updated = allVouchers.map((v) => {
+export const consumeVoucher = (code, storeId, customerId, orderId, discountApplied) => {
+    const allVouchers = memoryVouchers;
+    const trimmed = (code || "").trim().toUpperCase();
+
+    memoryVouchers = allVouchers.map((v) => {
         if (
-            String(v.code).trim().toUpperCase() === String(voucherCode).trim().toUpperCase() &&
-            (!storeId || String(v.storeId) === String(storeId))
+            (v.code || "").toUpperCase() === trimmed &&
+            String(v.storeId) === String(storeId)
         ) {
-            const newUsedCount = (Number(v.usedCount) || 0) + 1;
-            const newStatus =
-                v.usageLimit > 0 && newUsedCount >= v.usageLimit ? "Expired" : v.status;
-            const userUsage = v.usedBy?.[userId] || 0;
-            return {
+            const currentUsed = Number(v.usedCount) || 0;
+            const currentImpact = Number(v.revenueImpact) || 0;
+            const updated = {
                 ...v,
-                usedCount: newUsedCount,
-                usageCount: newUsedCount,
-                revenueImpact: (Number(v.revenueImpact) || 0) + Number(discountAmount || 0),
-                status: newStatus,
-                usedBy: {
-                    ...(v.usedBy || {}),
-                    [userId]: userUsage + 1,
-                },
+                usedCount: currentUsed + 1,
+                usageCount: currentUsed + 1,
+                revenueImpact: currentImpact + (Number(discountApplied) || 0),
             };
+            return updated;
         }
         return v;
     });
-    localStorage.setItem("voucher", JSON.stringify(updated));
 };
-
-

@@ -3,6 +3,7 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 
 const ProfileForm = ({ userData, onSave, onCancel }) => {
   const [formData, setFormData] = useState(userData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -42,9 +43,20 @@ const ProfileForm = ({ userData, onSave, onCancel }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
+    if (isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      if (onSave) {
+        await onSave(formData);
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancelForm = () => {
@@ -236,16 +248,32 @@ const ProfileForm = ({ userData, onSave, onCancel }) => {
         <button
           type="button"
           onClick={handleCancelForm}
-          className="px-6 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+          disabled={isSubmitting}
+          className="px-6 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Cancel
         </button>
 
         <button
           type="submit"
-          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all cursor-pointer"
+          disabled={isSubmitting}
+          className={`px-6 py-2.5 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 ${
+            isSubmitting
+              ? "bg-indigo-400 cursor-not-allowed opacity-80"
+              : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/25 cursor-pointer"
+          }`}
         >
-          Save Changes
+          {isSubmitting ? (
+            <>
+              <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              <span>Saving...</span>
+            </>
+          ) : (
+            "Save Changes"
+          )}
         </button>
       </div>
     </form>

@@ -22,10 +22,7 @@ export default function Product({ data }) {
   const [sortOption, setSortOption] = useState("featured");
   const [searchQuery, setSearchQuery] = useState(defaultSearch);
   
-  const savedProducts = JSON.parse(localStorage.getItem("products"));
-  const productsList = (savedProducts && savedProducts.length > 0)
-    ? savedProducts
-    : (data && data.length > 0 ? data : product_mock_data);
+  const productsList = (data && data.length > 0) ? data : product_mock_data;
 
   const handleFilterChange = (sectionId, value, checked) => {
     setFilterState((prev) => {

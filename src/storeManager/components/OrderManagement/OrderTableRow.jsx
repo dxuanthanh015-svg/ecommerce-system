@@ -1,4 +1,5 @@
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import React from "react";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 const getInitials = (name) => {
   if (!name) return "CU";
@@ -13,7 +14,9 @@ const OrderTableRow = ({
   order,
   onConfirmOrder,
   onShipOrder,
+  onDeliverOrder,
   onCancelOrder,
+  onViewOrder,
 }) => {
   const {
     orderId,
@@ -28,18 +31,23 @@ const OrderTableRow = ({
   const initials = getInitials(customerName);
 
   return (
-    <tr className="hover:bg-gray-50/60 transition-colors border-b border-gray-50 font-sans">
+    <tr className="hover:bg-slate-50/70 transition-colors border-b border-gray-100 font-sans">
       {/* Order ID */}
-      <td
-        className="py-4 px-6 font-extrabold text-gray-900 text-xs sm:text-sm cursor-pointer hover:text-indigo-600 transition-colors"
-      >
-        {orderId}
+      <td className="py-4 px-6">
+        <button
+          type="button"
+          onClick={() => onViewOrder && onViewOrder(order)}
+          className="font-extrabold text-gray-900 text-xs sm:text-sm hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
+        >
+          <span>#{orderId}</span>
+          <VisibilityOutlinedIcon sx={{ fontSize: 14, opacity: 0.6 }} />
+        </button>
       </td>
 
       {/* Customer Name & Email */}
       <td className="py-4 px-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-slate-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
             {initials}
           </div>
           <div>
@@ -63,15 +71,22 @@ const OrderTableRow = ({
         ${typeof totalAmount === "number" ? totalAmount.toFixed(2) : totalAmount}
       </td>
 
-      {/* Payment Status Badge */}
+      {/* Status Badge */}
       <td className="py-4 px-6">
         <span
-          className={`px-3 py-1 rounded-full text-[11px] font-bold inline-block ${paymentStatus?.toLowerCase() === "paid"
-            ? "bg-emerald-100 text-emerald-800"
-            : "bg-amber-100 text-amber-800"
-            }`}
+          className={`px-3 py-1 rounded-full text-[11px] font-bold inline-block ${
+            orderStatus?.toLowerCase() === "delivered"
+              ? "bg-emerald-100 text-emerald-800"
+              : orderStatus?.toLowerCase() === "shipped"
+              ? "bg-indigo-100 text-indigo-800"
+              : orderStatus?.toLowerCase() === "cancelled"
+              ? "bg-rose-100 text-rose-800"
+              : orderStatus?.toLowerCase() === "processing"
+              ? "bg-blue-100 text-blue-800"
+              : "bg-amber-100 text-amber-800"
+          }`}
         >
-          {paymentStatus}
+          {orderStatus}
         </span>
       </td>
 
@@ -83,17 +98,16 @@ const OrderTableRow = ({
               <button
                 type="button"
                 onClick={() => onConfirmOrder && onConfirmOrder(orderId)}
-                className="border border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer"
+                className="border border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
               >
                 Confirm Order
               </button>
               <button
                 type="button"
                 onClick={() => onCancelOrder && onCancelOrder(orderId)}
-                className="border border-rose-300 text-rose-600 hover:bg-rose-50 font-bold text-xs px-3 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-0.5"
+                className="border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold text-xs px-3 py-2 rounded-xl transition-all cursor-pointer"
               >
-                <span>Cancel Order</span>
-                <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
+                Cancel
               </button>
             </>
           )}
@@ -103,30 +117,33 @@ const OrderTableRow = ({
               <button
                 type="button"
                 onClick={() => onShipOrder && onShipOrder(orderId)}
-                className="bg-indigo-600 text-white hover:bg-indigo-700 font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-2xs"
+                className="bg-indigo-600 text-white hover:bg-indigo-700 font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
               >
                 Ship Order
               </button>
               <button
                 type="button"
                 onClick={() => onCancelOrder && onCancelOrder(orderId)}
-                className="border border-rose-300 text-rose-600 hover:bg-rose-50 font-bold text-xs px-3 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-0.5"
+                className="border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold text-xs px-3 py-2 rounded-xl transition-all cursor-pointer"
               >
-                <span>Cancel Order</span>
-                <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
+                Cancel
               </button>
             </>
           )}
 
-          {(orderStatus?.toLowerCase() === "shipped") && (
-            <span className="text-gray-400 italic text-xs font-semibold px-2 py-1">
-              Shipping
-            </span>
+          {orderStatus?.toLowerCase() === "shipped" && (
+            <button
+              type="button"
+              onClick={() => onDeliverOrder && onDeliverOrder(orderId)}
+              className="border border-emerald-500 text-emerald-700 hover:bg-emerald-50 font-bold text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer"
+            >
+              Mark Delivered
+            </button>
           )}
 
-          {(orderStatus?.toLowerCase() === "delivered") && (
-            <span className="text-gray-400 italic text-xs font-semibold px-2 py-1">
-              Delivered
+          {orderStatus?.toLowerCase() === "delivered" && (
+            <span className="text-emerald-600 font-bold text-xs px-2 py-1">
+              Completed
             </span>
           )}
 
@@ -135,6 +152,16 @@ const OrderTableRow = ({
               Cancelled
             </span>
           )}
+
+          {/* View Details Icon Button */}
+          <button
+            type="button"
+            onClick={() => onViewOrder && onViewOrder(order)}
+            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+            title="View Order Details"
+          >
+            <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
+          </button>
         </div>
       </td>
     </tr>

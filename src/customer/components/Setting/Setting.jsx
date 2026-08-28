@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SettingSidebar from "./SettingSidebar";
 import ProfileForm from "./ProfileForm";
 import ApplyStoreManager from "../ApplyStoreManager/ApplyStoreManager";
+import { authService } from "../../../services"
 
 const defaultUserData = {
   firstName: "",
@@ -11,32 +12,29 @@ const defaultUserData = {
   phonePrefix: "",
   avatarUrl: "",
   isVerified: true,
+  isManager: false,
+  storeId: null,
 };
 
 const Setting = () => {
   const [activeTab, setActiveTab] = useState("profile");
-  const [userData, setUserData] = useState(() => {
-    const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : defaultUserData;
-  });
+  const [userData, setUserData] = useState(defaultUserData);
 
-  const handleSaveProfile = (updatedData) => {
-    setUserData(updatedData);
-    localStorage.setItem("user", JSON.stringify(updatedData));
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setUserData(user);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
-    // Update the corresponding user in registeredUsers array
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
-    const userIndex = registeredUsers.findIndex(
-      (u) => u.email.toLowerCase() === updatedData.email.toLowerCase()
-    );
-
-    if (userIndex > -1) {
-      registeredUsers[userIndex] = { ...registeredUsers[userIndex], ...updatedData };
-      localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
-    } else {
-      localStorage.setItem("registeredUsers", JSON.stringify([...registeredUsers, updatedData]));
-    }
-
+  const handleSaveProfile = async (updatedData) => {
+    const updatedUser = await authService.updateProfile(userData.id, updatedData);
+    setUserData(updatedUser);
     alert("Thông tin cá nhân đã được lưu thành công!");
   };
 

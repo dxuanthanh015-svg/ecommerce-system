@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import StoreHeader from "./StoreHeader";
@@ -6,6 +6,7 @@ import StoreTabs from "./StoreTabs";
 import StoreProductsGrid from "./StoreProductsGrid";
 import store_manager_mock_data from "../../../Data/store-manager_mock_data";
 import { product_mock_data } from "../../../Data/product_mock_data";
+import { productService, storeService } from "../../../services";
 
 const CustomerStoreInterface = () => {
   const navigate = useNavigate();
@@ -13,82 +14,131 @@ const CustomerStoreInterface = () => {
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [storeData, setStoreData] = useState(null);
+  const [storeProducts, setStoreProducts] = useState([]);
 
-  // Retrieve store information from localStorage or mock data
-  const storeData = useMemo(() => {
-    const customStores = JSON.parse(localStorage.getItem("stores")) || [];
-    const allStores = [...customStores, ...store_manager_mock_data];
-    return (
-      allStores.find((s) => String(s.id) === String(storeId)) ||
-      store_manager_mock_data[0]
-    );
+  useEffect(() => {
+    const loadStoreAndProducts = async () => {
+      try {
+        const [stores, prods] = await Promise.all([
+          storeService.fetchAllStores(),
+          productService.fetchProducts({ storeId }),
+        ]);
+
+        const allStores = [...stores, ...store_manager_mock_data];
+        const foundStore = allStores.find((s) => String(s.id) === String(storeId)) || allStores[0];
+        setStoreData(foundStore);
+
+        if (prods && prods.length > 0) {
+          setStoreProducts(prods);
+        } else {
+          // Fallback filtering
+          const allProds = await productService.fetchProducts();
+          const filtered = (allProds.length > 0 ? allProds : product_mock_data).filter((item) => {
+            const pStoreId = item.id_store || item.storeId;
+            return String(pStoreId) === String(foundStore?.id);
+          });
+          setStoreProducts(filtered);
+        }
+      } catch (err) {
+        console.error("Error loading store data:", err);
+      }
+    };
+    loadStoreAndProducts();
   }, [storeId]);
-
-  // Filter products belonging to this store
-  const storeProducts = useMemo(() => {
-    const allProducts = JSON.parse(localStorage.getItem("products")) || product_mock_data;
-    return allProducts.filter((item) => {
-      const pStoreId = item.id_store || item.storeId;
-      const visibleMatch = item.isVisible !== true;
-      return String(pStoreId) === String(storeData?.id) && visibleMatch;
-    });
-  }, [storeData]);
 
   // Filter products based on selected tab & search query
   const filteredProducts = useMemo(() => {
     return storeProducts.filter((product) => {
       // Search query filter
-      if (
-        searchQuery &&
-        !product.title.toLowerCase().includes(searchQuery.toLowerCase())
-      ) {
-        return false;
+      if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const titleMatch = product.title?.toLowerCase().includes(q);
+        const brandMatch = product.brand?.toLowerCase().includes(q);
+        const descMatch = product.description?.toLowerCase().includes(q);
+        const catMatch = product.topLavelCategory?.toLowerCase().includes(q) || product.secondLavelCategory?.toLowerCase().includes(q);
+        if (!titleMatch && !brandMatch && !descMatch && !catMatch) {
+          return false;
+        }
       }
 
       // Tab filter
       if (activeTab === "bestseller") {
-        return product.discountedPrice < product.price;
+        return Boolean(
+          product.isTrending ||
+          Number(product.rating) >= 4.7 ||
+          (product.claimedPercent && product.claimedPercent >= 50) ||
+          product.badge === "HOT"
+        );
       }
       if (activeTab === "new") {
-        return product.badge === "NEW" || product.id % 2 === 0;
+        return Boolean(
+          product.badge === "NEW" ||
+          product.isNew ||
+          String(product.id).includes("fs-001") ||
+          String(product.id).includes("fs-002") ||
+          String(product.id).includes("fs-003") ||
+          String(product.id).includes("prod_") ||
+          !product.isFlashSale
+        );
       }
       if (activeTab === "sale") {
-        return product.discountedPrice && product.discountedPrice < product.price;
+        return Boolean(
+          (product.discountedPrice && product.discountedPrice < product.price) ||
+          product.isFlashSale ||
+          (product.discountPersent && product.discountPersent > 0)
+        );
       }
 
       return true;
     });
   }, [storeProducts, activeTab, searchQuery]);
 
+  if (!storeData) return null;
+
   return (
-    <div className="bg-[#f8f9fc]/60 min-h-screen py-8 font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Back Navigation Link */}
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-indigo-600 mb-6 transition-colors cursor-pointer"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} />
-          <span>Quay lại</span>
-        </button>
+    <div className="min-h-screen bg-[#fafbfc] font-sans pb-20">
+      {/* Top Back Navigation Bar */}
+      <div className="bg-white border-b border-gray-100 py-3 px-4 sm:px-8 sticky top-0 z-20 shadow-2xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-indigo-600 transition-colors cursor-pointer"
+          >
+            <ArrowBackIcon sx={{ fontSize: 18 }} />
+            <span>Quay lại trang trước</span>
+          </button>
 
-        {/* Store Header Banner Component */}
-        <StoreHeader storeData={storeData} totalProducts={storeProducts.length} />
+          <span className="text-xs font-medium text-gray-400">
+            Gian hàng chính hãng • NexCart Mall
+          </span>
+        </div>
+      </div>
 
-        {/* Store Navigation Tabs Component */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+        {/* Store Header & Stats Banner */}
+        <StoreHeader
+          store={storeData}
+          totalProductsCount={storeProducts.length}
+        />
+
+        {/* Store Tabs & In-Store Search */}
         <StoreTabs
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          onTabChange={setActiveTab}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          onSearchChange={setSearchQuery}
           totalCount={filteredProducts.length}
         />
 
-        {/* Store Products Grid Component */}
-        <StoreProductsGrid products={filteredProducts} />
-
+        {/* Filtered Products Grid */}
+        <StoreProductsGrid
+          products={filteredProducts}
+          storeName={storeData.name}
+        />
       </div>
     </div>
   );

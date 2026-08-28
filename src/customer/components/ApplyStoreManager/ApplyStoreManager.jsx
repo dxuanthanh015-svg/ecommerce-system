@@ -1,32 +1,58 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ShopInfoSection from "./ShopInfoSection";
 import ContactInfoSection from "./ContactInfoSection";
 import IdentityVerificationSection from "./IdentityVerificationSection";
 import BankDetailsSection from "./BankDetailsSection";
+import { authService, storeService } from "../../../services";
 
 const ApplyStoreManager = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const [formData, setFormData] = useState(() => {
-    const saved = localStorage.getItem("storeApplication");
-    if (saved) return JSON.parse(saved);
-    return {
-      shopName: "",
-      shopDescription: "",
-      primaryCategory: "",
-      businessEmail: user.email || "",
-      phone: user.phone || "",
-      pickupAddress: user.specificAddress || "",
-      idCardNumber: "",
-      documentFileName: "",
-      bankName: "",
-      accountHolder: user.firstName ? `${user.firstName} ${user.lastName}` : "",
-      accountNumber: "",
-    };
+  const [formData, setFormData] = useState({
+    shopName: "",
+    shopDescription: "",
+    primaryCategory: "",
+    businessEmail: "",
+    phone: "",
+    pickupAddress: "",
+    idCardNumber: "",
+    documentFileName: "",
+    bankName: "",
+    accountHolder: "",
+    accountNumber: "",
   });
 
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (user) {
+          if (user.isManager) {
+            alert("Bạn đã là Store Manager của một gian hàng rồi! Hệ thống sẽ chuyển bạn đến trang quản trị.");
+            navigate("/store-manager/dashboard", { replace: true });
+            return;
+          }
+
+          setCurrentUser(user);
+          setFormData((prev) => ({
+            ...prev,
+            businessEmail: user.email || "",
+            phone: user.phone || "",
+            pickupAddress: user.specificAddress || "",
+            accountHolder: user.firstName ? `${user.firstName} ${user.lastName}` : "",
+          }));
+        } else {
+          alert("Vui lòng đăng nhập tài khoản trước khi đăng ký mở gian hàng!");
+          navigate("/login", { replace: true });
+        }
+      } catch (err) {
+        console.error("Error loading currentUser:", err);
+      }
+    };
+    loadUser();
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,7 +65,7 @@ const ApplyStoreManager = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.shopName || !formData.businessEmail || !formData.phone || !formData.bankName) {
@@ -47,12 +73,18 @@ const ApplyStoreManager = () => {
       return;
     }
 
-    const existingStores = JSON.parse(localStorage.getItem("stores")) || [];
+    if (currentUser?.isManager) {
+      alert("Bạn đã là Store Manager của một gian hàng rồi!");
+      navigate("/store-manager/dashboard");
+      return;
+    }
 
+    const storeId = `store-${Date.now()}`;
     const newStore = {
-      id: `store-${Date.now()}`,
+      id: storeId,
       name: formData.shopName,
-      owner: `${user.firstName || "NexCart"} ${user.lastName || "Partner"}`,
+      owner: `${currentUser?.firstName || "NexCart"} ${currentUser?.lastName || "Partner"}`,
+      ownerEmail: currentUser?.email,
       email: formData.businessEmail,
       phone: formData.phone,
       address: formData.pickupAddress || "Manhattan, New York",
@@ -66,61 +98,33 @@ const ApplyStoreManager = () => {
         qrCodeUrl: `https://img.vietqr.io/image/${formData.bankName}-${formData.accountNumber}-compact2.png`,
       },
       status: "Approved",
+      createdAt: new Date().toISOString(),
     };
-    user.isManager
-      ? alert("You are already a store manager")
-      : (() => {
-        localStorage.setItem("storeApplication", JSON.stringify(formData));
-        const allStores = JSON.parse(localStorage.getItem("allStores")) || existingStores;
-        const updatedAllStores = [...allStores, newStore];
-        localStorage.setItem("allStores", JSON.stringify(updatedAllStores));
-        localStorage.setItem("stores", JSON.stringify(updatedAllStores));
-        localStorage.setItem("currentStore", JSON.stringify(newStore));
-        localStorage.setItem("currentProducts", JSON.stringify([]))
 
-        user.isManager = true;
-        user.storeId = newStore.id;
-        localStorage.setItem("user", JSON.stringify(user));
+    try {
+      await storeService.saveStoreApplication({ ...formData, storeId, submittedAt: new Date().toISOString() });
+      await storeService.createInAllStores(newStore);
+      await storeService.createStore(newStore);
+      await storeService.setCurrentStore(newStore);
 
-        // Initialize orderRevenue in localStorage for the new store (default 0)
-        const allStoreRevenue = JSON.parse(localStorage.getItem("allStoreRevenue")) || {};
-        allStoreRevenue[newStore.id] = {
-          storeId: newStore.id,
-          storeName: newStore.name,
-          totalRevenue: 0,
-          todayRevenue: 0,
-          orders: [],
-        };
-        localStorage.setItem("allStoreRevenue", JSON.stringify(allStoreRevenue));
-        localStorage.setItem("orderRevenue", JSON.stringify(allStoreRevenue[newStore.id]));
+      await authService.updateProfile({
+        isManager: true,
+        storeId: storeId,
+      });
 
-        // Synchronize isManager and storeId in registeredUsers array
-        const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
-        const updatedRegistered = registeredUsers.map((u) =>
-          u.email.toLowerCase() === user.email.toLowerCase()
-            ? { ...u, isManager: true, storeId: newStore.id }
-            : u
-        );
-        localStorage.setItem("registeredUsers", JSON.stringify(updatedRegistered));
-
-        alert(`Đăng ký mở gian hàng "${formData.shopName}" thành công! Đơn của bạn đã được phê duyệt.`);
-        navigate("/store-manager/dashboard");
-      })();
-
-
+      window.dispatchEvent(new Event("userSessionUpdated"));
+      alert(`Đăng ký mở gian hàng "${formData.shopName}" thành công! Đơn của bạn đã được phê duyệt.`);
+      navigate("/store-manager/dashboard");
+    } catch (err) {
+      console.error("Error creating store:", err);
+      alert("Có lỗi xảy ra khi tạo gian hàng trên server!");
+    }
   };
 
   const handleCancel = () => {
     if (window.confirm("Bạn có chắc chắn muốn hủy điền đơn đăng ký?")) {
       navigate("/");
     }
-  };
-
-  const clearStoreStorage = () => {
-    localStorage.removeItem('storeApplication');
-    localStorage.removeItem('stores');
-    user.isManager = false;
-    localStorage.setItem('user', JSON.stringify(user));
   };
 
   return (
@@ -147,24 +151,23 @@ const ApplyStoreManager = () => {
         <BankDetailsSection formData={formData} handleChange={handleChange} />
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
           <button
             type="button"
             onClick={handleCancel}
-            className="px-6 py-3 bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 text-xs font-bold rounded-2xl transition-colors cursor-pointer"
+            className="px-6 py-2.5 rounded-xl border border-gray-200 text-xs sm:text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-8 py-3 bg-[#4338ca] hover:bg-[#3730a3] text-white text-xs font-extrabold rounded-2xl shadow-lg shadow-indigo-500/25 transition-all cursor-pointer"
+            className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
           >
             Submit Application
           </button>
         </div>
       </form>
     </div>
-
   );
 };
 

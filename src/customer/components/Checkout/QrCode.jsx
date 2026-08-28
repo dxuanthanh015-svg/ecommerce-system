@@ -5,31 +5,44 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
-
-import { processOrderPayment } from "../../utils/orderInventoryUtils";
-import { getUserCart, saveUserCart } from "../../utils/cartUtils";
-import { consumeVoucher } from "../../../storeManager/components/Promotions/voucher.utils";
+import { orderService, voucherService, cartService, storeService, authService } from "../../../services";
 
 const QrCode = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get order data from navigation state or localStorage
-  const pendingOrder = location.state?.order || JSON.parse(localStorage.getItem("pendingOrder")) || {
-    orderId: "NX-88291",
+  const pendingOrder = location.state?.order || {
+    orderId: `NX-${Math.floor(10000 + Math.random() * 90000)}`,
     total: 475.20,
-    items: JSON.parse(localStorage.getItem("cart")) || []
+    items: [],
   };
 
-  const currentUser = JSON.parse(localStorage.getItem("user")) || {};
-  const allStores = JSON.parse(localStorage.getItem("allStores")) || store_manager_mock_data;
-
-  // Find store info based on first item's id_store / storeId
-  const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
-  const storeInfo = allStores.find((s) => String(s.id) === String(firstItemStoreId)) || allStores[0];
+  const [currentUser, setCurrentUser] = useState(null);
+  const [storeInfo, setStoreInfo] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Timer: 15 minutes (900 seconds)
   const [timeLeft, setTimeLeft] = useState(900);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const [user, stores] = await Promise.all([
+          authService.getCurrentUser(),
+          storeService.fetchAllStores(),
+        ]);
+        setCurrentUser(user);
+
+        const allStores = stores.length > 0 ? stores : store_manager_mock_data;
+        const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
+        const found = allStores.find((s) => String(s.id) === String(firstItemStoreId)) || allStores[0];
+        setStoreInfo(found);
+      } catch (err) {
+        console.error("Error loading session in QrCode:", err);
+      }
+    };
+    init();
+  }, []);
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -62,55 +75,58 @@ const QrCode = () => {
 
   const [qrSrc, setQrSrc] = useState(qrData);
 
-  const handlePaid = () => {
-    // 1. Process stock deduction and store order revenue tracking
-    processOrderPayment(pendingOrder, currentUser);
+  useEffect(() => {
+    setQrSrc(qrData);
+  }, [qrData]);
 
-    // 2. Consume voucher usage and revenue impact
-    if (pendingOrder.voucherCode && pendingOrder.discountAmount > 0) {
-      const voucherStoreId = pendingOrder.storeId || firstItemStoreId;
-      consumeVoucher(
-        pendingOrder.voucherCode,
-        voucherStoreId,
-        currentUser.id || "guest",
-        pendingOrder.orderId,
-        pendingOrder.discountAmount
-      );
+  const handlePaid = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    try {
+      // 1. Process order and store revenue tracking on Mock Server
+      await orderService.processOrder(pendingOrder, currentUser || {});
+
+      // 2. Consume voucher if used
+      if (pendingOrder.voucherCode && pendingOrder.discountAmount > 0) {
+        const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
+        const voucherStoreId = pendingOrder.storeId || firstItemStoreId;
+        await voucherService.consumeVoucher(
+          pendingOrder.voucherCode,
+          voucherStoreId,
+          pendingOrder.discountAmount
+        );
+      }
+
+      // 3. Remove paid items from user cart
+      const paidItems = pendingOrder.items || [];
+      if (currentUser?.email) {
+        const currentCart = await cartService.fetchCart(currentUser.email);
+        const remaining = currentCart.filter((item) => {
+          return !paidItems.some(
+            (paid) => String(paid.id) === String(item.id) && (paid.size || "M") === (item.size || "M")
+          );
+        });
+        await cartService.saveCart(remaining, currentUser.email);
+      } else {
+        const currentGuestCart = await cartService.fetchGuestCart();
+        const remaining = currentGuestCart.filter((item) => {
+          return !paidItems.some(
+            (paid) => String(paid.id) === String(item.id) && (paid.size || "M") === (item.size || "M")
+          );
+        });
+        await cartService.saveGuestCart(remaining);
+      }
+
+      window.dispatchEvent(new Event("cartUpdated"));
+      alert(`Thanh toán đơn hàng ${pendingOrder.orderId} thành công! Kho hàng và doanh thu đã được cập nhật.`);
+      navigate("/account/order");
+    } catch (err) {
+      console.error("Error processing order payment:", err);
+      alert("Lỗi xử lý đơn hàng: " + err.message);
+    } finally {
+      setIsProcessing(false);
     }
-
-    // 2. Save to customer order history
-    const existingOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
-    const newOrder = {
-      orderId: pendingOrder.orderId,
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
-      status: "Pending",
-      subtotal: pendingOrder.subtotal,
-      tax: pendingOrder.tax,
-      total: pendingOrder.total,
-      items: pendingOrder.items || [],
-      shippingAddress: pendingOrder.address || {},
-      extraCount: Math.max(0, (pendingOrder.items?.length || 0) - 2),
-    };
-
-    localStorage.setItem("userOrders", JSON.stringify([newOrder, ...existingOrders]));
-
-    // 3. Filter out paid items from user cart
-    const fullCart = getUserCart();
-    const paidItems = pendingOrder.items || [];
-    const remainingCart = fullCart.filter((item) => {
-      return !paidItems.some(
-        (paid) =>
-          String(paid.id) === String(item.id) &&
-          (paid.size || "M") === (item.size || "M")
-      );
-    });
-
-    saveUserCart(remainingCart);
-    localStorage.removeItem("checkoutCart");
-    localStorage.removeItem("pendingOrder");
-
-    alert(`Thanh toán đơn hàng ${pendingOrder.orderId} thành công! Kho hàng và doanh thu đã được cập nhật.`);
-    navigate("/account/order");
   };
 
   const handleCancel = () => {
@@ -128,128 +144,103 @@ const QrCode = () => {
       {/* Main Container Card */}
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative">
         {/* Top Gradient Bar */}
-        <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 w-full" />
+        <div className="h-2.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
-        <div className="p-6 sm:p-8 flex flex-col items-center">
-          {/* Header Icon */}
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
-            <QrCodeScannerOutlinedIcon sx={{ fontSize: 28 }} />
+        <div className="p-6 sm:p-8 space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold mb-2">
+              <QrCodeScannerOutlinedIcon sx={{ fontSize: 16 }} />
+              <span>VietQR Instant Payment</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+              Quét Mã Để Thanh Toán
+            </h1>
+            <p className="text-xs text-gray-500">
+              Mở ứng dụng ngân hàng bất kỳ để quét mã QR và thanh toán tự động
+            </p>
           </div>
 
-          {/* Title & Subtitle */}
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-1 text-center">
-            Scan to Pay
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 text-center max-w-sm mb-6 leading-relaxed">
-            Please use your banking app or e-wallet to scan the QR code below.
-          </p>
-
-          {/* Order ID & Total Amount Card */}
-          <div className="w-full bg-[#f0f4ff] rounded-2xl p-4 flex items-center justify-between mb-6 border border-indigo-100/60">
-            <div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
-                ORDER ID
-              </span>
-              <span className="text-sm font-extrabold text-gray-900">
-                #{pendingOrder.orderId}
-              </span>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
-                TOTAL AMOUNT
-              </span>
-              <span className="text-lg font-black text-indigo-600">
-                ${Number(pendingOrder.total).toFixed(2)}
-              </span>
-            </div>
+          {/* Countdown Clock */}
+          <div className="flex items-center justify-center gap-2 bg-amber-50/80 border border-amber-200/60 rounded-2xl py-2.5 px-4 text-amber-800 text-xs font-bold">
+            <AccessTimeOutlinedIcon sx={{ fontSize: 16 }} />
+            <span>Mã QR sẽ hết hạn sau:</span>
+            <span className="text-sm font-black text-amber-900 font-mono tracking-wider">
+              {formatTime(timeLeft)}
+            </span>
           </div>
 
           {/* QR Code Container */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col items-center mb-6 relative group">
-            {/* Inner Top Bar */}
-            <div className="w-full h-1 bg-indigo-500 rounded-full mb-4" />
-
-            <img
-              src={qrSrc}
-              onError={() => setQrSrc(fallbackQr)}
-              alt="Scan to Pay QR Code"
-              className="w-48 h-48 object-contain mb-3 rounded-lg"
-            />
-
-            <div className="text-center">
-              <span className="text-[11px] font-bold text-gray-800 block">
-                Thanh Toán QR ({storeInfo.bankInfo.bankName})
-              </span>
-              <span className="text-[10px] font-extrabold text-indigo-600 tracking-wide uppercase">
-                {storeInfo.name}
-              </span>
+          <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-gray-50/80 to-white rounded-3xl border border-gray-100 shadow-2xs relative group">
+            <div className="relative p-3 bg-white rounded-2xl shadow-md border border-gray-200/80">
+              <img
+                src={qrSrc}
+                alt="VietQR Payment Code"
+                className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl"
+                onError={() => setQrSrc(fallbackQr)}
+              />
+              <div className="absolute inset-0 border-2 border-indigo-600/20 rounded-2xl pointer-events-none" />
             </div>
+
+            <p className="text-[11px] font-semibold text-gray-400 mt-3">
+              Mã giao dịch: <span className="font-mono font-bold text-gray-700">{pendingOrder.orderId}</span>
+            </p>
           </div>
 
-          {/* Expire Timer Badge */}
-          <div className="bg-rose-50 text-rose-600 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 mb-8 border border-rose-100">
-            <AccessTimeOutlinedIcon sx={{ fontSize: 16 }} />
-            <span>Payment window expires in <strong className="font-extrabold">{formatTime(timeLeft)}</strong></span>
-          </div>
-
-          {/* Instructions */}
-          <div className="w-full space-y-3 mb-8">
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-              INSTRUCTIONS
-            </h3>
-
-            <div className="flex items-center gap-3">
-              <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0">
-                1
-              </span>
-              <span className="text-xs text-gray-600 font-medium">
-                Open your preferred payment app or e-wallet.
+          {/* Bank Transfer Details Box */}
+          <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 space-y-2.5 text-xs">
+            <div className="flex justify-between items-center text-gray-500">
+              <span>Ngân hàng thụ hưởng:</span>
+              <span className="font-bold text-gray-900">{storeBank}</span>
+            </div>
+            <div className="flex justify-between items-center text-gray-500">
+              <span>Chủ tài khoản:</span>
+              <span className="font-bold text-gray-900 uppercase">{storeName}</span>
+            </div>
+            <div className="flex justify-between items-center text-gray-500">
+              <span>Số tài khoản:</span>
+              <span className="font-bold font-mono text-gray-900">{storeAccount}</span>
+            </div>
+            <div className="flex justify-between items-center text-gray-500">
+              <span>Số tiền thanh toán:</span>
+              <span className="font-extrabold text-indigo-600 text-sm">
+                ${Number(pendingOrder.total || 0).toFixed(2)}
+                <span className="text-[10px] text-gray-400 font-normal ml-1">
+                  (~{Math.round((pendingOrder.total || 0) * 25000).toLocaleString('vi-VN')} VND)
+                </span>
               </span>
             </div>
-
-            <div className="flex items-center gap-3">
-              <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0">
-                2
-              </span>
-              <span className="text-xs text-gray-600 font-medium">
-                Scan the QR code displayed above.
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0">
-                3
-              </span>
-              <span className="text-xs text-gray-600 font-medium">
-                Confirm the payment details on your device.
+            <div className="flex justify-between items-center text-gray-500">
+              <span>Nội dung chuyển khoản:</span>
+              <span className="font-bold font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                {pendingOrder.orderId}
               </span>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="w-full space-y-3">
+          <div className="space-y-3 pt-2">
             <button
+              type="button"
               onClick={handlePaid}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:shadow-indigo-500/25 transition-all cursor-pointer"
+              disabled={isProcessing}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white py-3.5 px-6 rounded-xl font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-50"
             >
-              <span>I HAVE PAID</span>
+              <LockOutlinedIcon sx={{ fontSize: 16 }} />
+              <span>{isProcessing ? "ĐANG XÁC NHẬN..." : "TÔI ĐÃ HOÀN TẤT CHUYỂN KHOẢN"}</span>
               <ArrowForwardIcon sx={{ fontSize: 16 }} />
             </button>
 
             <button
+              type="button"
               onClick={handleCancel}
-              className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-bold py-3.5 px-4 rounded-2xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
+              className="w-full py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition cursor-pointer"
             >
-              CANCEL PAYMENT
+              Hủy thanh toán và quay lại
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Footer SSL Note */}
-      <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-6">
-        <LockOutlinedIcon sx={{ fontSize: 14 }} />
-        <span>Secure 256-bit SSL Encrypted Payment</span>
+        </div>
       </div>
     </div>
   );

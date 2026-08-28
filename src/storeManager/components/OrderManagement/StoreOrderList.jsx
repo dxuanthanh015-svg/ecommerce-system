@@ -1,81 +1,104 @@
-import React, { useState } from "react";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
-import AddIcon from "@mui/icons-material/Add";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import OrderTableFilter from "./OrderTableFilter";
 import OrderTableRow from "./OrderTableRow";
 import OrderPagination from "./OrderPagination";
-
-
-import { getStoreOrderRevenue, updateStoreOrderStatus } from "../../../customer/utils/orderInventoryUtils";
-import { useSearchParams } from "react-router-dom";
+import StoreOrderDetailModal from "./StoreOrderDetailModal";
+import { orderService, storeService } from "../../../services";
 
 const StoreOrderList = ({
   onConfirmOrder,
   onShipOrder,
   onCancelOrder
 }) => {
-  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
+  const [currentStore, setCurrentStore] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [rawOrders, setRawOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [orders, setOrders] = useState(() => {
-    const revenueData = getStoreOrderRevenue(currentStore?.id);
-    if (revenueData && revenueData.orders && revenueData.orders.length > 0) {
-      return revenueData.orders.map((o) => ({
-        orderId: o.orderId,
-        customerName: o.customer || o.customerName || "Customer",
-        customerEmail: o.customerEmail || "customer@example.com",
-        date: o.formattedDate || (o.date ? new Date(o.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "Today"),
-        totalAmount: Number(o.totalAmount) || Number(o.total) || 0,
-        paymentStatus: o.paymentMethod ? "Paid" : "Paid",
-        orderStatus: o.status || "Pending",
-      }));
+  useEffect(() => {
+    const loadStore = async () => {
+      const store = await storeService.getCurrentStore();
+      setCurrentStore(store);
+    };
+    loadStore();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      // Ưu tiên lấy từ /orderRevenue (đơn hàng riêng của store đang đăng nhập)
+      const revenueData = await orderService.fetchOrderRevenue();
+      if (revenueData?.orders?.length > 0) {
+        setRawOrders(revenueData.orders);
+      } else if (currentStore?.id) {
+        // Fallback: lấy từ /allStoreRevenue theo storeId
+        const storeRevenue = await orderService.fetchStoreRevenueById(currentStore.id);
+        setRawOrders(storeRevenue?.orders || []);
+      }
+    } catch (err) {
+      console.error("Error loading store orders:", err);
+    } finally {
+      setLoading(false);
     }
-    return defaultOrders;
-  });
+  };
+
+  useEffect(() => {
+    if (currentStore !== null) {
+      fetchOrders();
+    }
+  }, [currentStore]);
+
+  // Map to table rows format with full raw order preserved
+  const orders = rawOrders.map((o) => ({
+    ...o,
+    orderId: o.orderId,
+    customerName: o.customer || o.customerName || o.shippingAddress?.fullName || "Customer",
+    customerEmail: o.customerEmail || o.shippingAddress?.email || "customer@example.com",
+    date: o.formattedDate || (o.date ? new Date(o.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "Today"),
+    totalAmount: Number(o.totalAmount) || Number(o.total) || 0,
+    paymentStatus: o.paymentMethod ? "Paid" : "Paid",
+    orderStatus: o.status || "Pending",
+  }));
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [searchParam, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParam.get("page") || "1", 10);
 
+  const handleStatusChange = async (orderId, newStatus) => {
+    // Cập nhật đồng thời cả 3 resource
+    await orderService.updateOrderStatusInAllRevenue(orderId, newStatus, currentStore?.id);
+    setRawOrders((prev) =>
+      prev.map((o) => (o.orderId === orderId ? { ...o, status: newStatus } : o))
+    );
+    if (selectedOrder && selectedOrder.orderId === orderId) {
+      setSelectedOrder((prev) => prev ? { ...prev, status: newStatus, orderStatus: newStatus } : null);
+    }
+  };
+
   // Confirm Order Handler
   const handleConfirm = (id) => {
-    if (currentStore.id) {
-      updateStoreOrderStatus(currentStore.id, id, "Processing");
-    }
-    if (onConfirmOrder) {
-      onConfirmOrder(id);
-    } else {
-      setOrders((prev) =>
-        prev.map((o) => (o.orderId === id ? { ...o, orderStatus: "Processing" } : o))
-      );
-    }
+    handleStatusChange(id, "Processing");
+    if (onConfirmOrder) onConfirmOrder(id);
   };
 
   // Ship Order Handler
   const handleShip = (id) => {
-    if (currentStore.id) {
-      updateStoreOrderStatus(currentStore.id, id, "Shipped");
-    }
-    if (onShipOrder) {
-      onShipOrder(id);
-    } else {
-      setOrders((prev) =>
-        prev.map((o) => (o.orderId === id ? { ...o, orderStatus: "Shipped" } : o))
-      );
-    }
+    handleStatusChange(id, "Shipped");
+    if (onShipOrder) onShipOrder(id);
+  };
+
+  // Deliver Order Handler
+  const handleDeliver = (id) => {
+    handleStatusChange(id, "Delivered");
   };
 
   // Cancel Order Handler
   const handleCancel = (id) => {
-    if (currentStore.id) {
-      updateStoreOrderStatus(currentStore.id, id, "Cancelled");
-    }
-    if (onCancelOrder) {
-      onCancelOrder(id);
-    } else {
-      setOrders((prev) =>
-        prev.map((o) => (o.orderId === id ? { ...o, orderStatus: "Cancelled" } : o))
-      );
+    if (window.confirm("Are you sure you want to cancel this order? Item inventory will be restored.")) {
+      handleStatusChange(id, "Cancelled");
+      if (onCancelOrder) onCancelOrder(id);
     }
   };
 
@@ -94,7 +117,7 @@ const StoreOrderList = ({
   });
 
   const orderRowPerPage = 8;
-  const page = Math.ceil(filteredOrders.length / orderRowPerPage);
+  const page = Math.max(1, Math.ceil(filteredOrders.length / orderRowPerPage));
   const currentPageData = filteredOrders.slice(
     (currentPage - 1) * orderRowPerPage,
     currentPage * orderRowPerPage
@@ -109,7 +132,7 @@ const StoreOrderList = ({
             Order Management
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Review and process recent customer orders.
+            Review, process, and track customer shipments in real-time.
           </p>
         </div>
       </div>
@@ -132,7 +155,7 @@ const StoreOrderList = ({
                 <th className="py-4 px-6">CUSTOMER NAME</th>
                 <th className="py-4 px-6">DATE</th>
                 <th className="py-4 px-6">TOTAL AMOUNT</th>
-                <th className="py-4 px-6">PAYMENT STATUS</th>
+                <th className="py-4 px-6">STATUS</th>
                 <th className="py-4 px-6 text-right">ACTIONS</th>
               </tr>
             </thead>
@@ -144,7 +167,9 @@ const StoreOrderList = ({
                     order={order}
                     onConfirmOrder={handleConfirm}
                     onShipOrder={handleShip}
+                    onDeliverOrder={handleDeliver}
                     onCancelOrder={handleCancel}
+                    onViewOrder={(o) => setSelectedOrder(o)}
                   />
                 ))
               ) : (
@@ -162,13 +187,20 @@ const StoreOrderList = ({
         <OrderPagination
           currentPage={currentPage}
           totalPages={page}
-          showingFrom={currentPage > 1 ? (currentPage - 1) * orderRowPerPage + 1 : 1}
-          showingTo={currentPage === page ? filteredOrders.length : currentPage * orderRowPerPage}
+          showingFrom={currentPage > 1 ? (currentPage - 1) * orderRowPerPage + 1 : (filteredOrders.length > 0 ? 1 : 0)}
+          showingTo={Math.min(currentPage * orderRowPerPage, filteredOrders.length)}
           totalEntries={filteredOrders.length}
           onPageChange={(event, newPage) => setSearchParams({ page: newPage })}
         />
       </div>
 
+      {/* Order Detail Modal */}
+      <StoreOrderDetailModal
+        order={selectedOrder}
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        onStatusChange={handleStatusChange}
+      />
     </div>
   );
 };

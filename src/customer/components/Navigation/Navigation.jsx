@@ -16,9 +16,7 @@ import {
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
-  ShoppingBagIcon,
   XMarkIcon,
-
 } from "@heroicons/react/24/outline";
 import { navigation } from "./navigation";
 import { useNavigate } from "react-router-dom";
@@ -29,24 +27,56 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import { getUserCart } from "../../utils/cartUtils";
 import { useEffect } from "react";
+import { authService, cartService, wishlistService } from "../../../services";
 
 export default function Navigation() {
-  const user = JSON.parse(localStorage.getItem('user'));
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' && !!user;
-  const [cartCount, setCartCount] = useState(() => getUserCart().length);
-  const wishlistItems = JSON.parse(localStorage.getItem('wishlist')) || [];
+  const [user, setUser] = useState(null);
+  const isLoggedIn = Boolean(user);
+  const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  const fetchSessionData = async () => {
+    try {
+      const active = await authService.getCurrentUser();
+      setUser(active);
+
+      if (active?.email) {
+        const [cItems, wItems] = await Promise.all([
+          cartService.fetchCart(active.email),
+          wishlistService.fetchWishlist(active.email),
+        ]);
+        setCartCount(cItems.length);
+        setWishlistCount(wItems.length);
+      } else {
+        const [gItems, wItems] = await Promise.all([
+          cartService.fetchGuestCart(),
+          wishlistService.fetchWishlist(),
+        ]);
+        setCartCount(gItems.length);
+        setWishlistCount(wItems.length);
+      }
+    } catch {
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
-    const handleCartUpdate = () => {
-      setCartCount(getUserCart().length);
+    fetchSessionData();
+
+    const handleUpdate = () => {
+      fetchSessionData();
     };
-    window.addEventListener("cartUpdated", handleCartUpdate);
-    window.addEventListener("storage", handleCartUpdate);
+
+    window.addEventListener("cartUpdated", handleUpdate);
+    window.addEventListener("wishlistUpdated", handleUpdate);
+    window.addEventListener("userSessionUpdated", handleUpdate);
     return () => {
-      window.removeEventListener("cartUpdated", handleCartUpdate);
-      window.removeEventListener("storage", handleCartUpdate);
+      window.removeEventListener("cartUpdated", handleUpdate);
+      window.removeEventListener("wishlistUpdated", handleUpdate);
+      window.removeEventListener("userSessionUpdated", handleUpdate);
     };
   }, []);
   const [open, setOpen] = useState(false);
@@ -397,7 +427,7 @@ export default function Navigation() {
                         className="flex items-center gap-1.5 cursor-pointer group p-1.5 rounded-full hover:bg-gray-100/80 transition-all duration-200"
                       >
                         <Avatar
-                          src={user?.avatarUrl}
+                          src={user?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop"}
                           sx={{
                             width: 38,
                             height: 38,
@@ -456,7 +486,7 @@ export default function Navigation() {
                         {/* Menu User Header Card */}
                         <div className="px-3.5 py-3 mb-2 bg-[#f8f9fc] rounded-2xl border border-gray-100 flex items-center gap-3">
                           <Avatar
-                            src={user?.avatarUrl}
+                            src={user?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop"}
                             sx={{ width: 34, height: 34, bgcolor: '#4f46e5', fontSize: '12px', fontWeight: 'bold' }}
                           >
                             {user?.firstName && user?.lastName
@@ -491,12 +521,10 @@ export default function Navigation() {
                         <div className="my-1.5 border-t border-gray-100" />
 
                         <MenuItem
-                          onClick={() => {
+                          onClick={async () => {
                             handleCloseUserMenu();
-                            localStorage.setItem("isLoggedIn", "false");
-                            localStorage.removeItem("user");
-                            localStorage.removeItem("currentStore");
-                            localStorage.removeItem("currentProducts")
+                            await authService.logout();
+                            window.dispatchEvent(new Event("userSessionUpdated"));
                             navigate('/login');
                           }}
                           className="gap-3 hover:!bg-red-50"
@@ -518,9 +546,9 @@ export default function Navigation() {
                       <button
                         type="button"
                         onClick={() => navigate('/signup')}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm shadow-indigo-500/20"
+                        className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition-all shadow-xs shadow-indigo-500/20 cursor-pointer"
                       >
-                        Sign Up
+                        Create Account
                       </button>
                     </div>
                   )}
@@ -543,7 +571,7 @@ export default function Navigation() {
                       sx={{ fontSize: 22 }}
                     />
                     <span className="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-rose-600">
-                      {wishlistItems.length}
+                      {wishlistCount}
                     </span>
                   </button>
                 </div>
@@ -556,9 +584,10 @@ export default function Navigation() {
                     className="group -m-2 flex items-center p-2 cursor-pointer border-none bg-transparent"
                     title="View Cart"
                   >
-                    <ShoppingBagIcon
+                    <ShoppingBagOutlinedIcon
                       aria-hidden="true"
-                      className="size-6 shrink-0 text-gray-400 group-hover:text-indigo-600 transition-colors"
+                      className="text-gray-400 group-hover:text-indigo-600 transition-colors"
+                      sx={{ fontSize: 22 }}
                     />
                     <span className="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-indigo-600">
                       {cartCount}

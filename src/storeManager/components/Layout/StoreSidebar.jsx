@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
@@ -7,6 +7,7 @@ import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutIcon from '@mui/icons-material/Logout';
+import { storeService, authService } from "../../../services";
 
 const menuItems = [
   {
@@ -43,15 +44,27 @@ const menuItems = [
 
 const StoreSidebar = () => {
   const navigate = useNavigate();
-  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
-  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const [currentStore, setCurrentStore] = useState({});
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("user");
-    localStorage.removeItem("currentStore");
-    localStorage.removeItem("currentProducts");
-    localStorage.removeItem("orderRevenue");
+  useEffect(() => {
+    const loadStore = async () => {
+      try {
+        const store = await storeService.getCurrentStore();
+        if (store) setCurrentStore(store);
+      } catch (err) {
+        console.error("Error loading store in sidebar:", err);
+      }
+    };
+    loadStore();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (e) {
+      console.warn("Logout error:", e.message);
+    }
+    window.dispatchEvent(new Event("userSessionUpdated"));
     navigate("/login");
   };
 

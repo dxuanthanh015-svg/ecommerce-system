@@ -4,133 +4,69 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { migrateGuestCartOnLogin } from "../../utils/cartUtils";
-import store_manager_mock_data from "../../../Data/store-manager_mock_data";
-import { product_mock_data } from "../../../Data/product_mock_data";
+import { authService, storeService, orderService } from "../../../services";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const inputEmail = email.trim().toLowerCase();
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers")) || [];
 
-    // Search for exact matching account in registeredUsers array
-    let matchedUser = registeredUsers.find(
-      (u) => u.email.trim().toLowerCase() === inputEmail && u.password === password
-    );
+    try {
+      setIsSubmitting(true);
 
-    // Support demo account if logging in with demo credentials
-    if (!matchedUser && inputEmail === "nexcart.user@example.com" && password === "password123") {
-      matchedUser = {
-        firstName: "Premium",
-        lastName: "Member",
-        email: "nexcart.user@example.com",
-        password: "password123",
-        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
-        isVerified: true,
-        isManager: true,
-        storeId: "store-001"
-      };
-    }
+      // Đăng nhập qua authService (Mock Server /register + /currentUser)
+      // authService.login cũng tự động tìm store và lưu vào /currentStore nếu là Manager
+      let matchedUser = await authService.login(inputEmail, password);
 
-    if (matchedUser) {
-      localStorage.setItem("user", JSON.stringify(matchedUser));
-      localStorage.setItem("isLoggedIn", "true");
-
-      // Seed all mock products into localStorage products key if missing
-      const existingProducts = JSON.parse(localStorage.getItem("products"));
-      if (!existingProducts || existingProducts.length === 0) {
-        localStorage.setItem("products", JSON.stringify(product_mock_data));
-      } else {
-        const existingIds = new Set(existingProducts.map((p) => String(p.id)));
-        const missingMock = product_mock_data.filter((p) => !existingIds.has(String(p.id)));
-        if (missingMock.length > 0) {
-          localStorage.setItem("products", JSON.stringify([...existingProducts, ...missingMock]));
-        }
+      // Demo account fallback
+      if (!matchedUser && inputEmail === "nexcart.user@example.com" && password === "password123") {
+        matchedUser = {
+          firstName: "Premium",
+          lastName: "Member",
+          email: "nexcart.user@example.com",
+          password: "password123",
+          avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
+          isVerified: true,
+          isManager: true,
+          storeId: "store-001"
+        };
       }
 
-      // Seed & Merge stores (store-001, store-002, store-003 + custom stores)
-      const existingStores = JSON.parse(localStorage.getItem("allStores")) || JSON.parse(localStorage.getItem("stores")) || [];
-      const existingStoreIds = new Set(existingStores.map((s) => String(s.id)));
-      const missingMockStores = store_manager_mock_data.filter((s) => !existingStoreIds.has(String(s.id)));
-      const allStores = [...existingStores, ...missingMockStores];
-
-      localStorage.setItem("allStores", JSON.stringify(allStores));
-      localStorage.setItem("stores", JSON.stringify(allStores));
-
-      if (matchedUser.isManager) {
-        const userStore = allStores.find(
-          (s) =>
-            String(s.id) === String(matchedUser.storeId) ||
-            s.email?.toLowerCase() === matchedUser.email?.toLowerCase()
-        ) || allStores[0];
-        localStorage.setItem("currentStore", JSON.stringify(userStore));
-
-        const existingProduct = JSON.parse(localStorage.getItem('currentProducts'));
-
-        if (existingProduct == null) {
-          const allProducts = JSON.parse(localStorage.getItem("products")) || product_mock_data;
-          const initialStoreProducts = allProducts.filter(
-            (p) => String(p.id_store || p.storeId) === String(userStore.id)
-          );
-          localStorage.setItem('currentProducts', JSON.stringify(initialStoreProducts));
-        }
-
-        // Synchronize store orderRevenue for all stores
-        const allStoreRevenue = JSON.parse(localStorage.getItem("allStoreRevenue")) || {};
-        allStores.forEach((s) => {
-          if (!allStoreRevenue[s.id]) {
-            allStoreRevenue[s.id] = {
-              storeId: s.id,
-              storeName: s.name || "Store",
-              totalRevenue: 0,
-              todayRevenue: 0,
-              orders: [],
-            };
+      if (matchedUser) {
+        // Nếu là Store Manager: khởi tạo doanh thu store trên Mock Server nếu chưa có
+        if (matchedUser.isManager && matchedUser.storeId) {
+          try {
+            const currentStore = await storeService.getCurrentStore();
+            if (currentStore) {
+              await orderService.initStoreRevenue(currentStore);
+            }
+          } catch (e) {
+            console.warn('[Login] Lỗi khởi tạo store revenue:', e.message);
           }
-        });
-
-        let storeRevenue = allStoreRevenue[userStore.id];
-        if (!storeRevenue) {
-          storeRevenue = {
-            storeId: userStore.id,
-            storeName: userStore.name,
-            totalRevenue: 0,
-            todayRevenue: 0,
-            orders: [],
-          };
-          allStoreRevenue[userStore.id] = storeRevenue;
         }
 
-        // Recalculate today's revenue
-        const todayStr = new Date().toDateString();
-        storeRevenue.todayRevenue = (storeRevenue.orders || [])
-          .filter((o) => o.date && new Date(o.date).toDateString() === todayStr)
-          .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-        storeRevenue.totalRevenue = (storeRevenue.orders || []).reduce(
-          (sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0),
-          0
-        );
+        // Gộp giỏ hàng guest vào tài khoản sau khi đăng nhập
+        await migrateGuestCartOnLogin(matchedUser.email);
+        window.dispatchEvent(new Event("userSessionUpdated"));
 
-        allStoreRevenue[userStore.id] = storeRevenue;
-        localStorage.setItem("allStoreRevenue", JSON.stringify(allStoreRevenue));
-        localStorage.setItem("orderRevenue", JSON.stringify(storeRevenue));
+        alert(`Đăng nhập thành công! Chào mừng ${matchedUser.firstName || "bạn"} quay trở lại.`);
+        navigate("/");
       } else {
-        localStorage.removeItem("currentStore");
-        localStorage.removeItem("orderRevenue");
+        alert("Email hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại hoặc Đăng ký tài khoản mới.");
       }
-
-      migrateGuestCartOnLogin(matchedUser.email);
-      window.dispatchEvent(new Event("userSessionUpdated"));
-
-      alert(`Đăng nhập thành công! Chào mừng ${matchedUser.firstName || "bạn"} quay trở lại.`);
-      navigate("/");
-    } else {
-      alert("Email hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại hoặc Đăng ký tài khoản mới.");
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("Đăng nhập thất bại! Vui lòng kiểm tra lại kết nối mạng.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -266,11 +202,27 @@ const Login = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-[#1E293B] hover:bg-[#0F172A] text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md mt-6"
-
+            disabled={isSubmitting}
+            className={`w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all mt-6 shadow-md ${
+              isSubmitting
+                ? "bg-gray-500 cursor-not-allowed opacity-80"
+                : "bg-[#1E293B] hover:bg-[#0F172A] cursor-pointer"
+            }`}
           >
-            <span>Sign In</span>
-            <ArrowForwardIcon sx={{ fontSize: 16 }} />
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                <span>Signing In...</span>
+              </>
+            ) : (
+              <>
+                <span>Sign In</span>
+                <ArrowForwardIcon sx={{ fontSize: 16 }} />
+              </>
+            )}
           </button>
         </form>
 

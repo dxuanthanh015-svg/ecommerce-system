@@ -5,7 +5,7 @@ import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 
-import { getUserCart, saveUserCart } from "../../utils/cartUtils";
+import { cartService, wishlistService, authService } from "../../../services";
 
 const StoreProductsGrid = ({ products }) => {
   const navigate = useNavigate();
@@ -14,56 +14,51 @@ const StoreProductsGrid = ({ products }) => {
     navigate(`/productdetails/${productId}`);
   };
 
-  const handleAddToCart = (e, product) => {
+  const handleAddToCart = async (e, product) => {
     e.stopPropagation();
-    const currentCart = getUserCart();
-    const existingIndex = currentCart.findIndex((c) => String(c.id) === String(product.id));
+    const user = await authService.getCurrentUser();
+    const newItem = {
+      id: product.id,
+      id_store: product.id_store || product.storeId || "store-001",
+      title: product.title,
+      price: product.discountedPrice || product.price,
+      quantity: 1,
+      imageUrl: product.imageUrl,
+      color: "Default",
+      size: "M",
+    };
 
-    if (existingIndex > -1) {
-      const updatedItem = {
-        ...currentCart[existingIndex],
-        quantity: (currentCart[existingIndex].quantity || 1) + 1,
-      };
-      currentCart.splice(existingIndex, 1);
-      currentCart.unshift(updatedItem);
+    if (user?.email) {
+      await cartService.addToCart(newItem, user.email);
     } else {
-      currentCart.unshift({
-        id: product.id,
-        id_store: product.id_store || product.storeId || "store-001",
-        title: product.title,
-        price: product.discountedPrice || product.price,
-        quantity: 1,
-        imageUrl: product.imageUrl,
-        color: "Default",
-        size: "M",
-      });
+      const guestCart = await cartService.fetchGuestCart();
+      const existingIndex = guestCart.findIndex((c) => String(c.id) === String(product.id));
+      if (existingIndex > -1) {
+        guestCart[existingIndex].quantity += 1;
+      } else {
+        guestCart.unshift(newItem);
+      }
+      await cartService.saveGuestCart(guestCart);
     }
-
-    saveUserCart(currentCart);
     alert(`Đã thêm "${product.title}" vào giỏ hàng!`);
   };
 
-  const handleSaveToWishlist = (e, product) => {
+  const handleSaveToWishlist = async (e, product) => {
     e.stopPropagation();
-    const wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
-    const isAlreadySaved = wishlist.some((item) => String(item.id) === String(product.id));
+    const user = await authService.getCurrentUser();
+    const wishlistItem = {
+      id: product.id,
+      id_store: product.id_store || product.storeId || "store-001",
+      title: product.title,
+      brand: product.brand || "NexCart Store",
+      price: product.price,
+      discountedPrice: product.discountedPrice || product.price,
+      imageUrl: product.imageUrl,
+      inStock: true,
+    };
 
-    if (!isAlreadySaved) {
-      const wishlistItem = {
-        id: product.id,
-        id_store: product.id_store || product.storeId || "store-001",
-        title: product.title,
-        brand: product.brand || "NexCart Store",
-        price: product.price,
-        discountedPrice: product.discountedPrice || product.price,
-        imageUrl: product.imageUrl,
-        inStock: true,
-      };
-      localStorage.setItem("wishlist", JSON.stringify([wishlistItem, ...wishlist]));
-      alert(`Đã thêm "${product.title}" vào danh sách yêu thích!`);
-    } else {
-      alert(`Sản phẩm "${product.title}" đã có trong danh sách yêu thích.`);
-    }
+    await wishlistService.addToWishlist(wishlistItem, user?.email);
+    alert(`Đã thêm "${product.title}" vào danh sách yêu thích!`);
   };
 
   if (!products || products.length === 0) {

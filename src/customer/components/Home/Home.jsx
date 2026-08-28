@@ -1,17 +1,14 @@
-import React from 'react';
 import MainCarousal from './HomeCarousel/MainCarousel';
 import HomeSectionCarousel from './HomeSectionCarousel/HomeSectionCarousel';
 import { Link } from 'react-router-dom';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined';
 import AutorenewOutlinedIcon from '@mui/icons-material/AutorenewOutlined';
-import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
-import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
-import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
 import FlashSaleSection from './FlashSaleSection/FlashSaleSection';
 import InspirationCard from './InspirationCard/InspirationCard';
 import { inspirationItems } from './InspirationCard/inspiration-data';
 import { product_mock_data } from '../../../Data/product_mock_data.js';
+import { useState, useEffect } from 'react';
 
 const categories = [
   {
@@ -37,9 +34,19 @@ const categories = [
   }
 ];
 
+import { productService } from "../../../services";
+
 const Home = () => {
-  const savedProducts = JSON.parse(localStorage.getItem("products"));
-  const allProducts = (savedProducts && savedProducts.length > 0) ? savedProducts : product_mock_data;
+  const [allProducts, setAllProducts] = useState(product_mock_data);
+
+  useEffect(() => {
+    productService.fetchProducts()
+      .then((data) => {
+        if (data && data.length > 0) setAllProducts(data);
+      })
+      .catch((err) => console.error("Error loading products in Home:", err));
+  }, []);
+
   const trendingProduct = allProducts.filter(product => product.isTrending === true && product.isVisible !== true).slice(0, 10);
   return (
     <div className="w-full bg-white min-h-screen">
@@ -49,35 +56,35 @@ const Home = () => {
         <section className="w-full">
           <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center tracking-tight mb-10">
-            Explore Categories
-          </h2>
+              Explore Categories
+            </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                to={cat.link}
-                className="group relative h-[380px] sm:h-[420px] rounded-md overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer block"
-              >
-                <img
-                  src={cat.image}
-                  alt={cat.title}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6 text-white space-y-1">
-                  <h3 className="text-xl sm:text-2xl font-bold tracking-tight drop-shadow-sm">
-                    {cat.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm font-medium text-gray-200 group-hover:text-indigo-300 transition-colors flex items-center gap-1">
-                    {cat.subtitle}
-                  </p>
-                </div>
-              </Link>
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  to={cat.link}
+                  className="group relative h-[380px] sm:h-[420px] rounded-md overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer block"
+                >
+                  <img
+                    src={cat.image}
+                    alt={cat.title}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                  <div className="absolute bottom-6 left-6 right-6 text-white space-y-1">
+                    <h3 className="text-xl sm:text-2xl font-bold tracking-tight drop-shadow-sm">
+                      {cat.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm font-medium text-gray-200 group-hover:text-indigo-300 transition-colors flex items-center gap-1">
+                      {cat.subtitle}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-          </div>
-          
+
         </section>
 
         <section className="w-full">
@@ -85,11 +92,11 @@ const Home = () => {
         </section>
         <div className="w-full max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
           <section className="w-full">
-          <HomeSectionCarousel data={trendingProduct} sectionName="Trending Now" />
-        </section>
+            <HomeSectionCarousel data={trendingProduct} sectionName="Trending Now" />
+          </section>
 
         </div>
-        
+
         <section className="w-full bg-gradient-to-b from-gray-50 to-white rounded-3xl p-8 sm:p-12 lg:p-16">
           <div className="max-w-6xl mx-auto">
             <div className="mb-8 text-center">
@@ -117,22 +124,22 @@ const Home = () => {
             </div>
 
             <div>
-              <span style={{ color: '#8e4dcf'}} className = "flex justify-center align-middle mt-7 font-semibold"> JOIN US </span>
+              <span style={{ color: '#8e4dcf' }} className="flex justify-center align-middle mt-7 font-semibold"> JOIN US </span>
             </div>
-              <div className="flex flex-wrap justify-center gap-4 mt-6 space-x-10">
-                <a style={{ color: '#8e4dcf' }} className = "hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out" href="https://www.instagram.com/nexcart/" target="_blank" rel="noopener noreferrer ">
-                  Instagram
-                </a>
-                <a style={{ color: '#8e4dcf' }} className = "hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out" href="https://www.facebook.com/nexcart/" target="_blank" rel="noopener noreferrer" >
-                  Facebook
-                </a>
-                <a style={{ color: '#8e4dcf' }} className = "hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out " href="https://www.tiktok.com/@nexcart" target="_blank" rel="noopener noreferrer" >
-                  Tiktok
-                </a>
-                <a style={{ color: '#8e4dcf' }} className = "hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out" href="https://www.youtube.com/@nexcart" target="_blank" rel="noopener noreferrer" >
-                  Youtube
-                </a>
-              </div>
+            <div className="flex flex-wrap justify-center gap-4 mt-6 space-x-10">
+              <a style={{ color: '#8e4dcf' }} className="hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out" href="https://www.instagram.com/nexcart/" target="_blank" rel="noopener noreferrer ">
+                Instagram
+              </a>
+              <a style={{ color: '#8e4dcf' }} className="hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out" href="https://www.facebook.com/nexcart/" target="_blank" rel="noopener noreferrer" >
+                Facebook
+              </a>
+              <a style={{ color: '#8e4dcf' }} className="hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out " href="https://www.tiktok.com/@nexcart" target="_blank" rel="noopener noreferrer" >
+                Tiktok
+              </a>
+              <a style={{ color: '#8e4dcf' }} className="hover:text-indigo-800 hover:font-bold font-semibold transition-all hover:scale-105 duration-300 ease-in-out" href="https://www.youtube.com/@nexcart" target="_blank" rel="noopener noreferrer" >
+                Youtube
+              </a>
+            </div>
 
           </div>
         </section>

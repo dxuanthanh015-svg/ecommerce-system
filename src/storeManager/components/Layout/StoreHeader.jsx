@@ -1,12 +1,30 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { storeService, authService } from "../../../services";
 
 const StoreHeader = () => {
-  const currentStore = JSON.parse(localStorage.getItem("currentStore")) || {};
-  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const [currentStore, setCurrentStore] = useState({});
+  const [user, setUser] = useState({});
+
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const [store, u] = await Promise.all([
+          storeService.getCurrentStore(),
+          authService.getCurrentUser(),
+        ]);
+        if (store) setCurrentStore(store);
+        if (u) setUser(u);
+      } catch (err) {
+        console.error("Error loading session in StoreHeader:", err);
+      }
+    };
+    loadSession();
+  }, []);
+
   const managerName = currentStore.owner || `${user.firstName || 'Store'} ${user.lastName || 'Manager'}`;
   const avatarUrl = user.avatarUrl || currentStore.imageUrl;
 

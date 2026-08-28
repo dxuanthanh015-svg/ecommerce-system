@@ -8,25 +8,47 @@ const tabsList = [
   { id: "sale", label: "🏷️ Đang Giảm Giá" },
 ];
 
-const StoreTabs = ({ activeTab, setActiveTab, searchQuery, setSearchQuery, totalCount }) => {
+const StoreTabs = ({
+  activeTab,
+  setActiveTab,
+  onTabChange,
+  searchQuery,
+  setSearchQuery,
+  onSearchChange,
+  totalCount = 0,
+}) => {
+  const handleTabClick = (tabId) => {
+    if (onTabChange) onTabChange(tabId);
+    if (setActiveTab) setActiveTab(tabId);
+  };
+
+  const handleSearchInput = (e) => {
+    const val = e.target.value;
+    if (onSearchChange) onSearchChange(val);
+    if (setSearchQuery) setSearchQuery(val);
+  };
+
   return (
     <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
-        {tabsList.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === tab.id
-                ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/20"
-                : "text-gray-600 hover:bg-gray-100/80 hover:text-gray-900"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {tabsList.map((tab) => {
+          const isSelected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleTabClick(tab.id)}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                isSelected
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/20"
+                  : "text-gray-600 hover:bg-gray-100/80 hover:text-gray-900"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* In-Store Search Bar & Item Count */}
@@ -38,8 +60,8 @@ const StoreTabs = ({ activeTab, setActiveTab, searchQuery, setSearchQuery, total
         <div className="relative w-full sm:w-64">
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchQuery || ""}
+            onChange={handleSearchInput}
             placeholder="Tìm sản phẩm trong gian hàng..."
             className="w-full bg-[#f4f6fc] border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl pl-9 pr-4 py-2 text-xs text-gray-900 transition-all placeholder-gray-400"
           />

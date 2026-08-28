@@ -31,6 +31,11 @@ const HomeSectionCard = ({ product }) => {
       {/* Info Container */}
       <div className="p-4 flex flex-col justify-between flex-grow bg-white">
         <div>
+          {product?.brand && (
+            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+              {product.brand}
+            </p>
+          )}
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
             {product?.title}
           </h3>

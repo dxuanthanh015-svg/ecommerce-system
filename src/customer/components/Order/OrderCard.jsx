@@ -10,20 +10,19 @@ const getStatusBadge = (status) => {
   switch (status) {
     case "Delivered":
       return (
-        <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+        <span className="bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <CheckCircleOutlinedIcon sx={{ fontSize: 14 }} />
           <span>Delivered</span>
         </span>
       );
     case "Shipped":
       return (
-        <span className="bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+        <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <LocalShippingOutlinedIcon sx={{ fontSize: 14 }} />
           <span>In Transit</span>
         </span>
       );
     case "Processing":
-    default:
       return (
         <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <AccessTimeOutlinedIcon sx={{ fontSize: 14 }} />
@@ -32,16 +31,23 @@ const getStatusBadge = (status) => {
       );
     case "Pending":
       return (
-        <span className="bg-yellow-50 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+        <span className="bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <PendingActionsTwoToneIcon sx={{ fontSize: 14 }} />
           <span>Pending</span>
         </span>
       );
     case "Cancelled":
       return (
-        <span className="bg-yellow-50 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+        <span className="bg-rose-50 text-rose-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <FreeCancellationRoundedIcon sx={{ fontSize: 14 }} />
           <span>Cancelled</span>
+        </span>
+      );
+    default:
+      return (
+        <span className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+          <AccessTimeOutlinedIcon sx={{ fontSize: 14 }} />
+          <span>{status || "Processing"}</span>
         </span>
       );
   }

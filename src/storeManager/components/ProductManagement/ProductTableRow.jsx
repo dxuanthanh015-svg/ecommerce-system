@@ -18,9 +18,11 @@ const ProductTableRow = ({
     discountedPrice,
     quantity,
     isVisible = false,
-    imageUrl
+    imageUrl,
+    images
   } = product;
   const statusBadge = getProductInventoryStatus(quantity);
+  const primaryImage = imageUrl || images?.[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=200&auto=format&fit=crop";
 
   return (
     <tr className="hover:bg-gray-50/60 transition-colors border-b border-gray-50 font-sans">
@@ -28,7 +30,7 @@ const ProductTableRow = ({
       <td className="py-4 px-6">
         <div className="flex items-center gap-3">
           <img
-            src={imageUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=200&auto=format&fit=crop"}
+            src={primaryImage}
             alt={title}
             className="w-12 h-12 object-cover rounded-xl border border-gray-100 bg-gray-50 shrink-0"
           />
