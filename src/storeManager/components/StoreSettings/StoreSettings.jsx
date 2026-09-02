@@ -13,27 +13,19 @@ import {
   createStoreSettingsState,
 } from "./storeSettings.data";
 
-import { storeService } from "../../../services";
+import { useCurrentStore, useUpdateStoreSettings } from "../../../hooks/useStoreQuery";
 
 export default function StoreSettings() {
-  const [currentStore, setCurrentStore] = useState(null);
+  const { data: currentStore } = useCurrentStore();
+  const { mutateAsync: updateSettingsMutate, isPending: isSavingMutation } = useUpdateStoreSettings();
 
   useEffect(() => {
-    const loadStore = async () => {
-      try {
-        const store = await storeService.getCurrentStore();
-        if (store) {
-          setCurrentStore(store);
-          const initState = createSettingsFromStore(store);
-          setStoreSettings(initState);
-          setSavedSettings(initState);
-        }
-      } catch (err) {
-        console.error("Error loading store:", err);
-      }
-    };
-    loadStore();
-  }, []);
+    if (currentStore) {
+      const initState = createSettingsFromStore(currentStore);
+      setStoreSettings(initState);
+      setSavedSettings(initState);
+    }
+  }, [currentStore]);
 
   const createSettingsFromStore = (store = {}) => {
     return createStoreSettingsState({
@@ -131,7 +123,7 @@ export default function StoreSettings() {
     setIsSaving(true);
     try {
       const payload = buildStoreSettingsPayload(storeSettings);
-      await storeService.updateStoreSettings(currentStore?.id, payload);
+      await updateSettingsMutate({ storeId: currentStore?.id, settings: payload });
       setSavedSettings(cloneStoreSettings(storeSettings));
       showToast("Cài đặt cửa hàng đã được lưu và cập nhật thành công!", "success");
     } catch (err) {

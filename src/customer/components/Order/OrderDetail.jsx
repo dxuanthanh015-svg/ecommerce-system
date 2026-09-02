@@ -8,34 +8,21 @@ import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import { orderService } from "../../../services";
+import { useOrderDetail, useUpdateOrderStatus } from "../../../hooks/useOrderQuery";
+import toast from "react-hot-toast";
 
 const OrderDetail = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
-
-  const [userOrder, setUserOrder] = useState(null);
-  const [currentStatus, setCurrentStatus] = useState("Pending");
   const [confirming, setConfirming] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  const { data: userOrder, isLoading: loading } = useOrderDetail(orderId);
+  const { mutateAsync: updateStatusMutate } = useUpdateOrderStatus();
+
+  const currentStatus = userOrder?.status || "Pending";
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-    const loadOrder = async () => {
-      try {
-        setLoading(true);
-        const order = await orderService.fetchUserOrderById(orderId);
-        if (order) {
-          setUserOrder(order);
-          setCurrentStatus(order.status || "Pending");
-        }
-      } catch (err) {
-        console.error("Error loading order detail:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadOrder();
   }, [orderId]);
 
   if (loading) {
@@ -71,8 +58,7 @@ const OrderDetail = () => {
   const handleConfirmReceived = async () => {
     setConfirming(true);
     try {
-      await orderService.updateOrderStatusInAllRevenue(orderId, "Delivered");
-      setCurrentStatus("Delivered");
+      await updateStatusMutate({ orderId, status: "Delivered" });
     } catch (err) {
       console.error("Error confirming order:", err);
     } finally {
@@ -83,8 +69,7 @@ const OrderDetail = () => {
   const handleCancelOrder = async () => {
     if (window.confirm("Are you sure you want to cancel this order? The inventory will be returned to stock.")) {
       try {
-        await orderService.updateOrderStatusInAllRevenue(orderId, "Cancelled");
-        setCurrentStatus("Cancelled");
+        await updateStatusMutate({ orderId, status: "Cancelled" });
       } catch (err) {
         console.error("Error cancelling order:", err);
       }

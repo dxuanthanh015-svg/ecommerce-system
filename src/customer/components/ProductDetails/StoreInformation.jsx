@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import toast from "react-hot-toast";
 import { useParams, useNavigate } from "react-router-dom";
 import { Avatar, Rating } from "@mui/material";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
@@ -9,52 +10,30 @@ import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import store_manager_mock_data from "../../../Data/store-manager_mock_data";
 import { product_mock_data } from "../../../Data/product_mock_data";
-import { productService, storeService } from "../../../services";
+import { useProducts } from "../../../hooks/useProductQuery";
+import { useAllStores } from "../../../hooks/useStoreQuery";
 
 const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propStoreProductsCount }) => {
   const navigate = useNavigate();
   const { productId } = useParams();
 
-  const [storeData, setStoreData] = useState(propStoreData || null);
-  const [storeProductsCount, setStoreProductsCount] = useState(propStoreProductsCount || 0);
+  const { data: allProds = product_mock_data } = useProducts();
+  const { data: allStores = store_manager_mock_data } = useAllStores();
 
-  useEffect(() => {
-    if (propStoreData) {
-      setStoreData(propStoreData);
-      if (propStoreProductsCount !== undefined) {
-        setStoreProductsCount(propStoreProductsCount);
-      }
-      return;
-    }
+  const product = allProds.find((item) => String(item.id) === String(productId)) || product_mock_data.find((item) => String(item.id) === String(productId));
+  const targetStoreId = String(product?.id_store || product?.storeId || "store-001");
+  const storesList = allStores.length > 0 ? allStores : store_manager_mock_data;
 
-    const loadStoreInfo = async () => {
-      try {
-        const [allProds, allStores] = await Promise.all([
-          productService.fetchProducts(),
-          storeService.fetchAllStores(),
-        ]);
+  const targetStore =
+    propStoreData ||
+    storesList.find((item) => String(item.id) === targetStoreId) ||
+    store_manager_mock_data.find((item) => String(item.id) === targetStoreId) ||
+    storesList[0];
 
-        const product = allProds.find((item) => String(item.id) === String(productId)) || product_mock_data.find((item) => String(item.id) === String(productId));
-        const targetStoreId = String(product?.id_store || product?.storeId || "store-001");
-        const storesList = allStores.length > 0 ? allStores : store_manager_mock_data;
-
-        const targetStore =
-          storesList.find((item) => String(item.id) === targetStoreId) ||
-          store_manager_mock_data.find((item) => String(item.id) === targetStoreId) ||
-          storesList[0];
-
-        setStoreData(targetStore);
-
-        const count = allProds.filter(
-          (item) => String(item.id_store || item.storeId) === String(targetStore?.id)
-        ).length;
-        setStoreProductsCount(count);
-      } catch (err) {
-        console.error("Error loading store information:", err);
-      }
-    };
-    loadStoreInfo();
-  }, [productId, propStoreData, propStoreProductsCount]);
+  const storeData = targetStore;
+  const storeProductsCount = propStoreProductsCount !== undefined
+    ? propStoreProductsCount
+    : allProds.filter((item) => String(item.id_store || item.storeId) === String(targetStore?.id)).length;
 
   const handleVisitStore = () => {
     if (storeData?.id) {
@@ -63,7 +42,7 @@ const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propSt
   };
 
   const handleChat = () => {
-    alert(`Đã kết nối trò chuyện với gian hàng "${storeData?.name}"!`);
+    toast.success(`Đã kết nối trò chuyện với gian hàng "${storeData?.name}"!`);
   };
 
   if (!storeData) return null;

@@ -12,89 +12,56 @@ import HomeSectionCarousel from "../Home/HomeSectionCarousel/HomeSectionCarousel
 import StoreInformation from "./StoreInformation";
 import RateAndReview from "./RateAndReview";
 import { trackProductsView } from "../../../storeManager/components/Analytics/analytics.utils";
-import { productService, wishlistService, cartService, authService, storeService, reviewService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useProducts, useDetailProducts, useViewsData, useSaveViewsData } from "../../../hooks/useProductQuery";
+import { useAllStores } from "../../../hooks/useStoreQuery";
+import { useAddCart, useAddToWishList } from "../../../hooks/useCartQuery";
+import { useReviews } from "../../../hooks/useReviewQuery";
+import toast from "react-hot-toast";
 
 export default function ProductDetails() {
   const { productId } = useParams();
   const navigate = useNavigate();
   const trackedProductIdRef = useRef(null);
 
-  const [product, setProduct] = useState(null);
-  const [store, setStore] = useState(null);
-  const [storeProducts, setStoreProducts] = useState([]);
-  const [productRelevant, setProductRelevant] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [reviewsList, setReviewsList] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(null);
+  // Lấy dữ liệu từ reactquery
+  const { data: currentUser } = useCurrentUser();
+  const { data: foundProduct } = useDetailProducts(productId);
+  const { data: allProds = product_mock_data } = useProducts();
+  const { data: stores = store_manager_mock_data } = useAllStores();
+  const { data: reviewsList = [] } = useReviews(productId);
+
+  // 2. Mutation
+  const { mutateAsync: addToCartMutate, isPending: isAddingCart } = useAddCart();
+  const { mutateAsync: addToWishListMutate } = useAddToWishList();
+  const { data: allViews } = useViewsData();
+  const { mutateAsync: saveViewsData } = useSaveViewsData();
+
+  // 3. State
   const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [selectImage, setSelectImage] = useState(0);
+
+  // Sản phẩm hiện tại 
+  const product = foundProduct || allProds.find(p => String(p.id) === String(productId)) || product_mock_data[0];
+
+  // Xác định thông tin Store của sản phẩm
+  const storeId = product?.id_store || product?.storeId;
+  const store = (storeId && stores.find(s => String(s.id) === String(storeId))) || stores[0];
+
+  // Sản phẩm cùng shop và sản phẩm tương tự
+  const storeProducts = allProds.filter(p => String(p.id_store || p.storeId) === String(storeId) && String(p.id) !== String(product?.id));
+  const productRelevant = allProds.filter(p => p.topLavelCategory === product?.topLavelCategory && String(p.id) !== String(product?.id));
+
+
 
   useEffect(() => {
-    setSelectedImage(0);
-    setSelectedColor(null);
-    setSelectedSize(null);
-    setQuantity(1);
-
-    const init = async () => {
-      try {
-        const [user, foundProduct, allProds, allStores, reviews] = await Promise.all([
-          authService.getCurrentUser(),
-          productService.fetchProductById(productId),
-          productService.fetchProducts(),
-          storeService.fetchAllStores(),
-          reviewService.fetchReviewsByProductId(productId),
-        ]);
-        setCurrentUser(user);
-        setReviewsList(reviews || []);
-
-        const currentProduct =
-          foundProduct ||
-          allProds.find((p) => String(p.id) === String(productId)) ||
-          product_mock_data.find((p) => String(p.id) === String(productId)) ||
-          allProds[0] ||
-          product_mock_data[0];
-
-        setProduct(currentProduct);
-
-        if (currentProduct) {
-          const targetStoreId = String(currentProduct.id_store || currentProduct.storeId || "store-001");
-          const storesList = (allStores && allStores.length > 0) ? allStores : store_manager_mock_data;
-          const foundStore =
-            storesList.find((s) => String(s.id) === targetStoreId) ||
-            store_manager_mock_data.find((s) => String(s.id) === targetStoreId) ||
-            storesList[0];
-
-          setStore(foundStore);
-
-          // 1. Toàn bộ sản phẩm cùng thuộc gian hàng (shop) này theo đúng targetStoreId
-          const sameStoreProds = allProds.filter(
-            (p) => String(p.id_store || p.storeId) === targetStoreId && String(p.id) !== String(currentProduct.id)
-          );
-          setStoreProducts(sameStoreProds);
-
-          // 2. Sản phẩm tương tự cùng danh mục
-          const relevant = allProds.filter(
-            (p) =>
-              p.topLavelCategory === currentProduct.topLavelCategory &&
-              p.secondLavelCategory === currentProduct.secondLavelCategory &&
-              String(p.id) !== String(currentProduct.id)
-          );
-          setProductRelevant(relevant.length > 0 ? relevant : allProds.slice(0, 10));
-        }
-      } catch (err) {
-        console.error("Error loading product details:", err);
-      }
-    };
-    init();
-  }, [productId]);
-
-  useEffect(() => {
-    if (product && trackedProductIdRef.current !== product.id) {
-      trackProductsView(product);
-      trackedProductIdRef.current = product.id;
+    if (foundProduct && trackedProductIdRef.current !== foundProduct.id) {
+      trackProductsView(foundProduct, allViews, saveViewsData);
+      trackedProductIdRef.current = foundProduct.id;
     }
-  }, [product?.id]);
+  }, [foundProduct?.id, allViews, saveViewsData]);
 
   const extraDetail =
     (product?.id && product_detail_data[product.id]) ||
@@ -130,17 +97,17 @@ export default function ProductDetails() {
         quantity: typeof s === "string" ? 10 : (s.quantity !== undefined ? s.quantity : 10),
       }))
       : (product?.size && Array.isArray(product.size) && product.size.length > 0)
-      ? product.size.map((s) => ({
-        name: typeof s === "string" ? s : s.name,
-        inStock: typeof s === "string" ? true : (s.quantity > 0),
-        quantity: typeof s === "string" ? 10 : s.quantity,
-      }))
-      : [
-        { name: "S", inStock: true, quantity: 10 },
-        { name: "M", inStock: true, quantity: 15 },
-        { name: "L", inStock: true, quantity: 12 },
-        { name: "XL", inStock: false, quantity: 0 },
-      ],
+        ? product.size.map((s) => ({
+          name: typeof s === "string" ? s : s.name,
+          inStock: typeof s === "string" ? true : (s.quantity > 0),
+          quantity: typeof s === "string" ? 10 : s.quantity,
+        }))
+        : [
+          { name: "S", inStock: true, quantity: 10 },
+          { name: "M", inStock: true, quantity: 15 },
+          { name: "L", inStock: true, quantity: 12 },
+          { name: "XL", inStock: false, quantity: 0 },
+        ],
     images: (extraDetail.images && extraDetail.images.length > 0)
       ? extraDetail.images
       : (product?.imageUrl
@@ -171,7 +138,7 @@ export default function ProductDetails() {
     if (quantity < maxStockForSelectedSize) {
       setQuantity(quantity + 1);
     } else {
-      alert(`Số lượng tồn kho cho size "${selectedSize || detailProduct.sizes[0]?.name}" chỉ còn ${maxStockForSelectedSize} sản phẩm!`);
+      toast(`Chỉ còn ${maxStockForSelectedSize} sản phẩm size "${selectedSize || detailProduct.sizes[0]?.name}"!`, { icon: '⚠️' });
     }
   };
 
@@ -192,42 +159,22 @@ export default function ProductDetails() {
       imageUrl: detailProduct.images[0] || product.imageUrl,
     };
 
-    if (currentUser?.email) {
-      await cartService.addToCart(newItem, currentUser.email);
-    } else {
-      const guestCart = await cartService.fetchGuestCart();
-      const existingIdx = guestCart.findIndex(
-        (item) =>
-          String(item.id) === String(newItem.id) &&
-          item.size === finalSize &&
-          item.color === finalColor
-      );
-      if (existingIdx > -1) {
-        guestCart[existingIdx].quantity += quantity;
-      } else {
-        guestCart.unshift(newItem);
+    addToCartMutate({ newItem: newItem, userEmail: currentUser?.email },
+      {
+        onSuccess: () => navigate('/cart'),
+        onError: () => toast.error("Thêm vào giỏ hàng thất bại!")
       }
-      await cartService.saveGuestCart(guestCart);
-    }
-
-    navigate('/cart');
+    );
   };
 
   const handleSaveToWishlist = async () => {
     if (!product) return;
-    const wishlistItem = {
-      id: product.id,
-      id_store: product.id_store || product.storeId || "store-001",
-      title: detailProduct.title,
-      brand: detailProduct.brand,
-      price: detailProduct.price,
-      discountedPrice: detailProduct.discountedPrice || detailProduct.price,
-      imageUrl: detailProduct.images[0] || product.imageUrl,
-      inStock: true,
-    };
-
-    await wishlistService.addToWishlist(wishlistItem, currentUser?.email);
-    navigate("/wishlist");
+    addToWishListMutate({ product, userEmail: currentUser?.email },
+      {
+        onSuccess: () => navigate('/wishlist'),
+        onError: () => toast.error("Thêm vào wishlist thất bại!")
+      }
+    );
   };
 
   if (!product) {
@@ -263,7 +210,7 @@ export default function ProductDetails() {
             {/* Large Image */}
             <div className="w-full h-[450px] sm:h-[580px] lg:h-[620px] rounded-xl overflow-hidden bg-gray-50 shadow-xs border border-gray-100">
               <img
-                src={detailProduct?.images?.[selectedImage] || product?.imageUrl}
+                src={detailProduct?.images?.[selectImage] || product?.imageUrl}
                 alt={detailProduct.title}
                 className="w-full h-full object-cover object-center transition-all duration-300 hover:scale-105"
               />
@@ -274,8 +221,8 @@ export default function ProductDetails() {
               {detailProduct.images.map((img, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`relative h-20 sm:h-28 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectedImage === idx
+                  onClick={() => setSelectImage(idx)}
+                  className={`relative h-20 sm:h-28 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectImage === idx
                     ? "border-indigo-600 ring-2 ring-indigo-600/20"
                     : "border-transparent opacity-70 hover:opacity-100"
                     }`}
@@ -311,11 +258,11 @@ export default function ProductDetails() {
                   value={
                     reviewsList.length > 0
                       ? Number(
-                          (
-                            reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
-                            reviewsList.length
-                          ).toFixed(1)
-                        )
+                        (
+                          reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
+                          reviewsList.length
+                        ).toFixed(1)
+                      )
                       : 0
                   }
                   precision={0.1}
@@ -326,9 +273,9 @@ export default function ProductDetails() {
                 <span className="text-xs text-gray-500 font-medium">
                   {reviewsList.length > 0
                     ? `${(
-                        reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
-                        reviewsList.length
-                      ).toFixed(1)} (${reviewsList.length} customer reviews)`
+                      reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
+                      reviewsList.length
+                    ).toFixed(1)} (${reviewsList.length} customer reviews)`
                     : "Chưa có đánh giá"}
                 </span>
               </div>
@@ -453,10 +400,10 @@ export default function ProductDetails() {
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                   onClick={handleAddToCart}
-                  disabled={maxStockForSelectedSize <= 0}
+                  disabled={maxStockForSelectedSize <= 0 || isAddingCart}
                   className="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white py-3.5 px-6 rounded-xl font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {maxStockForSelectedSize <= 0 ? "OUT OF STOCK" : "ADD TO CART"}
+                  {isAddingCart ? "ADDING..." : maxStockForSelectedSize <= 0 ? "OUT OF STOCK" : "ADD TO CART"}
                 </button>
                 <button
                   type="button"

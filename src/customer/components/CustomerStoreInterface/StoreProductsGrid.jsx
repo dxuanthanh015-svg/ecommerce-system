@@ -5,18 +5,22 @@ import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 
-import { cartService, wishlistService, authService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useAddCart, useAddToWishList } from "../../../hooks/useCartQuery";
+import toast from "react-hot-toast";
 
 const StoreProductsGrid = ({ products }) => {
   const navigate = useNavigate();
+  const { data: currentUser } = useCurrentUser();
+  const { mutate: addToCartMutate } = useAddCart();
+  const { mutate: addToWishlistMutate } = useAddToWishList();
 
   const handleProductClick = (productId) => {
     navigate(`/productdetails/${productId}`);
   };
 
-  const handleAddToCart = async (e, product) => {
+  const handleAddToCart = (e, product) => {
     e.stopPropagation();
-    const user = await authService.getCurrentUser();
     const newItem = {
       id: product.id,
       id_store: product.id_store || product.storeId || "store-001",
@@ -28,37 +32,22 @@ const StoreProductsGrid = ({ products }) => {
       size: "M",
     };
 
-    if (user?.email) {
-      await cartService.addToCart(newItem, user.email);
-    } else {
-      const guestCart = await cartService.fetchGuestCart();
-      const existingIndex = guestCart.findIndex((c) => String(c.id) === String(product.id));
-      if (existingIndex > -1) {
-        guestCart[existingIndex].quantity += 1;
-      } else {
-        guestCart.unshift(newItem);
+    addToCartMutate(
+      { newItem, userEmail: currentUser?.email },
+      {
+        onSuccess: () => toast.success(`Đã thêm "${product.title}" vào giỏ hàng!`),
       }
-      await cartService.saveGuestCart(guestCart);
-    }
-    alert(`Đã thêm "${product.title}" vào giỏ hàng!`);
+    );
   };
 
-  const handleSaveToWishlist = async (e, product) => {
+  const handleSaveToWishlist = (e, product) => {
     e.stopPropagation();
-    const user = await authService.getCurrentUser();
-    const wishlistItem = {
-      id: product.id,
-      id_store: product.id_store || product.storeId || "store-001",
-      title: product.title,
-      brand: product.brand || "NexCart Store",
-      price: product.price,
-      discountedPrice: product.discountedPrice || product.price,
-      imageUrl: product.imageUrl,
-      inStock: true,
-    };
-
-    await wishlistService.addToWishlist(wishlistItem, user?.email);
-    alert(`Đã thêm "${product.title}" vào danh sách yêu thích!`);
+    addToWishlistMutate(
+      { product, userEmail: currentUser?.email },
+      {
+        onSuccess: () => toast.success(`Đã thêm "${product.title}" vào danh sách yêu thích!`),
+      }
+    );
   };
 
   if (!products || products.length === 0) {

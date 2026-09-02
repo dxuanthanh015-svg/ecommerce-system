@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import toast from "react-hot-toast";
 
-const DeliveryAddressForm = ({ savedAddress, setSavedAddress, editingAddress, onCancelEdit, paymentMethod, setPaymentMethod }) => {
+const DeliveryAddressForm = ({ savedAddress, editingAddress, onCancelEdit, paymentMethod, setPaymentMethod, onAddressSaved }) => {
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
@@ -35,26 +36,30 @@ const DeliveryAddressForm = ({ savedAddress, setSavedAddress, editingAddress, on
   const handleShippingSave = (e) => {
     e.preventDefault();
     const { firstName, lastName, phone, address, city, district } = formData;
-    if (!firstName.trim() && !lastName.trim() && !phone.trim() && !address.trim() && !city.trim() && !district.trim()) return;
+    if (!firstName.trim() && !lastName.trim() && !phone.trim() && !address.trim() && !city.trim() && !district.trim()) {
+      toast.error("Vui lòng điền ít nhất một trường thông tin!");
+      return;
+    }
+
+    let updatedList;
     if (editingAddress) {
       // Update existing address by id
-      setSavedAddress(
-        savedAddress.map((addr) =>
-          addr.id === editingAddress.id
-            ? {
-              ...addr,
-              email: formData.email,
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              phone: formData.phone,
-              address: formData.address,
-              city: formData.city,
-              district: formData.district,
-            }
-            : addr
-        )
+      updatedList = savedAddress.map((addr) =>
+        addr.id === editingAddress.id
+          ? {
+            ...addr,
+            email: formData.email,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            district: formData.district,
+          }
+          : addr
       );
       onCancelEdit();
+      toast.success("Đã cập nhật địa chỉ giao hàng!");
     } else {
       // Add new address
       const shippingData = {
@@ -67,8 +72,15 @@ const DeliveryAddressForm = ({ savedAddress, setSavedAddress, editingAddress, on
         city: formData.city,
         district: formData.district,
       };
-      setSavedAddress([...savedAddress, shippingData]);
+      updatedList = [...savedAddress, shippingData];
+      toast.success("Đã lưu địa chỉ giao hàng mới!");
     }
+
+    // Persist lên server → React Query tự recompute savedAddress
+    if (onAddressSaved) {
+      onAddressSaved(updatedList);
+    }
+
     setFormData({
       ...formData,
       email: "",
@@ -196,7 +208,7 @@ const DeliveryAddressForm = ({ savedAddress, setSavedAddress, editingAddress, on
 
           </div>
           <div className="flex items-center justify-center gap-3">
-            <button className="w-min bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm sm:text-base" >
+            <button type="submit" className="w-min bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm sm:text-base" >
               {editingAddress ? "Update" : "Save"}
             </button>
             {editingAddress && (

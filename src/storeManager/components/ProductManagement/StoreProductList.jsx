@@ -14,7 +14,7 @@ import {
   paginateProducts,
 } from "./productManagement.utils";
 
-import { productService } from "../../../services";
+import { useCurrentProducts, useDeleteProduct, useToggleProductVisibility } from "../../../hooks/useProductQuery";
 
 const StoreProductList = ({
   productsList,
@@ -24,28 +24,12 @@ const StoreProductList = ({
   onToggleVisibility
 }) => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState(productsList || []);
-  const [loading, setLoading] = useState(!productsList);
+  const { data: fetchedProducts = [], isLoading } = useCurrentProducts();
+  const products = productsList || fetchedProducts;
+  const loading = isLoading && !productsList;
 
-  useEffect(() => {
-    if (productsList) {
-      setProducts(productsList);
-      return;
-    }
-    const loadProducts = async () => {
-      try {
-        setLoading(true);
-        const data = await productService.fetchCurrentProducts();
-        setProducts(data || []);
-      } catch (err) {
-        console.error("Error loading produc ts:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProducts();
-  }, []);
-
+  const { mutate: deleteProductMutate } = useDeleteProduct();
+  const { mutate: toggleVisibilityMutate } = useToggleProductVisibility();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -59,12 +43,7 @@ const StoreProductList = ({
     if (onToggleVisibility) {
       onToggleVisibility(id);
     } else {
-      const res = await productService.toggleProductVisibility(id);
-      setProducts((prev) =>
-        prev.map((item) =>
-          String(item.id || item._id) === String(id) ? { ...item, isVisible: res.isVisible } : item
-        )
-      );
+      toggleVisibilityMutate(id);
     }
   };
 
@@ -74,8 +53,7 @@ const StoreProductList = ({
       onDeleteProduct(id);
     } else {
       if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-        await productService.deleteProduct(id);
-        setProducts((prev) => prev.filter((item) => String(item.id || item._id) !== String(id)));
+        deleteProductMutate(id);
       }
     }
   };

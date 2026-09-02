@@ -5,18 +5,23 @@ import ContactInfoSection from "./ContactInfoSection";
 import IdentityVerificationSection from "./IdentityVerificationSection";
 import BankDetailsSection from "./BankDetailsSection";
 import { authService, storeService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import toast from "react-hot-toast";
 
 const ApplyStoreManager = () => {
   const navigate = useNavigate();
+  const { data: user, isLoading } = useCurrentUser();
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    shopName: "",
-    shopDescription: "",
-    primaryCategory: "",
+    storeName: "",
     businessEmail: "",
     phone: "",
     pickupAddress: "",
+    businessType: "individual",
+    taxCode: "",
     idCardNumber: "",
     documentFileName: "",
     bankName: "",
@@ -25,34 +30,27 @@ const ApplyStoreManager = () => {
   });
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        if (user) {
-          if (user.isManager) {
-            alert("Bạn đã là Store Manager của một gian hàng rồi! Hệ thống sẽ chuyển bạn đến trang quản trị.");
-            navigate("/store-manager/dashboard", { replace: true });
-            return;
-          }
-
-          setCurrentUser(user);
-          setFormData((prev) => ({
-            ...prev,
-            businessEmail: user.email || "",
-            phone: user.phone || "",
-            pickupAddress: user.specificAddress || "",
-            accountHolder: user.firstName ? `${user.firstName} ${user.lastName}` : "",
-          }));
-        } else {
-          alert("Vui lòng đăng nhập tài khoản trước khi đăng ký mở gian hàng!");
-          navigate("/login", { replace: true });
-        }
-      } catch (err) {
-        console.error("Error loading currentUser:", err);
+    if (isLoading) return;
+    if (user) {
+      if (user.isManager) {
+        toast(`Bạn đã là Store Manager! Đang chuyển đến trang quản trị...`, { icon: 'ℹ️' });
+        navigate("/store-manager/dashboard", { replace: true });
+        return;
       }
-    };
-    loadUser();
-  }, [navigate]);
+
+      setCurrentUser(user);
+      setFormData((prev) => ({
+        ...prev,
+        businessEmail: user.email || "",
+        phone: user.phone || "",
+        pickupAddress: user.specificAddress || "",
+        accountHolder: user.firstName ? `${user.firstName} ${user.lastName}` : "",
+      }));
+    } else {
+      toast.error("Vui lòng đăng nhập tài khoản trước khi đăng ký mở gian hàng!");
+      navigate("/login", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -69,12 +67,12 @@ const ApplyStoreManager = () => {
     e.preventDefault();
 
     if (!formData.shopName || !formData.businessEmail || !formData.phone || !formData.bankName) {
-      alert("Vui lòng điền đầy đủ các thông tin bắt buộc!");
+      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc!");
       return;
     }
 
     if (currentUser?.isManager) {
-      alert("Bạn đã là Store Manager của một gian hàng rồi!");
+      toast(`Bạn đã là Store Manager rồi!`, { icon: 'ℹ️' });
       navigate("/store-manager/dashboard");
       return;
     }
@@ -113,18 +111,22 @@ const ApplyStoreManager = () => {
       });
 
       window.dispatchEvent(new Event("userSessionUpdated"));
-      alert(`Đăng ký mở gian hàng "${formData.shopName}" thành công! Đơn của bạn đã được phê duyệt.`);
+      toast.success(`Đăng ký gian hàng "${formData.shopName}" thành công!`);
       navigate("/store-manager/dashboard");
     } catch (err) {
       console.error("Error creating store:", err);
-      alert("Có lỗi xảy ra khi tạo gian hàng trên server!");
+      toast.error("Có lỗi xảy ra khi tạo gian hàng trên server!");
     }
   };
 
   const handleCancel = () => {
-    if (window.confirm("Bạn có chắc chắn muốn hủy điền đơn đăng ký?")) {
-      navigate("/");
-    }
+    toast((t) => (
+      <span>
+        Hủy đăng ký?
+        <button onClick={() => { navigate("/"); toast.dismiss(t.id); }} style={{marginLeft:8,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'2px 10px',cursor:'pointer',fontWeight:600}}>Hủy đăng ký</button>
+        <button onClick={() => toast.dismiss(t.id)} style={{marginLeft:6,background:'#e5e7eb',color:'#374151',border:'none',borderRadius:6,padding:'2px 10px',cursor:'pointer',fontWeight:600}}>Tiếp tục</button>
+      </span>
+    ), { duration: 6000 });
   };
 
   return (

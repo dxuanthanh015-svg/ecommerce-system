@@ -5,6 +5,7 @@ import CategoryConfigForm from "../components/CategoryManagement/CategoryConfigF
 import AttributeOverridesTable from "../components/CategoryManagement/AttributeOverridesTable";
 import ImportCSVButton from "../components/CategoryManagement/ImportCSVButton";
 import { CATEGORY_TREE, CATEGORY_STATS } from "../components/CategoryManagement/categoryManagement.data";
+import toast from "react-hot-toast";
 
 const AdminCategoriesPage = () => {
   const defaultCategory = CATEGORY_TREE[0]?.children?.[0] || CATEGORY_TREE[0];
@@ -29,7 +30,7 @@ const AdminCategoriesPage = () => {
   const handleSave = (form) => {
     // placeholder: replace with API call
     console.log('Save category', form);
-    alert('Saved (mock)');
+    toast.success('Saved (mock)');
   };
 
   return (
@@ -40,7 +41,7 @@ const AdminCategoriesPage = () => {
           <p className="text-sm text-gray-500">Manage category taxonomy, structure, and global commission rules.</p>
         </div>
         <div className="flex items-center gap-3">
-          <ImportCSVButton onImport={() => alert('Import (mock)')} />
+          <ImportCSVButton onImport={() => toast.success('Import (mock)')} />
           <button className="px-4 py-2 bg-black text-white rounded">+ New Root Category</button>
         </div>
       </div>
@@ -54,7 +55,7 @@ const AdminCategoriesPage = () => {
 
         <main className="col-span-9">
           <CategoryConfigForm category={selected} onSave={handleSave} />
-          <AttributeOverridesTable attributes={selected.attributes} onEdit={(a)=>alert('Edit attr: '+a.name)} />
+          <AttributeOverridesTable attributes={selected.attributes} onEdit={(a)=>toast.success('Edit attr: '+a.name)} />
         </main>
       </div>
     </div>

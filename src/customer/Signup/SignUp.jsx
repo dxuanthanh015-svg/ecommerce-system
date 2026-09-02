@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { authService } from "../../services/authService";
+import { useRegisterMutation } from "../../hooks/useAuthQuery";
+import toast from "react-hot-toast";
 
 const SignUp = () => {
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { mutateAsync: registerUser, isPending: isSubmitting } = useRegisterMutation();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -28,24 +29,21 @@ const SignUp = () => {
     if (isSubmitting) return;
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.");
+      toast.error("Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.");
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      await authService.register({
+      await registerUser({
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
         password: formData.password,
       });
-      alert("Đăng ký tài khoản thành công! Bạn sẽ được chuyển hướng sang trang Đăng nhập.");
+      toast.success("Đăng ký tài khoản thành công! Đang chuyển hướng...");
       navigate("/login");
     } catch (err) {
-      alert(err.message || "Đăng ký thất bại! Vui lòng thử lại.");
-    } finally {
-      setIsSubmitting(false);
+      toast.error(err.message || "Đăng ký thất bại! Vui lòng thử lại.");
     }
   };
   return (

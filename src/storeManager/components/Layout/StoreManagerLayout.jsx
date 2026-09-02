@@ -1,29 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import StoreSidebar from "./StoreSidebar";
 import StoreHeader from "./StoreHeader";
-import { authService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
 
 const StoreManagerLayout = () => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: currentUser, isLoading } = useCurrentUser();
 
-  useEffect(() => {
-    const checkManager = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        setCurrentUser(user);
-      } catch {
-        setCurrentUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkManager();
-  }, []);
-
-  if (loading) {
-    return null; // Đang kiểm tra phiên đăng nhập từ Mock Server
+  if (isLoading) {
+    return null; // Đang kiểm tra phiên đăng nhập từ Cache / Server
   }
 
   if (!currentUser) {

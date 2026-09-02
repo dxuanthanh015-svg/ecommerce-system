@@ -1,15 +1,10 @@
-import React, { useState, useEffect } from 'react';
 import Product from '../../components/Product/Product';
 import { productService } from '../../../services';
+import { useProducts } from '../../../hooks/useProductQuery';
+import { product_mock_data } from '../../../Data/product_mock_data';
 
 const ProductPage = () => {
-  const [productsData, setProductsData] = useState([]);
-
-  useEffect(() => {
-    productService.fetchProducts()
-      .then((data) => setProductsData(data || []))
-      .catch((err) => console.error("Error loading products in ProductPage:", err));
-  }, []);
+  const { data: productsData = product_mock_data, isLoading } = useProducts();
 
   return (
     <div>

@@ -7,42 +7,21 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Pagination from '@mui/material/Pagination';
 import PaginationItem from '@mui/material/PaginationItem';
-import { orderService, authService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useUserOrders, useUpdateOrderStatus } from "../../../hooks/useOrderQuery";
 
 const Order = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1", 10);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
+  const { data: orders = [], isLoading: isOrdersLoading } = useUserOrders(user?.email, { enabled: !isUserLoading });
+  const { mutate: updateStatusMutate } = useUpdateOrderStatus();
+  const loading = isUserLoading || isOrdersLoading;
 
-  const loadOrders = async () => {
-    try {
-      setLoading(true);
-      const user = await authService.getCurrentUser();
-      const list = await orderService.fetchUserOrders(user?.email);
-      setOrders(list || []);
-    } catch (err) {
-      console.error("Error loading user orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
-
-  const handleConfirmReceived = async (orderId) => {
-    try {
-      await orderService.updateOrderStatusInAllRevenue(orderId, "Delivered");
-      setOrders((prev) =>
-        prev.map((o) => (o.orderId === orderId ? { ...o, status: "Delivered" } : o))
-      );
-    } catch (err) {
-      console.error("Error confirming order delivered:", err);
-    }
+  const handleConfirmReceived = (orderId) => {
+    updateStatusMutate({ orderId, status: "Delivered" });
   };
 
   useEffect(() => {

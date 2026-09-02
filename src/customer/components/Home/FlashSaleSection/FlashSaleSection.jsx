@@ -1,24 +1,14 @@
-import React, { useState, useEffect } from "react";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { product_mock_data } from "../../../../Data/product_mock_data";
 import CircleIcon from "@mui/icons-material/Circle";
 import FlashSaleCountdown from "./FlashSaleCountDown";
 import { salePoster } from "./salePoster";
 import { useNavigate } from "react-router-dom";
-import { productService } from "../../../../services";
+import { useProducts } from "../../../../hooks/useProductQuery";
 
 export default function FlashSaleSection() {
   const navigate = useNavigate();
-  const [allProducts, setAllProducts] = useState(product_mock_data);
-
-  useEffect(() => {
-    productService.fetchProducts()
-      .then((data) => {
-        if (data && data.length > 0) setAllProducts(data);
-      })
-      .catch((err) => console.error("Error loading products in FlashSaleSection:", err));
-  }, []);
-
+  const { data: allProducts = product_mock_data, isLoading } = useProducts();
   const flashSaleItems = allProducts.filter((p) => p.isFlashSale === true);
   const displayItems = flashSaleItems.length > 0 ? flashSaleItems : salePoster;
 

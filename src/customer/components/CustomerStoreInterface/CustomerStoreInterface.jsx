@@ -6,7 +6,8 @@ import StoreTabs from "./StoreTabs";
 import StoreProductsGrid from "./StoreProductsGrid";
 import store_manager_mock_data from "../../../Data/store-manager_mock_data";
 import { product_mock_data } from "../../../Data/product_mock_data";
-import { productService, storeService } from "../../../services";
+import { useProducts } from "../../../hooks/useProductQuery";
+import { useAllStores } from "../../../hooks/useStoreQuery";
 
 const CustomerStoreInterface = () => {
   const navigate = useNavigate();
@@ -14,38 +15,15 @@ const CustomerStoreInterface = () => {
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [storeData, setStoreData] = useState(null);
-  const [storeProducts, setStoreProducts] = useState([]);
 
-  useEffect(() => {
-    const loadStoreAndProducts = async () => {
-      try {
-        const [stores, prods] = await Promise.all([
-          storeService.fetchAllStores(),
-          productService.fetchProducts({ storeId }),
-        ]);
+  const { data: allStores = store_manager_mock_data } = useAllStores();
+  const { data: allProds = product_mock_data } = useProducts();
 
-        const allStores = [...stores, ...store_manager_mock_data];
-        const foundStore = allStores.find((s) => String(s.id) === String(storeId)) || allStores[0];
-        setStoreData(foundStore);
-
-        if (prods && prods.length > 0) {
-          setStoreProducts(prods);
-        } else {
-          // Fallback filtering
-          const allProds = await productService.fetchProducts();
-          const filtered = (allProds.length > 0 ? allProds : product_mock_data).filter((item) => {
-            const pStoreId = item.id_store || item.storeId;
-            return String(pStoreId) === String(foundStore?.id);
-          });
-          setStoreProducts(filtered);
-        }
-      } catch (err) {
-        console.error("Error loading store data:", err);
-      }
-    };
-    loadStoreAndProducts();
-  }, [storeId]);
+  const storeData = allStores.find((s) => String(s.id) === String(storeId)) || store_manager_mock_data.find((s) => String(s.id) === String(storeId)) || allStores[0];
+  const storeProducts = allProds.filter((item) => {
+    const pStoreId = item.id_store || item.storeId;
+    return String(pStoreId) === String(storeData?.id);
+  });
 
   // Filter products based on selected tab & search query
   const filteredProducts = useMemo(() => {

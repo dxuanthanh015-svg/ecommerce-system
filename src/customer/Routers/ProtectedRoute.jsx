@@ -1,27 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { authService } from "../../services";
+import { useCurrentUser } from "../../hooks/useAuthQuery";
 
 const ProtectedRoute = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const { data: currentUser, isLoading } = useCurrentUser();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const currentUser = await authService.getCurrentUser();
-        setIsAuthenticated(Boolean(currentUser));
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  if (isAuthenticated === null) {
-    return null; // Đang kiểm tra phiên đăng nhập từ Mock Server
+  if (isLoading) {
+    return null; // Đang kiểm tra phiên đăng nhập từ Cache / Server
   }
 
-  if (!isAuthenticated) {
+  if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 

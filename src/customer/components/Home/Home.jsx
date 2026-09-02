@@ -8,7 +8,7 @@ import FlashSaleSection from './FlashSaleSection/FlashSaleSection';
 import InspirationCard from './InspirationCard/InspirationCard';
 import { inspirationItems } from './InspirationCard/inspiration-data';
 import { product_mock_data } from '../../../Data/product_mock_data.js';
-import { useState, useEffect } from 'react';
+import { useProducts } from '../../../hooks/useProductQuery';
 
 const categories = [
   {
@@ -34,20 +34,10 @@ const categories = [
   }
 ];
 
-import { productService } from "../../../services";
-
 const Home = () => {
-  const [allProducts, setAllProducts] = useState(product_mock_data);
+  const { data: allProducts = product_mock_data, isLoading } = useProducts();
 
-  useEffect(() => {
-    productService.fetchProducts()
-      .then((data) => {
-        if (data && data.length > 0) setAllProducts(data);
-      })
-      .catch((err) => console.error("Error loading products in Home:", err));
-  }, []);
-
-  const trendingProduct = allProducts.filter(product => product.isTrending === true && product.isVisible !== true).slice(0, 10);
+  const trendingProduct = allProducts?.filter(product => product.isTrending === true && product.isVisible !== true).slice(0, 10);
   return (
     <div className="w-full bg-white min-h-screen">
       <MainCarousal />

@@ -1,4 +1,5 @@
 import React from "react";
+import toast from "react-hot-toast";
 import PercentRoundedIcon from "@mui/icons-material/PercentRounded";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import AttachMoneyRoundedIcon from "@mui/icons-material/AttachMoneyRounded";
@@ -24,9 +25,13 @@ const PromotionCampaignListItem = ({
 
   const handleDelete = (e) => {
     e.stopPropagation();
-    if (window.confirm(`Bạn có chắc muốn xóa voucher ${promotion.code}?`)) {
-      onDelete?.(promotion.id);
-    }
+    toast((t) => (
+      <span>
+        Xóa voucher <strong>{promotion.code}</strong>?
+        <button onClick={() => { onDelete?.(promotion.id); toast.dismiss(t.id); }} style={{marginLeft:8,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'2px 10px',cursor:'pointer',fontWeight:600}}>Xóa</button>
+        <button onClick={() => toast.dismiss(t.id)} style={{marginLeft:6,background:'#e5e7eb',color:'#374151',border:'none',borderRadius:6,padding:'2px 10px',cursor:'pointer',fontWeight:600}}>Hủy</button>
+      </span>
+    ), { duration: 6000 });
   };
 
   const handleStatusClick = (e) => {

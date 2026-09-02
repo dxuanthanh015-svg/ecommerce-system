@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const defaultLowStockItems = [
   { id: 1, name: "Matte Ceramic Mug", sku: "HM-092", count: 4 },
@@ -11,7 +12,7 @@ const LowStockAlertsCard = ({ items = defaultLowStockItems }) => {
   const navigate = useNavigate();
 
   const handleGenerateRestock = () => {
-    alert("Đã tạo yêu cầu nhập bổ sung kho thành công!");
+    toast.success("Đã tạo yêu cầu nhập bổ sung kho thành công!");
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import StarIcon from "@mui/icons-material/Star";
+import toast from "react-hot-toast";
 
 const MAX_IMAGES = 4;
 
@@ -56,12 +57,12 @@ const MediaSection = ({ formData, handleChange }) => {
     e.target.value = "";
 
     if (images.length >= MAX_IMAGES) {
-      alert(`Bạn chỉ có thể upload tối đa ${MAX_IMAGES} ảnh.`);
+      toast.error(`Bạn chỉ có thể upload tối đa ${MAX_IMAGES} ảnh.`);
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 10MB.");
+      toast.error("Ảnh quá lớn! Vui lòng chọn ảnh dưới 10MB.");
       return;
     }
 
@@ -70,7 +71,7 @@ const MediaSection = ({ formData, handleChange }) => {
       const newImages = [...images, compressed];
       syncImages(newImages);
     } catch {
-      alert("Không thể xử lý ảnh. Vui lòng thử ảnh khác.");
+      toast.error("Không thể xử lý ảnh. Vui lòng thử ảnh khác.");
     }
   };
 
@@ -115,7 +116,7 @@ const MediaSection = ({ formData, handleChange }) => {
                 const val = e.target.value.trim();
                 if (!val) return;
                 if (images.length >= MAX_IMAGES) {
-                  alert(`Tối đa ${MAX_IMAGES} ảnh.`);
+                  toast.error(`Tối đa ${MAX_IMAGES} ảnh.`);
                   return;
                 }
                 syncImages([...images, val]);
@@ -131,7 +132,7 @@ const MediaSection = ({ formData, handleChange }) => {
               const val = input?.value.trim();
               if (!val) return;
               if (images.length >= MAX_IMAGES) {
-                alert(`Tối đa ${MAX_IMAGES} ảnh.`);
+                toast.error(`Tối đa ${MAX_IMAGES} ảnh.`);
                 return;
               }
               syncImages([...images, val]);

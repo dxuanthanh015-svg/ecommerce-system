@@ -5,9 +5,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL
 const API_KEY = import.meta.env.VITE_API_KEY
 
 export const productService = {
-  // ==========================================
-  // 1. RESOURCE: /products (Toàn bộ sản phẩm trên sàn)
-  // ==========================================
+
   fetchProducts: async (filters = {}) => {
     let list = []
     try {
@@ -145,13 +143,13 @@ export const productService = {
       if (!res.ok) throw new Error('Failed to fetch currentProducts')
       const json = await res.json()
       let list = [];
-    if (Array.isArray(json.data?.data)) {
-      list = json.data.data;
-    } else if (Array.isArray(json.data)) {
-      list = json.data;
-    } else if (Array.isArray(json)) {
-      list = json;
-    }
+      if (Array.isArray(json.data?.data)) {
+        list = json.data.data;
+      } else if (Array.isArray(json.data)) {
+        list = json.data;
+      } else if (Array.isArray(json)) {
+        list = json;
+      }
       const currentStore = await storeService.getCurrentStore()
       const storeIds = [filters.storeId, currentStore?.id, currentStore?._id]
         .filter(Boolean)
@@ -159,8 +157,8 @@ export const productService = {
       const storeIdSet = new Set(storeIds)
       let listCurrentProduct = storeIdSet.size
         ? list.filter((p) =>
-            storeIdSet.has(String(p.id_store || p._id_store || p.storeId || '').trim())
-          )
+          storeIdSet.has(String(p.id_store || p._id_store || p.storeId || '').trim())
+        )
         : []
       if (filters.status && filters.status !== 'All Statuses') {
         listCurrentProduct = listCurrentProduct.filter((p) => (p.status || '').toLowerCase() === filters.status.toLowerCase())
@@ -260,7 +258,7 @@ export const productService = {
       // Cập nhật song song cả /products và /currentProducts
       const [prod] = await Promise.allSettled([
         await productService.updateProduct(id, productData),
-        await  productService.updateInCurrentProducts(id, productData),
+        await productService.updateInCurrentProducts(id, productData),
       ])
       return prod.value || productData
     } else {

@@ -5,7 +5,9 @@ import PromotionQuickCreateCard from "./PromotionQuickCreateCard";
 import PromotionCampaignList from "./PromotionCampaignList";
 import { promotionsPageConfig } from "./promotions.data";
 import { filterPromotionsByTab } from "./promotions.utils";
-import { voucherService, storeService } from "../../../services";
+import { useCurrentStore } from "../../../hooks/useStoreQuery";
+import { useVouchers, useCreateVoucher, useUpdateVoucher, useDeleteVoucher } from "../../../hooks/useVoucherQuery";
+import toast from "react-hot-toast";
 
 const initialFormState = {
   code: "",
@@ -20,42 +22,17 @@ const initialFormState = {
 };
 
 const StorePromotions = () => {
-  const [storeId, setStoreId] = useState("store-001");
-  const [vouchers, setVouchers] = useState([]);
+  const { data: currentStore } = useCurrentStore();
+  const storeId = currentStore?.id || "store-001";
+  const { data: vouchers = [], isLoading: loading } = useVouchers(storeId);
+
+  const { mutateAsync: createVoucherMutate } = useCreateVoucher();
+  const { mutate: updateVoucherMutate } = useUpdateVoucher();
+  const { mutate: deleteVoucherMutate } = useDeleteVoucher();
+
   const [activeTab, setActiveTab] = useState(promotionsPageConfig.tabs[0]);
   const [formData, setFormData] = useState(initialFormState);
   const [selectedPromotionId, setSelectedPromotionId] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Load store and vouchers from Mock Server
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const store = await storeService.getCurrentStore();
-        const activeStoreId = store?.id || "store-001";
-        setStoreId(activeStoreId);
-        await loadStoreVouchers(activeStoreId);
-      } catch (err) {
-        console.error("Error init store promotions:", err);
-      }
-    };
-    init();
-  }, []);
-
-  const loadStoreVouchers = async (sId) => {
-    try {
-      setLoading(true);
-      const list = await voucherService.fetchVouchers(sId);
-      setVouchers(list || []);
-      if (list && list.length > 0 && !selectedPromotionId) {
-        setSelectedPromotionId(list[0].id);
-      }
-    } catch (err) {
-      console.error("Error loading vouchers:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Dynamic metrics computed from vouchers
   const metrics = useMemo(() => {
@@ -116,33 +93,30 @@ const StorePromotions = () => {
   const handleCreateVoucher = async (status) => {
     const trimmedCode = formData.code?.trim().toUpperCase();
     if (!trimmedCode) {
-      alert("Vui lòng nhập mã Voucher!");
+      toast.error("Vui lòng nhập mã Voucher!");
       return;
     }
 
-    // Check duplicate code
-    const isDup = vouchers.some(
-      (v) => (v.code || "").toUpperCase() === trimmedCode
-    );
+    const isDup = vouchers.some((v) => (v.code || "").toUpperCase() === trimmedCode);
     if (isDup) {
-      alert(`Mã voucher "${trimmedCode}" đã tồn tại trong cửa hàng của bạn!`);
+      toast.error(`Mã voucher "${trimmedCode}" đã tồn tại trong cửa hàng!`);
       return;
     }
 
     const numValue = Number(formData.value) || 0;
     if (formData.discountType !== "Free Shipping" && numValue <= 0) {
-      alert("Vui lòng nhập mức giảm giá hợp lệ lớn hơn 0!");
+      toast.error("Vui lòng nhập mức giảm giá hợp lệ lớn hơn 0!");
       return;
     }
 
     if (formData.discountType === "Percentage" && numValue > 100) {
-      alert("Mức giảm theo phần trăm không được vượt quá 100%!");
+      toast.error("Mức giảm theo phần trăm không được vượt quá 100%!");
       return;
     }
 
     if (formData.startDate && formData.endDate) {
       if (new Date(formData.startDate) > new Date(formData.endDate)) {
-        alert("Ngày bắt đầu không được lớn hơn ngày kết thúc!");
+        toast.error("Ngày bắt đầu không được lớn hơn ngày kết thúc!");
         return;
       }
     }
@@ -186,36 +160,26 @@ const StorePromotions = () => {
         limitPerCustomer: Boolean(formData.limitPerCustomer),
       };
 
-      const newVoucher = await voucherService.createVoucher(voucherDraft, storeId, status);
-      await loadStoreVouchers(storeId);
-      setSelectedPromotionId(newVoucher.id);
+      const newVoucher = await createVoucherMutate({ voucherDraft, storeId, status });
+      setSelectedPromotionId(newVoucher?.id || `vouch_${Date.now()}`);
       setActiveTab(status === "Active" ? "Active" : "Draft");
       resetForm();
+      toast.success(`Tạo voucher "${trimmedCode}" thành công!`);
     } catch (err) {
       console.error("Error creating voucher:", err);
-      alert("Lỗi khi tạo voucher: " + err.message);
+      toast.error("Lỗi khi tạo voucher: " + err.message);
     }
   };
 
-  const handleDeletePromotion = async (id) => {
-    try {
-      await voucherService.deleteVoucher(id);
-      await loadStoreVouchers(storeId);
-      if (selectedPromotionId === id) {
-        setSelectedPromotionId(null);
-      }
-    } catch (err) {
-      console.error("Error deleting voucher:", err);
+  const handleDeletePromotion = (id) => {
+    deleteVoucherMutate(id);
+    if (selectedPromotionId === id) {
+      setSelectedPromotionId(null);
     }
   };
 
-  const handleToggleStatus = async (id, newStatus) => {
-    try {
-      await voucherService.updateVoucher(id, { status: newStatus });
-      await loadStoreVouchers(storeId);
-    } catch (err) {
-      console.error("Error updating voucher status:", err);
-    }
+  const handleToggleStatus = (id, newStatus) => {
+    updateVoucherMutate({ voucherId: id, updateData: { status: newStatus } });
   };
 
   return (

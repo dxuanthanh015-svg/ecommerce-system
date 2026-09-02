@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import { Avatar, Rating } from "@mui/material";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
@@ -20,7 +21,7 @@ const StoreHeader = ({ storeData, totalProducts }) => {
   };
 
   const handleChat = () => {
-    alert(`Đã mở cửa sổ trò chuyện với gian hàng "${storeData?.name}"!`);
+    toast.success(`Đã mở cửa sổ trò chuyện với gian hàng "${storeData?.name}"!`);
   };
 
   if (!storeData) return null;

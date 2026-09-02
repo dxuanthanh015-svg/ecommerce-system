@@ -6,9 +6,6 @@ const BASE_URL = import.meta.env.VITE_BASE_URL
 const API_KEY = import.meta.env.VITE_API_KEY
 
 export const storeService = {
-  // ==========================================
-  // 1. RESOURCE: /allStores (Toàn bộ danh sách store trên sàn)
-  // ==========================================
   fetchAllStores: async () => {
     try {
       const res = await fetch(`${BASE_URL}/allStores?apiKey=${API_KEY}`)
@@ -158,7 +155,6 @@ export const storeService = {
       if (!res.ok) throw new Error('Failed to update currentStore')
       const json = await res.json()
 
-      // Đồng bộ sang /allStores
       if (current.id) {
         await storeService.updateInAllStores(current.id, updateData)
       }
@@ -188,9 +184,7 @@ export const storeService = {
     }
   },
 
-  // ==========================================
-  // 4. RESOURCE: /storeApplication (Đơn đăng ký mở gian hàng của khách)
-  // ==========================================
+
   getStoreApplication: async () => {
     try {
       const res = await fetch(`${BASE_URL}/storeApplication?apiKey=${API_KEY}`)
@@ -240,9 +234,6 @@ export const storeService = {
     }
   },
 
-  // ==========================================
-  // Tiện ích Store Settings & Analytics
-  // ==========================================
   updateStoreSettings: async (storeId, settingsPayload) => {
     const updatedStore = {
       name: settingsPayload.brandIdentity?.storeName,
@@ -273,7 +264,6 @@ export const storeService = {
       storeOperations: settingsPayload.storeOperations,
     }
 
-    // Cập nhật cả currentStore và allStores
     await storeService.updateCurrentStore(updatedStore)
     return storeService.updateInAllStores(storeId, updatedStore)
   },

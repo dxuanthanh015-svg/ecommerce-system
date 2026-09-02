@@ -4,59 +4,44 @@ import SummaryCardsRow from "./SummaryCardsRow";
 import RevenueChart from "./RevenueChart";
 import TransferHistoryTable from "./TransferHistoryTable";
 import RankedProductList from "./RankedProductList";
-import { storeService } from "../../../services";
+import { useCurrentStore } from "../../../hooks/useStoreQuery";
+import { useStoreRevenue } from "../../../hooks/useOrderQuery";
 import { defaultAnalyticsData } from "./analytics.data";
 import {
   getStoreAnalyticsData,
-  top5BestSellers,
-  getMostViewProducts,
   exportAnalyticsReportCSV,
 } from "./analytics.utils";
+import { useMostViewProduct, useTop5Product } from "../../../hooks/useProductQuery";
+import { useViewsData } from "../../../hooks/useProductQuery";
 
 const StoreAnalytics = () => {
-  const [storeId, setStoreId] = useState(null);
-  const [storeName, setStoreName] = useState("NexCart Store");
+  const { data: currentStore } = useCurrentStore();
+  const storeId = currentStore?.id || currentStore?._id;
+  const storeName = currentStore?.name || "NexCart Store";
   const [analyticsData, setAnalyticsData] = useState(defaultAnalyticsData);
   const [bestSellers, setBestSellers] = useState([]);
   const [mostViewed, setMostViewed] = useState([]);
-  const [loading, setLoading] = useState(true);
 
+  // Sử dụng React Query cache để tải dữ liệu analytics
+  const { data: allViews } = useViewsData();
+  const { data: revenueData, isLoading: loading } = useStoreRevenue(storeId);
+  const { data: viewed } = useMostViewProduct(storeId, allViews, revenueData);
+  const { data: top5Product } = useTop5Product(storeId, revenueData);
+  const { data: analyticData } = useStoreAnalytics(storeId, analyticsData.revenueBreakdown.activeRange, revenueData);
   useEffect(() => {
-    const loadStore = async () => {
-      const store = await storeService.getCurrentStore();
-      const currentId = store?.id || store?._id;
-      if (currentId) {
-        setStoreId(currentId);
-        setStoreName(store?.name || "NexCart Store");
-      } else {
-        console.warn("Chưa tìm thấy Store ID của người dùng hiện tại");
-        setLoading(false);
-      }
-    };
-    loadStore();
-  }, []);
-
-  useEffect(() => {
-    if (!storeId) return;
+    if (!storeId || !revenueData) return;
     const loadAnalytics = async () => {
       try {
-        setLoading(true);
-        const [data, sellers, viewed] = await Promise.all([
-          getStoreAnalyticsData(storeId, analyticsData.revenueBreakdown.activeRange),
-          top5BestSellers(storeId),
-          getMostViewProducts(storeId),
-        ]);
+        const data = analyticData
         setAnalyticsData(data);
-        setBestSellers(sellers);
+        setBestSellers(top5Product);
         setMostViewed(viewed);
       } catch (err) {
         console.error("Error loading analytics:", err);
-      } finally {
-        setLoading(false);
       }
     };
     loadAnalytics();
-  }, [storeId]);
+  }, [storeId, revenueData]);
 
   const handleExport = () => {
     exportAnalyticsReportCSV(analyticsData, storeName);

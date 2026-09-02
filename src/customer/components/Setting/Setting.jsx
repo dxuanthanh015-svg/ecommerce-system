@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import SettingSidebar from "./SettingSidebar";
 import ProfileForm from "./ProfileForm";
 import ApplyStoreManager from "../ApplyStoreManager/ApplyStoreManager";
-import { authService } from "../../../services"
+import { useCurrentUser, useUpdateProfileMutation } from "../../../hooks/useAuthQuery";
+import toast from "react-hot-toast";
 
 const defaultUserData = {
   firstName: "",
@@ -18,24 +19,17 @@ const defaultUserData = {
 
 const Setting = () => {
   const [activeTab, setActiveTab] = useState("profile");
-  const [userData, setUserData] = useState(defaultUserData);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        setUserData(user);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    fetchUserData();
-  }, []);
+  const { data: userData = defaultUserData } = useCurrentUser();
+  const { mutateAsync: updateProfileMutate } = useUpdateProfileMutation();
 
   const handleSaveProfile = async (updatedData) => {
-    const updatedUser = await authService.updateProfile(userData.id, updatedData);
-    setUserData(updatedUser);
-    alert("Thông tin cá nhân đã được lưu thành công!");
+    try {
+      await updateProfileMutate({ id: userData?.id, data: updatedData });
+      toast.success("Thông tin cá nhân đã được lưu thành công!");
+    } catch (error) {
+      console.error("Error updating user data:", error);
+      toast.error("Cập nhật thông tin thất bại: " + error.message);
+    }
   };
 
   return (

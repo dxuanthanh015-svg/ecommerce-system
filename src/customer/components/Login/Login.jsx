@@ -4,28 +4,30 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { migrateGuestCartOnLogin } from "../../utils/cartUtils";
-import { authService, storeService, orderService } from "../../../services";
+import { storeService, orderService } from "../../../services";
+import { useLoginMutation } from "../../../hooks/useAuthQuery";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+  // Mutation login
+  const { mutateAsync: login, isPending: isLogging } = useLoginMutation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return;
 
+    if (isLogging) return;
     const inputEmail = email.trim().toLowerCase();
 
     try {
-      setIsSubmitting(true);
-
       // Đăng nhập qua authService (Mock Server /register + /currentUser)
       // authService.login cũng tự động tìm store và lưu vào /currentStore nếu là Manager
-      let matchedUser = await authService.login(inputEmail, password);
-
+      let matchedUser = await login({ email: inputEmail, password });
       // Demo account fallback
       if (!matchedUser && inputEmail === "nexcart.user@example.com" && password === "password123") {
         matchedUser = {
@@ -55,16 +57,15 @@ const Login = () => {
 
         // Gộp giỏ hàng guest vào tài khoản sau khi đăng nhập
         await migrateGuestCartOnLogin(matchedUser.email);
-        window.dispatchEvent(new Event("userSessionUpdated"));
 
-        alert(`Đăng nhập thành công! Chào mừng ${matchedUser.firstName || "bạn"} quay trở lại.`);
+        toast.success(`Đăng nhập thành công! Chào mừng ${matchedUser.firstName || "bạn"} quay trở lại.`);
         navigate("/");
       } else {
-        alert("Email hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại hoặc Đăng ký tài khoản mới.");
+        toast.error("Email hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại.");
       }
     } catch (err) {
       console.error("Login error:", err);
-      alert("Đăng nhập thất bại! Vui lòng kiểm tra lại kết nối mạng.");
+      toast.error("Đăng nhập thất bại! Vui lòng kiểm tra lại kết nối mạng.");
     } finally {
       setIsSubmitting(false);
     }
@@ -202,14 +203,13 @@ const Login = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
-            className={`w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all mt-6 shadow-md ${
-              isSubmitting
+            disabled={isLogging}
+            className={`w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all mt-6 shadow-md ${isLogging
                 ? "bg-gray-500 cursor-not-allowed opacity-80"
                 : "bg-[#1E293B] hover:bg-[#0F172A] cursor-pointer"
-            }`}
+              }`}
           >
-            {isSubmitting ? (
+            {isLogging ? (
               <>
                 <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

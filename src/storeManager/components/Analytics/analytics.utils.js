@@ -1,64 +1,8 @@
 import { defaultAnalyticsData } from "./analytics.data";
-import { orderService } from "../../../services/orderService";
-import { storeService } from "../../../services/storeService";
-import { productService } from "../../../services/productService";
 
-const BASE_URL = import.meta.env.VITE_BASE_URL
-const API_KEY = import.meta.env.VITE_API_KEY
-
-const fetchViewsData = async () => {
-  try {
-    const res = await fetch(`${BASE_URL}/viewsData?apiKey=${API_KEY}`)
-    if (!res.ok) return {}
-    const json = await res.json()
-    const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-    return list.reduce((acc, item) => {
-      if (item.productId) acc[item.productId] = item
-      return acc
-    }, {})
-  } catch {
-    return {}
-  }
-}
-
-const saveViewsData = async (productId, viewEntry) => {
-  try {
-    const res = await fetch(`${BASE_URL}/viewsData?apiKey=${API_KEY}`)
-    if (!res.ok) return
-    const json = await res.json()
-    const list = json.data?.data || []
-    const existing = list.find((v) => String(v.productId) === String(productId))
-    const payload = { ...viewEntry, productId }
-    if (existing) {
-      const mongoId = existing._id || existing.id
-      await fetch(`${BASE_URL}/viewsData/${mongoId}?apiKey=${API_KEY}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...existing, ...payload }),
-      })
-    } else {
-      await fetch(`${BASE_URL}/viewsData?apiKey=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-    }
-  } catch (e) {
-    console.warn('[analytics.utils] saveViewsData error:', e.message)
-  }
-}
-
-
-export const getStoreAnalyticsData = async (storeId, range = 'Last 6 Months') => {
-
-  let revenueData = null
-  if (storeId) {
-    revenueData = await orderService.fetchStoreRevenueById(storeId)
-    // Re-calculate revenue để đảm bảo đồng bộ với orders hiện tại
-    revenueData = await orderService.recalculateStoreRevenue(storeId) || revenueData
-  }
+export const getStoreAnalyticsData = async (storeId, range = 'Last 6 Months', revenueData = null) => {
   if (!revenueData) {
-    revenueData = { orders: [] }
+    return { orders: [] }
   }
 
   const allOrders = revenueData?.orders || []
@@ -147,7 +91,7 @@ export const getStoreAnalyticsData = async (storeId, range = 'Last 6 Months') =>
   const groupOrderByMonth = (orders, range = 'Last 6 Months') => {
     const now = new Date()
     const monthBuckets = []
-    
+
     let monthsCount = 6
     let startIndex = 0
     let currentYear = now.getFullYear()
@@ -243,7 +187,7 @@ export const getStoreAnalyticsData = async (storeId, range = 'Last 6 Months') =>
 
   // Tạo series data theo tháng cho chart dựa trên range
   const monthlyData = groupOrderByMonth(orders, range)
-  
+
   const updatedRevenueBreakdown = {
     ...defaultAnalyticsData.revenueBreakdown,
     activeRange: range,
@@ -256,10 +200,9 @@ export const getStoreAnalyticsData = async (storeId, range = 'Last 6 Months') =>
   return { ...defaultAnalyticsData, revenueBreakdown: updatedRevenueBreakdown, summaryCards, transferHistory, _rawOrders: orders }
 }
 
-export const trackProductsView = async (product) => {
+export const trackProductsView = async (product, allViews, saveViewsData) => {
   if (!product?.id) return
-  const allViews = await fetchViewsData()
-  const current = allViews[product.id] || { views: 0 }
+  const current = allViews?.[product.id] || { views: 0 }
   const updated = {
     productId: product.id,
     storeId: product.id_store || product.storeId || "store-001",
@@ -268,18 +211,12 @@ export const trackProductsView = async (product) => {
     views: (current.views || 0) + 1,
     lastView: new Date().toISOString(),
   }
-  await saveViewsData(product.id, updated)
+  await saveViewsData({ productId: product.id, viewEntry: updated, allViews })
 }
 
-export const top5BestSellers = async (storeId = null) => {
-  let revenueData = null
-  if (storeId) {
-    revenueData = await orderService.fetchStoreRevenueById(storeId)
-    // Re-calculate revenue để đảm bảo đồng bộ
-    revenueData = await orderService.recalculateStoreRevenue(storeId) || revenueData
-  }
-  if (!revenueData) {
-    revenueData = { orders: [] }
+export const top5BestSellers = (storeId = null, revenueData) => {
+  if (!storeId || !revenueData) {
+    return []
   }
 
   const allOrders = revenueData.orders || []
@@ -318,15 +255,12 @@ export const top5BestSellers = async (storeId = null) => {
 }
 
 
-export const getMostViewProducts = async (storeId) => {
-  const [viewsData, revenueData] = await Promise.allSettled([
-    fetchViewsData(),
-    orderService.fetchStoreRevenueById(storeId),
-  ])
-  const views = Object.values(viewsData.value || {}).filter(
+
+export const getMostViewProducts = (storeId, allViews, revenueData) => {
+  const views = Object.values(allViews || {}).filter(
     (view) => storeId && String(view.storeId) === String(storeId)
   )
-  const orders = revenueData.value?.orders || []
+  const orders = revenueData?.orders || []
 
   const productSalesMap = {}
   orders.forEach((order) => {

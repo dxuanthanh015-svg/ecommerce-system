@@ -6,48 +6,32 @@ import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import SendIcon from "@mui/icons-material/Send";
-import { authService, reviewService } from "../../../services";
+import { useReviews, useCreateReview } from "../../../hooks/useReviewQuery";
+import toast from "react-hot-toast";
 
 const RateAndReview = ({ product, productId: propProductId }) => {
     const routeParams = useParams();
     const currentProductId = propProductId || product?.id || routeParams.productId;
 
-    const [reviews, setReviews] = useState([]);
     const [activeFilter, setActiveFilter] = useState("all");
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [likedReviews, setLikedReviews] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const { data: reviews = [] } = useReviews(currentProductId)
+    const { mutateAsync: createReviewMutate, isPending: isSubmitting } = useCreateReview()
     // New review form states
     const [newRating, setNewRating] = useState(5);
     const [newTitle, setNewTitle] = useState("");
     const [newComment, setNewComment] = useState("");
 
-    const loadReviews = async () => {
-        if (!currentProductId) return;
-        try {
-            const list = await reviewService.fetchReviewsByProductId(currentProductId, product);
-            setReviews(list);
-        } catch (err) {
-            console.warn("Error loading reviews:", err);
-        }
-    };
 
-    useEffect(() => {
-        loadReviews();
-    }, [currentProductId]);
+
 
     const handleToggleLike = (id) => {
-        setLikedReviews((prev) => {
-            const isLiked = prev[id];
-            const updatedLikes = isLiked ? -1 : 1;
-
-            setReviews((prevReviews) =>
-                prevReviews.map((r) => (r.id === id ? { ...r, likes: (r.likes || 0) + updatedLikes } : r))
-            );
-
-            return { ...prev, [id]: !isLiked };
-        });
+        setLikedReviews((prev) => ({
+            ...prev,
+            [id]: !prev[id],
+        }));
     };
 
     const handleAddReview = async (e) => {
@@ -55,38 +39,30 @@ const RateAndReview = ({ product, productId: propProductId }) => {
         if (isSubmitting) return;
 
         if (!newComment.trim()) {
-            alert("Vui lòng nhập nội dung đánh giá chi tiết!");
+            toast.error("Vui lòng nhập nội dung đánh giá chi tiết!");
             return;
         }
 
-        try {
-            setIsSubmitting(true);
-            const user = await authService.getCurrentUser();
-            
-            const reviewPayload = {
-                productId: String(currentProductId),
-                storeId: product?.id_store || product?.storeId || "store-001",
-                userName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : "Khách hàng NexCart",
-                avatarUrl: user?.avatarUrl || "",
-                rating: newRating,
-                title: newTitle.trim() || "Đánh giá chất lượng",
-                comment: newComment.trim(),
-            };
-
-            const saved = await reviewService.createReview(reviewPayload);
-            setReviews((prev) => [saved, ...prev]);
-            
-            setNewTitle("");
-            setNewComment("");
-            setNewRating(5);
-            setShowReviewForm(false);
-            alert("Cảm ơn bạn đã gửi đánh giá cho sản phẩm!");
-        } catch (err) {
-            console.error("Error creating review:", err);
-            alert("Có lỗi xảy ra khi lưu đánh giá lên server!");
-        } finally {
-            setIsSubmitting(false);
-        }
+        createReviewMutate({
+            productId: currentProductId,
+            storeId: product?.id_store || product?.storeId,
+            rating: newRating,
+            title: newTitle,
+            comment: newComment,
+        },
+            {
+                onSuccess: () => {
+                    setNewRating(5)
+                    setNewTitle("")
+                    setNewComment("")
+                    setShowReviewForm(false)
+                    toast.success("Đánh giá của bạn đã được gửi thành công!")
+                },
+                onError: (error) => {
+                    toast.error("Có lỗi xảy ra khi gửi đánh giá: " + error.message);
+                }
+            }
+        )
     };
 
     // Calculate dynamic rating metrics
@@ -207,11 +183,10 @@ const RateAndReview = ({ product, productId: propProductId }) => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className={`flex items-center gap-1.5 px-6 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all ${
-                                    isSubmitting
+                                className={`flex items-center gap-1.5 px-6 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all ${isSubmitting
                                         ? "bg-indigo-400 cursor-not-allowed opacity-80"
                                         : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 cursor-pointer"
-                                }`}
+                                    }`}
                             >
                                 {isSubmitting ? (
                                     <>
@@ -311,11 +286,10 @@ const RateAndReview = ({ product, productId: propProductId }) => {
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveFilter(tab.id)}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                                activeFilter === tab.id
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${activeFilter === tab.id
                                     ? "bg-indigo-600 text-white shadow-xs"
                                     : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
-                            }`}
+                                }`}
                         >
                             {tab.label}
                         </button>
@@ -380,14 +354,13 @@ const RateAndReview = ({ product, productId: propProductId }) => {
                                 <button
                                     type="button"
                                     onClick={() => handleToggleLike(review.id)}
-                                    className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                                        likedReviews[review.id]
+                                    className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer ${likedReviews[review.id]
                                             ? "bg-indigo-50 text-indigo-600"
                                             : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                        }`}
                                 >
                                     <ThumbUpOutlinedIcon sx={{ fontSize: 14 }} />
-                                    <span>Hữu ích ({review.likes || 0})</span>
+                                    <span>Hữu ích ({(review.likes || 0) + (likedReviews[review.id] ? 1 : 0)})</span>
                                 </button>
                             </div>
                         </div>

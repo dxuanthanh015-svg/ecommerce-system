@@ -86,7 +86,7 @@ export const voucherService = {
       const res = await fetch(`${BASE_URL}/voucher?apiKey=${API_KEY}`)
       if (!res.ok) throw new Error('Failed to fetch vouchers')
       const json = await res.json()
-      const list = json.data?.data || []
+      const list = Array.isArray(json.data?.data) ? json.data.data : Array.isArray(json.data) ? json.data : []
       const matched = list.find(
         (v) => String(v.id || v._id) === String(voucherId)
       )
@@ -113,7 +113,7 @@ export const voucherService = {
       const res = await fetch(`${BASE_URL}/voucher?apiKey=${API_KEY}`)
       if (!res.ok) return false
       const json = await res.json()
-      const list = json.data?.data || []
+      const list = Array.isArray(json.data?.data) ? json.data.data : Array.isArray(json.data) ? json.data : []
       const matched = list.find((v) => String(v.id || v._id) === String(voucherId))
       if (matched) {
         const mongoId = matched._id || matched.id

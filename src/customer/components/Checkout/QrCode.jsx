@@ -5,7 +5,12 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
-import { orderService, voucherService, cartService, storeService, authService } from "../../../services";
+import { cartService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useAllStores } from "../../../hooks/useStoreQuery";
+import { useProcessOrder } from "../../../hooks/useOrderQuery";
+import { useUpdateVoucher } from "../../../hooks/useVoucherQuery";
+import toast from "react-hot-toast";
 
 const QrCode = () => {
   const navigate = useNavigate();
@@ -17,36 +22,21 @@ const QrCode = () => {
     items: [],
   };
 
-  const [currentUser, setCurrentUser] = useState(null);
-  const [storeInfo, setStoreInfo] = useState(null);
+  const { data: currentUser } = useCurrentUser();
+  const { data: allStores = store_manager_mock_data } = useAllStores();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { mutateAsync: processOrder } = useProcessOrder();
+  const { mutateAsync: updateVoucher } = useUpdateVoucher();
+
+  const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
+  const storeInfo = allStores.find((s) => String(s.id) === String(firstItemStoreId)) || allStores[0];
 
   // Timer: 15 minutes (900 seconds)
   const [timeLeft, setTimeLeft] = useState(900);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const [user, stores] = await Promise.all([
-          authService.getCurrentUser(),
-          storeService.fetchAllStores(),
-        ]);
-        setCurrentUser(user);
-
-        const allStores = stores.length > 0 ? stores : store_manager_mock_data;
-        const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
-        const found = allStores.find((s) => String(s.id) === String(firstItemStoreId)) || allStores[0];
-        setStoreInfo(found);
-      } catch (err) {
-        console.error("Error loading session in QrCode:", err);
-      }
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
     if (timeLeft <= 0) {
-      alert("Thời gian thanh toán đã hết hạn. Bạn sẽ được chuyển hướng về trang Checkout.");
+      toast.error("Thời gian thanh toán đã hết hạn!", { duration: 5000 });
       navigate("/checkout");
       return;
     }
@@ -85,17 +75,24 @@ const QrCode = () => {
 
     try {
       // 1. Process order and store revenue tracking on Mock Server
-      await orderService.processOrder(pendingOrder, currentUser || {});
+      await processOrder({ pendingOrder, currentUser });
 
       // 2. Consume voucher if used
       if (pendingOrder.voucherCode && pendingOrder.discountAmount > 0) {
         const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
         const voucherStoreId = pendingOrder.storeId || firstItemStoreId;
-        await voucherService.consumeVoucher(
-          pendingOrder.voucherCode,
-          voucherStoreId,
-          pendingOrder.discountAmount
-        );
+        // Fetch voucher to get its ID then update usedCount
+        const { voucherService } = await import("../../../services");
+        const voucher = await voucherService.fetchVoucherByCode(pendingOrder.voucherCode, voucherStoreId);
+        if (voucher) {
+          await updateVoucher({
+            voucherId: voucher.id || voucher._id,
+            updateData: {
+              usedCount: (Number(voucher.usedCount) || 0) + 1,
+              totalDiscountGiven: (Number(voucher.totalDiscountGiven) || 0) + pendingOrder.discountAmount,
+            }
+          });
+        }
       }
 
       // 3. Remove paid items from user cart
@@ -118,12 +115,11 @@ const QrCode = () => {
         await cartService.saveGuestCart(remaining);
       }
 
-      window.dispatchEvent(new Event("cartUpdated"));
-      alert(`Thanh toán đơn hàng ${pendingOrder.orderId} thành công! Kho hàng và doanh thu đã được cập nhật.`);
+      toast.success(`Đơn hàng ${pendingOrder.orderId} đã thanh toán thành công!`);
       navigate("/account/order");
     } catch (err) {
       console.error("Error processing order payment:", err);
-      alert("Lỗi xử lý đơn hàng: " + err.message);
+      toast.error("Đơn hàng xử lý thất bại: " + err.message);
     } finally {
       setIsProcessing(false);
     }

@@ -6,49 +6,33 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
-import { wishlistService, cartService, authService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useWishList, useRemoveFromWishList, useAddCart } from "../../../hooks/useCartQuery";
+import toast from "react-hot-toast";
 
 const WishList = () => {
   const navigate = useNavigate();
-  const [wishlist, setWishlist] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
+  const { data: wishlist = [] } = useWishList(currentUser?.email, { enabled: !isUserLoading });
 
-  const loadWishlist = async () => {
-    try {
-      const user = await authService.getCurrentUser();
-      setCurrentUser(user);
-      const items = await wishlistService.fetchWishlist(user?.email);
-      setWishlist(items || []);
-    } catch (err) {
-      console.error("Error loading wishlist:", err);
-    }
+  const { mutate: removeFromWishlistMutate } = useRemoveFromWishList();
+  const { mutate: addToCartMutate } = useAddCart();
+
+  const handleRemoveFromWishlist = (id) => {
+    removeFromWishlistMutate({ productId: id, userEmail: currentUser?.email });
   };
 
-  useEffect(() => {
-    loadWishlist();
-  }, []);
-
-  const handleRemoveFromWishlist = async (id) => {
-    try {
-      const updated = await wishlistService.removeFromWishlist(id, currentUser?.email);
-      setWishlist(updated);
-    } catch (err) {
-      console.error("Error removing from wishlist:", err);
-    }
+  const handleClearAll = () => {
+    toast((t) => (
+      <span>
+        Xóa toàn bộ wishlist?
+        <button onClick={() => { wishlist.forEach((item) => removeFromWishlistMutate({ productId: item.id, userEmail: currentUser?.email })); toast.dismiss(t.id); }} style={{marginLeft:8,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'2px 10px',cursor:'pointer',fontWeight:600}}>Xóa</button>
+        <button onClick={() => toast.dismiss(t.id)} style={{marginLeft:6,background:'#e5e7eb',color:'#374151',border:'none',borderRadius:6,padding:'2px 10px',cursor:'pointer',fontWeight:600}}>Hủy</button>
+      </span>
+    ), { duration: 6000 });
   };
 
-  const handleClearAll = async () => {
-    if (window.confirm("Are you sure remove all items in wishlist?")) {
-      try {
-        await wishlistService.clearWishlist(currentUser?.email);
-        setWishlist([]);
-      } catch (err) {
-        console.error("Error clearing wishlist:", err);
-      }
-    }
-  };
-
-  const handleAddToCart = async (item) => {
+  const handleAddToCart = (item) => {
     const newItem = {
       id: item.id,
       id_store: item.id_store || item.storeId || "store-001",
@@ -60,28 +44,20 @@ const WishList = () => {
       size: "M",
     };
 
-    if (currentUser?.email) {
-      await cartService.addToCart(newItem, currentUser.email);
-    } else {
-      const currentGuestCart = await cartService.fetchGuestCart();
-      const existingIdx = currentGuestCart.findIndex(
-        (c) => String(c.id) === String(newItem.id)
-      );
-      if (existingIdx > -1) {
-        currentGuestCart[existingIdx].quantity += 1;
-      } else {
-        currentGuestCart.unshift(newItem);
+    addToCartMutate(
+      { newItem, userEmail: currentUser?.email },
+      {
+        onSuccess: () => {
+          toast.success(`Đã thêm "${item.title}" vào giỏ hàng!`);
+          navigate("/cart");
+        },
       }
-      await cartService.saveGuestCart(currentGuestCart);
-    }
-
-    alert(`Added "${item.title}" to cart!`);
-    navigate("/cart");
+    );
   };
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
-    alert("Link added to clipboard!");
+    toast.success("Đã sao chép liên kết!");
   };
 
   return (

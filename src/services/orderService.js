@@ -481,7 +481,6 @@ export const orderService = {
 
       // Cập nhật trạng thái trong /userOrders
       await orderService.updateUserOrderStatus(orderId, newStatus)
-      await orderService.createOrder(orderId, newStatus)
       return { orderId, status: newStatus }
     } catch (error) {
       console.warn('[orderService] updateOrderStatusInAllRevenue error:', error.message)

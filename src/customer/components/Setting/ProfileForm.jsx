@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 
 const ProfileForm = ({ userData, onSave, onCancel }) => {
@@ -22,7 +23,7 @@ const ProfileForm = ({ userData, onSave, onCancel }) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 800 * 1024) {
-        alert("Kích thước ảnh vượt quá 800KB. Vui lòng chọn ảnh nhỏ hơn.");
+        toast.error("Kích thước ảnh vượt quá 800KB. Vui lòng chọn ảnh nhỏ hơn.");
         return;
       }
       const reader = new FileReader();

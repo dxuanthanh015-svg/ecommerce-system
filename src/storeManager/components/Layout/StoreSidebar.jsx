@@ -42,30 +42,18 @@ const menuItems = [
   }
 ];
 
+import { useCurrentStore } from "../../../hooks/useStoreQuery";
+import { useLogoutMutation } from "../../../hooks/useAuthQuery";
+
 const StoreSidebar = () => {
   const navigate = useNavigate();
-  const [currentStore, setCurrentStore] = useState({});
+  const { data: currentStore = {} } = useCurrentStore();
+  const { mutate: logout } = useLogoutMutation();
 
-  useEffect(() => {
-    const loadStore = async () => {
-      try {
-        const store = await storeService.getCurrentStore();
-        if (store) setCurrentStore(store);
-      } catch (err) {
-        console.error("Error loading store in sidebar:", err);
-      }
-    };
-    loadStore();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-    } catch (e) {
-      console.warn("Logout error:", e.message);
-    }
-    window.dispatchEvent(new Event("userSessionUpdated"));
-    navigate("/login");
+  const handleLogout = () => {
+    logout(undefined, {
+      onSuccess: () => navigate("/login"),
+    });
   };
 
   const shopName = currentStore.name || "My Store";

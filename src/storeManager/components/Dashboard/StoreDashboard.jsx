@@ -10,32 +10,22 @@ import KpiCard from "./KpiCard";
 import RevenueChartCard from "./RevenueChartCard";
 import LowStockAlertsCard from "./LowStockAlertsCard";
 import RecentOrdersTable from "./RecentOrdersTable";
-import { storeService, orderService, productService, authService } from "../../../services";
+import { storeService, orderService, productService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useCurrentStore } from "../../../hooks/useStoreQuery";
+import { useCurrentProducts } from "../../../hooks/useProductQuery";
+import toast from "react-hot-toast";
 
 const StoreDashboard = () => {
   const navigate = useNavigate();
-  const [currentStore, setCurrentStore] = useState(null);
-  const [storeDisplayName, setStoreDisplayName] = useState("Your Store");
+  const { data: currentUser } = useCurrentUser();
+  const { data: currentStore } = useCurrentStore();
+  const { data: currentProducts = [] } = useCurrentProducts();
+
+  const storeDisplayName = currentStore?.name || currentUser?.firstName || "Your Store";
   const [storeRevenueData, setStoreRevenueData] = useState({ todayRevenue: 0, totalRevenue: 0, orders: [] });
   const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Lấy store & user từ Mock Server
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const [store, user] = await Promise.all([
-          storeService.getCurrentStore(),
-          authService.getCurrentUser(),
-        ]);
-        setCurrentStore(store);
-        setStoreDisplayName(store?.name || user?.firstName || "Your Store");
-      } catch (e) {
-        console.error("[Dashboard] Error loading store/user:", e);
-      }
-    };
-    init();
-  }, []);
 
   // Tải orders + low stock sau khi có store
   useEffect(() => {
@@ -162,11 +152,11 @@ const StoreDashboard = () => {
         o.orderId === orderId ? { ...o, status: "Processing" } : o
       ),
     }));
-    alert(`Đã duyệt thành công đơn hàng ${orderId}!`);
+    toast.success(`Đã duyệt thành công đơn hàng ${orderId}!`);
   };
 
   const handleExportReport = () => {
-    alert(`Báo cáo doanh thu của gian hàng "${storeDisplayName}" đã được xuất dưới dạng CSV!`);
+    toast.success(`Đã xuất báo cáo doanh thu "${storeDisplayName}" dưới dạng CSV!`);
   };
 
   const pendingOrdersCount = orders.filter(

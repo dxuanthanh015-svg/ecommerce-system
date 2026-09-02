@@ -1,32 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { storeService, authService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useCurrentStore } from "../../../hooks/useStoreQuery";
 
 const StoreHeader = () => {
-  const [currentStore, setCurrentStore] = useState({});
-  const [user, setUser] = useState({});
+  const { data: user = {} } = useCurrentUser();
+  const { data: currentStore = {} } = useCurrentStore();
 
-  useEffect(() => {
-    const loadSession = async () => {
-      try {
-        const [store, u] = await Promise.all([
-          storeService.getCurrentStore(),
-          authService.getCurrentUser(),
-        ]);
-        if (store) setCurrentStore(store);
-        if (u) setUser(u);
-      } catch (err) {
-        console.error("Error loading session in StoreHeader:", err);
-      }
-    };
-    loadSession();
-  }, []);
-
-  const managerName = currentStore.owner || `${user.firstName || 'Store'} ${user.lastName || 'Manager'}`;
-  const avatarUrl = user.avatarUrl || currentStore.imageUrl;
+  const managerName = currentStore?.owner || `${user?.firstName || 'Store'} ${user?.lastName || 'Manager'}`;
+  const avatarUrl = user?.avatarUrl || currentStore?.imageUrl;
 
   return (
     <header className="bg-white border-b border-gray-100 py-3.5 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 font-sans">

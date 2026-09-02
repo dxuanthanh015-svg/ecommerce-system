@@ -28,57 +28,25 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
-import { getUserCart } from "../../utils/cartUtils";
-import { useEffect } from "react";
-import { authService, cartService, wishlistService } from "../../../services";
+import { useCurrentUser, useLogoutMutation } from "../../../hooks/useAuthQuery";
+import { useCart, useWishList } from "../../../hooks/useCartQuery";
 
 export default function Navigation() {
-  const [user, setUser] = useState(null);
+  // Lấy thông tin user hiện tại
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const isLoggedIn = Boolean(user);
-  const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
 
-  const fetchSessionData = async () => {
-    try {
-      const active = await authService.getCurrentUser();
-      setUser(active);
+  // Lấy số lượng giỏ hàng và wishlist
+  const { data: cartItems = [], isLoading: cartLoading, error: cartError } = useCart(user?.email, { enabled: !isUserLoading });
+  const { data: wishlistItems = [], isLoading: wishlistLoading, error: wishlistError } = useWishList(user?.email, { enabled: !isUserLoading });
 
-      if (active?.email) {
-        const [cItems, wItems] = await Promise.all([
-          cartService.fetchCart(active.email),
-          wishlistService.fetchWishlist(active.email),
-        ]);
-        setCartCount(cItems.length);
-        setWishlistCount(wItems.length);
-      } else {
-        const [gItems, wItems] = await Promise.all([
-          cartService.fetchGuestCart(),
-          wishlistService.fetchWishlist(),
-        ]);
-        setCartCount(gItems.length);
-        setWishlistCount(wItems.length);
-      }
-    } catch {
-      setUser(null);
-    }
-  };
+  // Logout 
+  const { mutate: logout } = useLogoutMutation();
 
-  useEffect(() => {
-    fetchSessionData();
 
-    const handleUpdate = () => {
-      fetchSessionData();
-    };
+  const cartCount = cartItems?.length ?? 0;
+  const wishlistCount = wishlistItems?.length ?? 0;
 
-    window.addEventListener("cartUpdated", handleUpdate);
-    window.addEventListener("wishlistUpdated", handleUpdate);
-    window.addEventListener("userSessionUpdated", handleUpdate);
-    return () => {
-      window.removeEventListener("cartUpdated", handleUpdate);
-      window.removeEventListener("wishlistUpdated", handleUpdate);
-      window.removeEventListener("userSessionUpdated", handleUpdate);
-    };
-  }, []);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -523,9 +491,11 @@ export default function Navigation() {
                         <MenuItem
                           onClick={async () => {
                             handleCloseUserMenu();
-                            await authService.logout();
-                            window.dispatchEvent(new Event("userSessionUpdated"));
-                            navigate('/login');
+                            logout(undefined, {
+                              onSuccess: () => {
+                                navigate('/login');
+                              }
+                            });
                           }}
                           className="gap-3 hover:!bg-red-50"
                         >

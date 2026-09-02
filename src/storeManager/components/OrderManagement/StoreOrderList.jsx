@@ -4,50 +4,18 @@ import OrderTableFilter from "./OrderTableFilter";
 import OrderTableRow from "./OrderTableRow";
 import OrderPagination from "./OrderPagination";
 import StoreOrderDetailModal from "./StoreOrderDetailModal";
-import { orderService, storeService } from "../../../services";
+import { useCurrentStore } from "../../../hooks/useStoreQuery";
+import { useStoreOrders, useUpdateOrderStatus } from "../../../hooks/useOrderQuery";
 
 const StoreOrderList = ({
   onConfirmOrder,
   onShipOrder,
   onCancelOrder
 }) => {
-  const [currentStore, setCurrentStore] = useState(null);
+  const { data: currentStore } = useCurrentStore();
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [rawOrders, setRawOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadStore = async () => {
-      const store = await storeService.getCurrentStore();
-      setCurrentStore(store);
-    };
-    loadStore();
-  }, []);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      // Ưu tiên lấy từ /orderRevenue (đơn hàng riêng của store đang đăng nhập)
-      const revenueData = await orderService.fetchOrderRevenue();
-      if (revenueData?.orders?.length > 0) {
-        setRawOrders(revenueData.orders);
-      } else if (currentStore?.id) {
-        // Fallback: lấy từ /allStoreRevenue theo storeId
-        const storeRevenue = await orderService.fetchStoreRevenueById(currentStore.id);
-        setRawOrders(storeRevenue?.orders || []);
-      }
-    } catch (err) {
-      console.error("Error loading store orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (currentStore !== null) {
-      fetchOrders();
-    }
-  }, [currentStore]);
+  const { data: rawOrders = [], isLoading: loading } = useStoreOrders(currentStore?.id);
+  const { mutate: updateStatusMutate } = useUpdateOrderStatus();
 
   // Map to table rows format with full raw order preserved
   const orders = rawOrders.map((o) => ({
@@ -66,12 +34,8 @@ const StoreOrderList = ({
   const [searchParam, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParam.get("page") || "1", 10);
 
-  const handleStatusChange = async (orderId, newStatus) => {
-    // Cập nhật đồng thời cả 3 resource
-    await orderService.updateOrderStatusInAllRevenue(orderId, newStatus, currentStore?.id);
-    setRawOrders((prev) =>
-      prev.map((o) => (o.orderId === orderId ? { ...o, status: newStatus } : o))
-    );
+  const handleStatusChange = (orderId, newStatus) => {
+    updateStatusMutate({ orderId, status: newStatus });
     if (selectedOrder && selectedOrder.orderId === orderId) {
       setSelectedOrder((prev) => prev ? { ...prev, status: newStatus, orderStatus: newStatus } : null);
     }

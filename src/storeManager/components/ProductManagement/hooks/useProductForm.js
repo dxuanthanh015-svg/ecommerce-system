@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { createDefaultProductFormState } from "../productManagement.data";
 import { productService, authService, storeService } from "../../../../services";
 
@@ -79,13 +80,13 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
     // Lấy user và store từ Mock Server
     const activeUser = await authService.getCurrentUser()
     if (!activeUser?.email) {
-      alert("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
+      toast.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
       navigate("/login");
       return;
     }
 
     if (!formData.title || !formData.price) {
-      alert("Vui lòng nhập Tên sản phẩm và Giá bán!");
+      toast.error("Vui lòng nhập Tên sản phẩm và Giá bán!");
       return;
     }
 
@@ -119,17 +120,16 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
       onSubmitProduct(payload);
     } else {
       try {
-        // Ghi đồng thời lên /products và /currentProducts
         await productService.saveProduct(payload, isEdit && !!productId);
-        alert(
+        toast.success(
           isEdit
-            ? `Đã cập nhật sản phẩm "${payload.title}" thành công!`
-            : `Thêm sản phẩm mới "${payload.title}" thành công!`
+            ? `Cập nhật sản phẩm "${payload.title}" thành công!`
+            : `Thêm sản phẩm "${payload.title}" thành công!`
         );
         navigate("/store-manager/products");
       } catch (err) {
         console.error('[useProductForm] Lỗi lưu sản phẩm:', err);
-        alert("Lỗi khi lưu sản phẩm: " + err.message);
+        toast.error("Lỗi khi lưu sản phẩm: " + err.message);
       }
     }
   }, [formData, isEdit, productId, navigate, onSubmitProduct]);

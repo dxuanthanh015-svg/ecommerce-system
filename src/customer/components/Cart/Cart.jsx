@@ -8,46 +8,22 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import HomeSectionCarousel from "../Home/HomeSectionCarousel/HomeSectionCarousel";
 import { product_mock_data } from "../../../Data/product_mock_data";
 import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
-import { cartService, storeService, productService, authService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useProducts } from "../../../hooks/useProductQuery";
+import { useAllStores } from "../../../hooks/useStoreQuery";
+import { useCart, useUpdateCart, useRemoveFromCart } from "../../../hooks/useCartQuery";
+import toast from "react-hot-toast";
 
 const Cart = () => {
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
-  const [allProducts, setAllProducts] = useState(product_mock_data);
-  const [allStores, setAllStores] = useState(store_manager_mock_data);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
+  const { data: allProducts = product_mock_data } = useProducts();
+  const { data: allStores = store_manager_mock_data } = useAllStores();
+  const { data: items = [], isLoading: isCartLoading } = useCart(currentUser?.email, { enabled: !isUserLoading });
 
-  const loadCartData = async () => {
-    try {
-      setLoading(true);
-      const [user, prods, stores] = await Promise.all([
-        authService.getCurrentUser(),
-        productService.fetchProducts(),
-        storeService.fetchAllStores(),
-      ]);
-
-      setCurrentUser(user);
-      if (prods && prods.length > 0) setAllProducts(prods);
-      if (stores && stores.length > 0) setAllStores([...stores, ...store_manager_mock_data]);
-
-      let cartItems = [];
-      if (user?.email) {
-        cartItems = await cartService.fetchCart(user.email);
-      } else {
-        cartItems = await cartService.fetchGuestCart();
-      }
-      setItems(cartItems || []);
-    } catch (err) {
-      console.error("Error loading cart data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCartData();
-  }, []);
+  const { mutate: updateCartItemMutate } = useUpdateCart();
+  const { mutate: removeFromCartMutate } = useRemoveFromCart();
+  const loading = isUserLoading || isCartLoading;
 
   // Group cart items by store
   const storeGroups = useMemo(() => {
@@ -103,35 +79,28 @@ const Cart = () => {
     return allProducts.filter((item) => item.topLavelCategory === category.topLavelCategory);
   };
 
-  const handleRemoveItem = async (id, size, color) => {
-    let updated;
-    if (currentUser?.email) {
-      updated = await cartService.removeFromCart(id, size || "M", color || "Default", currentUser.email);
-    } else {
-      const guestCart = await cartService.fetchGuestCart();
-      updated = guestCart.filter((item) => String(item.id) !== String(id));
-      await cartService.saveGuestCart(updated);
-    }
-    setItems(updated || []);
+  const handleRemoveItem = (id, size, color) => {
+    removeFromCartMutate({
+      itemId: id,
+      size: size || "M",
+      color: color || "Default",
+      userEmail: currentUser?.email,
+    });
   };
 
-  const handleUpdateQuantity = async (id, size, color, newQty) => {
-    let updated;
-    if (currentUser?.email) {
-      updated = await cartService.updateCartItem(id, size || "M", color || "Default", newQty, currentUser.email);
-    } else {
-      const guestCart = await cartService.fetchGuestCart();
-      updated = guestCart.map((item) =>
-        String(item.id) === String(id) ? { ...item, quantity: newQty } : item
-      ).filter((item) => item.quantity > 0);
-      await cartService.saveGuestCart(updated);
-    }
-    setItems(updated || []);
+  const handleUpdateQuantity = (id, size, color, newQty) => {
+    updateCartItemMutate({
+      itemId: id,
+      size: size || "M",
+      color: color || "Default",
+      newQty,
+      userEmail: currentUser?.email,
+    });
   };
 
   const handleCheckOut = () => {
     if (checkoutItems.length === 0) {
-      alert("Giỏ hàng của bạn đang trống!");
+      toast.error("Giỏ hàng của bạn đang trống!");
       return;
     }
     navigate("/checkout?step=1", { state: { checkoutItems } });

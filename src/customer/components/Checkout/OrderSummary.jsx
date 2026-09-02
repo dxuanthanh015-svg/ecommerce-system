@@ -10,7 +10,10 @@ import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
-import { voucherService, cartService, authService } from "../../../services";
+import { voucherService, cartService } from "../../../services";
+import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { useVouchers } from "../../../hooks/useVoucherQuery";
+import toast from "react-hot-toast";
 
 const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => {
   const navigate = useNavigate();
@@ -23,35 +26,31 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
   const [voucherError, setVoucherError] = useState("");
   const [showVoucherList, setShowVoucherList] = useState(false);
   const [items, setItems] = useState(location.state?.checkoutItems || []);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [availableVouchers, setAvailableVouchers] = useState([]);
+  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
 
   const storeId = items[0]?.id_store || items[0]?.storeId || "store-001";
+  const { data: vList = [] } = useVouchers(storeId);
+  const availableVouchers = vList.filter((v) => (v.status || "").toLowerCase() === "active");
 
   useEffect(() => {
+    if (isUserLoading) return;
     const init = async () => {
       try {
-        const user = await authService.getCurrentUser();
-        setCurrentUser(user);
-
         if (!location.state?.checkoutItems || location.state.checkoutItems.length === 0) {
           let cart = [];
-          if (user?.email) {
-            cart = await cartService.fetchCart(user.email);
+          if (currentUser?.email) {
+            cart = await cartService.fetchCart(currentUser.email);
           } else {
             cart = await cartService.fetchGuestCart();
           }
           setItems(cart || []);
         }
-
-        const vList = await voucherService.fetchVouchers(storeId);
-        setAvailableVouchers((vList || []).filter((v) => (v.status || "").toLowerCase() === "active"));
       } catch (err) {
-        console.error("Error loading order summary:", err);
+        console.error("Error loading order summary cart:", err);
       }
     };
     init();
-  }, [storeId]);
+  }, [currentUser, isUserLoading]);
 
   const subtotal = items.reduce((acc, item) => {
     return acc + Number(item.price || 0) * (Number(item.quantity) || 1);
@@ -110,15 +109,15 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
   const handlePlaceOrder = (e) => {
     e.preventDefault();
     if (!savedAddress || savedAddress.length === 0) {
-      alert("No delivery address yet! Please fill and save a new address.");
+      toast.error("Chưa có địa chỉ giao hàng! Vui lòng thêm địa chỉ mới.");
       return;
     }
     if (!selectedAddress) {
-      alert("Please select a delivery address from the Saved Delivery Addresses list!");
+      toast.error("Vui lòng chọn địa chỉ giao hàng!");
       return;
     }
     if (!paymentMethod) {
-      alert("Please select a payment method!");
+      toast.error("Vui lòng chọn phương thức thanh toán!");
       return;
     }
 
