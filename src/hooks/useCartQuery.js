@@ -3,7 +3,7 @@ import { cartService } from "../services/cartService";
 import { wishlistService } from "../services/wishlistService";
 import { QUERY_KEYS } from "../constants/queryKeys";
 
-// Cart 
+// Cart
 
 // Lấy giỏ hàng (chuyển giữa user và guest)
 export const useCart = (userEmail, options = {}) => {
@@ -13,19 +13,18 @@ export const useCart = (userEmail, options = {}) => {
         ...options, // để nhận enable từ bên ngoài
     })
 }
-// Thêm sản phẩm vào giỏ hàng 
+
+// Thêm sản phẩm vào giỏ hàng
 export const useAddCart = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ newItem, userEmail }) => {
-            if (userEmail) {
-                return cartService.addToCart(newItem, userEmail)
-            }
-            return cartService.saveGuestCart([newItem])
-        },
+        mutationFn: ({ newItem, userEmail }) =>
+            userEmail
+                ? cartService.addToCart(newItem, userEmail)
+                : cartService.addToGuestCart(newItem),
         onSuccess: (data, variables) => {
-            qc.invalidateQueries({ queryKey: QUERY_KEYS.CART(variables.userEmail) })
-        }
+            qc.setQueryData(QUERY_KEYS.CART(variables.userEmail), data)
+        },
     })
 }
 
@@ -33,12 +32,11 @@ export const useAddCart = () => {
 export const useUpdateCart = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ itemId, size, color, newQty, userEmail }) => {
-            cartService.updateCartItem(itemId, size, color, newQty, userEmail)
-        },
+        mutationFn: ({ itemId, size, color, newQty, userEmail }) =>
+            cartService.updateCartItem(itemId, size, color, newQty, userEmail),
         onSuccess: (data, variables) => {
-            qc.invalidateQueries({ queryKey: QUERY_KEYS.CART(variables.userEmail) })
-        }
+            qc.setQueryData(QUERY_KEYS.CART(variables.userEmail), data)
+        },
     })
 }
 
@@ -46,12 +44,11 @@ export const useUpdateCart = () => {
 export const useRemoveFromCart = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ itemId, size, color, userEmail }) => {
-            cartService.removeFromCart(itemId, size, color, userEmail)
-        },
+        mutationFn: ({ itemId, size, color, userEmail }) =>
+            cartService.removeFromCart(itemId, size, color, userEmail),
         onSuccess: (data, variables) => {
-            qc.invalidateQueries({ queryKey: QUERY_KEYS.CART(variables.userEmail) })
-        }
+            qc.setQueryData(QUERY_KEYS.CART(variables.userEmail), data)
+        },
     })
 }
 
@@ -59,10 +56,11 @@ export const useRemoveFromCart = () => {
 export const useRemoveAllCart = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (userEmail) => (userEmail ? cartService.clearCart(userEmail) : cartService.clearGuestCart()),
-        onSuccess: (data, userEmail) => {
-            qc.invalidateQueries({ queryKey: QUERY_KEYS.CART(userEmail) })
-        }
+        mutationFn: (userEmail) =>
+            userEmail ? cartService.clearCart(userEmail) : cartService.clearGuestCart(),
+        onSuccess: (_, userEmail) => {
+            qc.setQueryData(QUERY_KEYS.CART(userEmail), [])
+        },
     })
 }
 
@@ -85,9 +83,10 @@ export const useAddToWishList = () => {
         mutationFn: ({ product, userEmail }) => wishlistService.addToWishlist(product, userEmail),
         onSuccess: (data, variables) => {
             qc.invalidateQueries({ queryKey: QUERY_KEYS.WISHLIST(variables.userEmail) })
-        }
+        },
     })
 }
+
 // Xóa sản phẩm trong WishList
 export const useRemoveFromWishList = () => {
     const qc = useQueryClient();
@@ -95,6 +94,6 @@ export const useRemoveFromWishList = () => {
         mutationFn: ({ productId, userEmail }) => wishlistService.removeFromWishlist(productId, userEmail),
         onSuccess: (data, variables) => {
             qc.invalidateQueries({ queryKey: QUERY_KEYS.WISHLIST(variables.userEmail) })
-        }
+        },
     })
 }
