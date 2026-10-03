@@ -1,0 +1,157 @@
+const productImageMap = {
+  lamp:
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=200&auto=format&fit=crop",
+  notebook:
+    "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=200&auto=format&fit=crop",
+  mug:
+    "https://images.unsplash.com/photo-1514228742587-6b1558fcf93a?q=80&w=200&auto=format&fit=crop",
+  bottle:
+    "https://images.unsplash.com/photo-1602143407151-7111542de6e8?q=80&w=200&auto=format&fit=crop",
+  organizer:
+    "https://images.unsplash.com/photo-1517705008128-361805f42e86?q=80&w=200&auto=format&fit=crop",
+};
+
+const imageKeys = Object.keys(productImageMap);
+const findProductImage = (_title, fallbackIndex = 0) =>
+  productImageMap[imageKeys[fallbackIndex % imageKeys.length]];
+
+export const defaultAnalyticsData = {
+  header: {
+    title: "Analytics & Financials",
+    description: "Track your revenue, fees, and payouts.",
+    exportLabel: "Export Report",
+  },
+
+  revenueBreakdown: {
+    title: "Revenue vs Fees Breakdown",
+    activeRange: "Last 6 Months",
+    rangeOptions: ["Last 6 Months", "Last 12 Months", "Year to Date"],
+    series: [
+    ],
+  },
+  transferHistory: {
+    title: "Transfer History",
+    filterLabel: "Filter",
+    items: [],
+  },
+  rankedLists: [
+    {
+      id: "best-sellers",
+      title: "Top 5 Best Sellers",
+      metricType: "currency",
+      items: [
+        {
+          id: "best-1",
+          name: "Premium Leather Notebook",
+          subLabel: "482 Sales",
+          metricValue: 15424,
+          imageUrl: findProductImage("Premium Leather Notebook", 1),
+        },
+        {
+          id: "best-2",
+          name: "Ceramic Pour-Over Dripper",
+          subLabel: "215 Sales",
+          metricValue: 10320,
+          imageUrl: findProductImage("Ceramic Pour-Over Dripper", 2),
+        },
+        {
+          id: "best-3",
+          name: "Minimalist Brass Lamp",
+          subLabel: "124 Sales",
+          metricValue: 17980,
+          imageUrl: findProductImage("Minimalist Brass Lamp", 3),
+        },
+        {
+          id: "best-4",
+          name: "Matte Ceramic Mug",
+          subLabel: "89 Sales",
+          metricValue: 2136,
+          imageUrl: findProductImage("Matte Ceramic Mug", 4),
+        },
+        {
+          id: "best-5",
+          name: "Steel Water Bottle",
+          subLabel: "72 Sales",
+          metricValue: 2520,
+          imageUrl: findProductImage("Steel Water Bottle", 0),
+        },
+      ],
+    },
+    {
+      id: "most-viewed",
+      title: "Most Viewed Products",
+      metricType: "number",
+      metricPrefix: "",
+      items: [
+        {
+          id: "view-1",
+          name: "Minimalist Brass Lamp",
+          subLabel: "Conv. Rate: 4.2%",
+          metricValue: 2945,
+          imageUrl: findProductImage("Minimalist Brass Lamp", 3),
+        },
+        {
+          id: "view-2",
+          name: "Premium Leather Notebook",
+          subLabel: "Conv. Rate: 18.1%",
+          metricValue: 2658,
+          imageUrl: findProductImage("Premium Leather Notebook", 1),
+        },
+        {
+          id: "view-3",
+          name: "Steel Water Bottle",
+          subLabel: "Conv. Rate: 4.8%",
+          metricValue: 1489,
+          imageUrl: findProductImage("Steel Water Bottle", 0),
+        },
+        {
+          id: "view-4",
+          name: "Ceramic Pour-Over Dripper",
+          subLabel: "Conv. Rate: 16.2%",
+          metricValue: 1324,
+          imageUrl: findProductImage("Ceramic Pour-Over Dripper", 2),
+        },
+        {
+          id: "view-5",
+          name: "Wire Desk Organizer",
+          subLabel: "Conv. Rate: 3.1%",
+          metricValue: 1105,
+          imageUrl: findProductImage("Wire Desk Organizer", 4),
+        },
+      ],
+    },
+  ],
+};
+
+export const createAnalyticsState = (apiData = {}) => ({
+  ...defaultAnalyticsData,
+  ...apiData,
+  header: {
+    ...defaultAnalyticsData.header,
+    ...(apiData.header || {}),
+  },
+  summaryCards: (apiData.summaryCards || defaultAnalyticsData.summaryCards).map((card) => ({
+    ...card,
+  })),
+  revenueBreakdown: {
+    ...defaultAnalyticsData.revenueBreakdown,
+    ...(apiData.revenueBreakdown || {}),
+    rangeOptions:
+      apiData.revenueBreakdown?.rangeOptions ||
+      defaultAnalyticsData.revenueBreakdown.rangeOptions,
+    series: (
+      apiData.revenueBreakdown?.series || defaultAnalyticsData.revenueBreakdown.series
+    ).map((point) => ({ ...point })),
+  },
+  transferHistory: {
+    ...defaultAnalyticsData.transferHistory,
+    ...(apiData.transferHistory || {}),
+    items: (
+      apiData.transferHistory?.items || defaultAnalyticsData.transferHistory.items
+    ).map((item) => ({ ...item })),
+  },
+  rankedLists: (apiData.rankedLists || defaultAnalyticsData.rankedLists).map((list) => ({
+    ...list,
+    items: list.items.map((item) => ({ ...item })),
+  })),
+});
