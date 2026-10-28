@@ -29,7 +29,6 @@ public class UserCreationRequest {
     @NotBlank(message = "Họ không được để trống")
     String lastName;
 
-    @NotBlank(message = "Số điện thoại không được để trống")
     String phone;
 
     @NotNull(message = "Giới tính không được để trống")

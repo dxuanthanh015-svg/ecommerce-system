@@ -7,14 +7,11 @@ import { toast } from "react-hot-toast";
 export const useAdminDashboardQuery = () => {
     return useQuery({
         queryKey: QUERY_KEYS.ADMIN_DASHBOARD,
-        queryFn: async () => {
-            const rawData = await adminService.fetchDashBoardRawData();
-            return adminService.computeAdminDashboardData(rawData);
-        },
+        queryFn: () => adminService.fetchDashboardData(),
         staleTime: 60 * 1000, // Cache 1 phút, tránh refetch liên tục
         gcTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false, // Không refetch khi focus/click qua lại các cửa sổ
-        refetchOnMount: false, // Không refetch khi re-render
+        refetchOnMount: true,
         refetchInterval: 30 * 1000, // Nhận đơn đăng ký Store Manager mới trên header Admin
     });
 };
@@ -23,7 +20,13 @@ export const useAdminDashboardQuery = () => {
 export const useApproveStoreApplication = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: async (app) => await adminService.approveStoreApplication(app),
+        mutationFn: async (application) => {
+            const applicationId = typeof application === "string"
+                ? application
+                : application?.id || application?._id || application?.applicationId;
+            if (!applicationId) throw new Error("Không tìm thấy mã đơn đăng ký gian hàng.");
+            return adminService.approveStoreApplication(applicationId);
+        },
         onSuccess: async () => {
             await qc.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD });
             await qc.invalidateQueries({ queryKey: QUERY_KEYS.ALL_STORES });

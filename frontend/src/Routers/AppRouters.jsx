@@ -5,6 +5,7 @@ import { adminRoutes } from "../admin/Routers/AdminRouters";
 import { storeManagerRoutes } from "../storeManager/Routers/StoreManagerRouters";
 import Login from "../customer/components/Login/Login";
 import SignUp from "../customer/Signup/SignUp";
+import OAuthCallback from "../customer/components/Login/OAuthCallback";
 
 export const AppRouters = createBrowserRouter([
   {
@@ -14,6 +15,10 @@ export const AppRouters = createBrowserRouter([
   {
     path: "/signup",
     element: <SignUp />,
+  },
+  {
+    path: "/oauth2/callback",
+    element: <OAuthCallback />
   },
   adminRoutes,
   customerRoutes,

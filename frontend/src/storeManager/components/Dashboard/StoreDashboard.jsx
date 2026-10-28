@@ -1,125 +1,40 @@
-import React, { useState, useMemo } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import { formatVnd } from "../../../utils/currency";
 
 import KpiCard from "./KpiCard";
 import RevenueChartCard from "./RevenueChartCard";
 import LowStockAlertsCard from "./LowStockAlertsCard";
 import RecentOrdersTable from "./RecentOrdersTable";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
-import { useCurrentStore, useStoreRevenue } from "../../../hooks/useStoreQuery";
-import { useCurrentProducts } from "../../../hooks/useProductQuery";
+import { useCurrentStore } from "../../../hooks/useStoreQuery";
+import { useStoreAnalytics } from "../../../hooks/useProductQuery";
 import { useUpdateOrderStatus } from "../../../hooks/useOrderQuery";
-import { sortOrdersByNewest } from "../../../services/orderService";
 import toast from "react-hot-toast";
 
 const StoreDashboard = () => {
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
   const { data: currentStore } = useCurrentStore();
-  const { data: currentProducts = [] } = useCurrentProducts();
   const { mutateAsync: updateOrderStatus, isPending: isApproving, variables: approvingVars } = useUpdateOrderStatus();
 
   const storeDisplayName = currentStore?.name || currentUser?.firstName || "Your Store";
 
-  // Dùng React Query hook — không gọi service thủ công
-  const { data: revenueData } = useStoreRevenue(currentStore?.id);
-
-  // Lọc orders đúng storeId từ data đã cache, luôn xếp mới nhất lên đầu
-  const orders = useMemo(() => {
-    const allOrders = revenueData?.orders || [];
-    const filtered = allOrders.filter((o) => {
-      const orderStoreId = o.storeId || o.id_store || o.items?.[0]?.id_store || o.items?.[0]?.storeId;
-      return orderStoreId && String(orderStoreId).trim() === String(currentStore?.id).trim();
-    });
-    return sortOrdersByNewest(filtered);
-  }, [revenueData, currentStore?.id]);
-
-  // Lọc low stock từ currentProducts đã cache — không fetch lại
-  const lowStockItems = useMemo(() => {
-    return currentProducts
-      .filter((p) => (Number(p.quantity) || 0) < 5)
-      .map((p) => ({
-        id: p.id,
-        name: p.title,
-        sku: `SKU-${(p.id_store || "NX").toString().substring(0, 4).toUpperCase()}-${p.id}`,
-        count: Number(p.quantity) || 0,
-      }))
-      .slice(0, 5);
-  }, [currentProducts]);
-
-  const loading = !revenueData && Boolean(currentStore?.id);
-  const storeRevenueData = revenueData || { todayRevenue: 0, totalRevenue: 0, orders: [] };
-
-  const chartData = useMemo(() => {
-    const now = new Date();
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-    const last7days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(now.getDate() - (6 - i));
-      const dateStr = d.toDateString();
-      const value = orders
-        .filter((o) => o.date && new Date(o.date).toDateString() === dateStr)
-        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-      return { label: dayNames[d.getDay()], value: Math.round(value) };
-    });
-
-    const last30days = [
-      { label: "Day 1-5", min: 26, max: 30 },
-      { label: "Day 6-10", min: 21, max: 25 },
-      { label: "Day 11-15", min: 16, max: 20 },
-      { label: "Day 16-20", min: 11, max: 15 },
-      { label: "Day 21-25", min: 6, max: 10 },
-      { label: "Day 26-30", min: 0, max: 5 },
-    ].map((range) => {
-      const value = orders
-        .filter((o) => {
-          if (!o.date) return false;
-          const diffDays = Math.floor((now - new Date(o.date)) / (1000 * 60 * 60 * 24));
-          return diffDays >= range.min && diffDays <= range.max;
-        })
-        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-      return { label: range.label, value: Math.round(value) };
-    });
-
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const thismonth = [
-      { label: "Week 1", start: 1, end: 7 },
-      { label: "Week 2", start: 8, end: 14 },
-      { label: "Week 3", start: 15, end: 21 },
-      { label: "Week 4", start: 22, end: 31 },
-    ].map((week) => {
-      const value = orders
-        .filter((o) => {
-          if (!o.date) return false;
-          const d = new Date(o.date);
-          return d.getMonth() === currentMonth && d.getFullYear() === currentYear &&
-            d.getDate() >= week.start && d.getDate() <= week.end;
-        })
-        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-      return { label: week.label, value: Math.round(value) };
-    });
-
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const thisyear = monthNames.map((monthLabel, monthIdx) => {
-      const value = orders
-        .filter((o) => {
-          if (!o.date) return false;
-          const d = new Date(o.date);
-          return d.getFullYear() === currentYear && d.getMonth() === monthIdx;
-        })
-        .reduce((sum, o) => sum + (Number(o.totalAmount) || Number(o.total) || 0), 0);
-      return { label: monthLabel, value: Math.round(value) };
-    });
-
-    return { last7days, last30days, thismonth, thisyear };
-  }, [orders]);
+  const {
+    data: storeMetrics,
+    isLoading: isLoadingAnalytics,
+    isError: hasAnalyticsError,
+    error: analyticsError,
+    refetch: refetchAnalytics,
+  } = useStoreAnalytics("Last 6 Months");
+  const orders = storeMetrics?.recentOrders || [];
+  const lowStockItems = storeMetrics?.lowStockItems || [];
+  const chartData = storeMetrics?.revenueChart;
 
   const handleApproveOrder = async (orderId) => {
     if (!currentStore?.id || isApproving) return;
@@ -133,12 +48,23 @@ const StoreDashboard = () => {
   };
 
   const handleExportReport = () => {
-    toast.success(`Đã xuất báo cáo doanh thu "${storeDisplayName}" dưới dạng CSV!`);
+    const rows = [
+      ["Store", storeDisplayName],
+      ["Today revenue", storeMetrics?.todayRevenue || 0],
+      ["Total revenue", storeMetrics?.totalRevenue || 0],
+      ["Pending orders", storeMetrics?.pendingOrdersCount || 0],
+      ["Low stock products", lowStockItems.length],
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `store_dashboard_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
-  const pendingOrdersCount = orders.filter(
-    (o) => (o.status || "").toLowerCase() === "pending"
-  ).length;
+  const pendingOrdersCount = storeMetrics?.pendingOrdersCount || 0;
 
   return (
     <div className="space-y-8 font-sans pb-12">
@@ -178,8 +104,8 @@ const StoreDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <KpiCard
           title="TODAY'S REVENUE"
-          value={`$${(storeRevenueData.todayRevenue || 0).toFixed(2)}`}
-          trendText={`Total: $${(storeRevenueData.totalRevenue || 0).toFixed(2)}`}
+          value={formatVnd(storeMetrics?.todayRevenue || 0)}
+          trendText={`Total: ${formatVnd(storeMetrics?.totalRevenue || 0)}`}
           subtitle="Real-time sales today"
           trendColorClass="text-emerald-600 font-extrabold"
           icon={AccountBalanceWalletOutlinedIcon}
@@ -210,7 +136,13 @@ const StoreDashboard = () => {
       {/* Middle Grid: Revenue Overview & Low Stock Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         <div className="lg:col-span-8">
-          <RevenueChartCard customData={chartData} />
+          <RevenueChartCard
+            customData={chartData}
+            isLoading={isLoadingAnalytics}
+            isError={hasAnalyticsError}
+            error={analyticsError}
+            onRetry={refetchAnalytics}
+          />
         </div>
         <div className="lg:col-span-4">
           <LowStockAlertsCard items={lowStockItems} />

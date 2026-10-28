@@ -61,8 +61,8 @@ const MediaSection = ({ formData, handleChange }) => {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Ảnh quá lớn! Vui lòng chọn ảnh dưới 10MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.");
       return;
     }
 

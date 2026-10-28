@@ -3,6 +3,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { getProductInventoryStatus } from "./productManagement.utils";
+import { formatVnd } from "../../../utils/currency";
 
 const ProductTableRow = ({
   product,
@@ -24,6 +25,9 @@ const ProductTableRow = ({
     images
   } = product;
   const statusBadge = getProductInventoryStatus(quantity);
+  const categoryLabel = typeof secondLavelCategory === "string"
+    ? secondLavelCategory
+    : secondLavelCategory?.name || secondLavelCategory?.slug || product?.category?.name || product?.category || "—";
   const primaryImage = imageUrl || images?.[0] || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=200&auto=format&fit=crop";
 
   return (
@@ -47,12 +51,12 @@ const ProductTableRow = ({
 
       {/* Category */}
       <td className="py-4 px-6 text-xs font-bold text-gray-900">
-        {secondLavelCategory}
+        {categoryLabel}
       </td>
 
       {/* Price */}
       <td className="py-4 px-6 text-xs sm:text-sm font-bold text-gray-900">
-        ${typeof discountedPrice === "number" ? discountedPrice.toFixed(2) : discountedPrice}
+        {formatVnd(discountedPrice)}
       </td>
 
       <td className="py-4 px-6">

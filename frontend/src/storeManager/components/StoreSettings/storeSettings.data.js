@@ -75,10 +75,29 @@ export const createStoreSettingsState = (apiStoreSettings = {}) => ({
 export const cloneStoreSettings = (storeSettings) =>
   createStoreSettingsState(storeSettings);
 
-export const buildStoreSettingsPayload = (storeSettings) => ({
-  brandIdentity: { ...storeSettings.brandIdentity },
-  payoutDetails: { ...storeSettings.payoutDetails },
-  fulfillmentCenter: { ...storeSettings.fulfillmentCenter },
-  customerPolicies: { ...storeSettings.customerPolicies },
-  storeOperations: { ...storeSettings.storeOperations },
-});
+export const buildStoreSettingsPayload = (storeSettings) => {
+  const brand = storeSettings.brandIdentity || {};
+  const payout = storeSettings.payoutDetails || {};
+  const fulfillment = storeSettings.fulfillmentCenter || {};
+
+  // StoreRequest is a flat DTO. Do not send the UI's nested form state directly.
+  return {
+    name: brand.storeName?.trim(),
+    email: brand.contactEmail?.trim(),
+    phone: brand.phone?.trim(),
+    description: brand.bio?.trim(),
+    logoUrl: brand.logoImage?.trim(),
+    bannerUrl: brand.bannerImage?.trim(),
+    address: fulfillment.streetAddress?.trim(),
+    bankName: payout.bankName?.trim(),
+    accountName: payout.accountHolder?.trim(),
+    accountNumber: payout.accountNumber?.trim(),
+    settings: {
+      brandIdentity: { ...brand },
+      payoutDetails: { ...payout },
+      fulfillmentCenter: { ...fulfillment },
+      customerPolicies: { ...(storeSettings.customerPolicies || {}) },
+      storeOperations: { ...(storeSettings.storeOperations || {}) },
+    },
+  };
+};

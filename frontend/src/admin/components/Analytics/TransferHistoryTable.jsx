@@ -1,97 +1,37 @@
 import React from "react";
-import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
-
-const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
+import { formatVnd } from "../../../utils/currency";
 
 const statusStyles = {
-  Completed: "text-emerald-600",
-  Reconciled: "text-blue-600",
-  Pending: "text-amber-600",
-  Failed: "text-red-600",
+  COMPLETED: "text-emerald-600",
+  PROCESSING: "text-blue-600",
+  PENDING: "text-amber-600",
+  REJECTED: "text-slate-600",
+  FAILED: "text-red-600",
 };
 
-const TransferHistoryTable = ({ title, items = [], filterLabel, onFilter }) => {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-2xs p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-        <button
-          type="button"
-          onClick={onFilter}
-          className="flex items-center gap-1.5 text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors cursor-pointer"
-        >
-          {filterLabel}
-          <FilterListOutlinedIcon sx={{ fontSize: 16 }} />
-        </button>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto -mx-6">
-        <table className="w-full text-left border-collapse min-w-[640px]">
-          <thead>
-            <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              <th className="py-3 px-6">Transfer ID</th>
-              <th className="py-3 px-6">Date</th>
-              <th className="py-3 px-6">Gross Amount</th>
-              <th className="py-3 px-6">Fees (5%)</th>
-              <th className="py-3 px-6">Net Transferred</th>
-              <th className="py-3 px-6">Status</th>
+const TransferHistoryTable = ({ title, items = [] }) => (
+  <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+    <h2 className="mb-5 text-lg font-bold text-gray-900">{title}</h2>
+    <div className="-mx-6 overflow-x-auto">
+      <table className="min-w-[700px] w-full border-collapse text-left">
+        <thead><tr className="border-b border-gray-100 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+          <th className="px-6 py-3">Payout ID</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Store</th><th className="px-6 py-3">Amount</th><th className="px-6 py-3">Bank</th><th className="px-6 py-3">Status</th>
+        </tr></thead>
+        <tbody className="divide-y divide-gray-50">
+          {items.length ? items.map((item) => (
+            <tr key={item.id} className="hover:bg-gray-50/50">
+              <td className="px-6 py-4 text-sm font-semibold text-gray-800">{item.id}</td>
+              <td className="px-6 py-4 text-sm text-gray-500">{item.date ? new Date(item.date).toLocaleDateString("vi-VN") : "—"}</td>
+              <td className="px-6 py-4 text-sm text-gray-700">{item.storeName || "—"}</td>
+              <td className="px-6 py-4 text-sm font-semibold text-gray-800">{formatVnd(item.amount)}</td>
+              <td className="px-6 py-4 text-sm text-gray-600">{item.bankName || "—"}</td>
+              <td className={`px-6 py-4 text-xs font-semibold ${statusStyles[item.status] || "text-gray-500"}`}>{item.status || "—"}</td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {items.length > 0 ? (
-              items.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50/50 transition-colors"
-                >
-                  <td className="py-4 px-6 text-sm font-semibold text-gray-800">
-                    {item.id}
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-500">
-                    {item.date}
-                  </td>
-                  <td className="py-4 px-6 text-sm font-medium text-gray-800">
-                    {formatCurrency(item.grossAmount)}
-                  </td>
-                  <td className="py-4 px-6 text-sm font-medium text-rose-500">
-                    -{formatCurrency(item.feeAmount)}
-                  </td>
-                  <td className="py-4 px-6 text-sm font-semibold text-gray-800">
-                    {formatCurrency(item.netTransferred)}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span
-                      className={`text-xs font-semibold ${
-                        statusStyles[item.status] || "text-gray-500"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="py-12 text-center text-gray-400 text-sm"
-                >
-                  No transfer records found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          )) : <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">Chưa có giao dịch chuyển khoản trong cơ sở dữ liệu.</td></tr>}
+        </tbody>
+      </table>
     </div>
-  );
-};
+  </section>
+);
 
 export default TransferHistoryTable;

@@ -10,6 +10,8 @@ import { useOrderDetail, useUpdateOrderStatus } from "../../../hooks/useOrderQue
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { getOrderDeliveryInfo } from "../../../services/orderService";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
+import { getEffectivePrice } from "../../../utils/productPricing";
 
 const OrderDetail = () => {
   const navigate = useNavigate();
@@ -160,7 +162,7 @@ const OrderDetail = () => {
 
           <div className="text-left md:text-right">
             <span className="text-xs text-gray-400 font-medium">Total Paid</span>
-            <p className="text-2xl font-black text-gray-900">${total.toFixed(2)}</p>
+            <p className="text-2xl font-black text-gray-900">{formatVnd(total)}</p>
           </div>
         </div>
 
@@ -212,24 +214,29 @@ const OrderDetail = () => {
                 {items.map((item, idx) => (
                   <div key={idx} className="py-4 first:pt-0 last:pb-0 flex items-center gap-4">
                     <img
-                      src={item.imageUrl || "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=300"}
-                      alt={item.title}
+                      src={item.productImageUrl || item.imageUrl || item.image || "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=300"}
+                      alt={item.productTitle || item.title || "Order item"}
                       className="w-16 h-20 object-cover rounded-xl border border-gray-100 bg-gray-50 shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xs sm:text-sm font-bold text-gray-900 truncate">
-                        {item.title}
+                        {item.productTitle || item.title}
                       </h3>
                       <p className="text-xs text-gray-500 mt-0.5">
                         Size: <span className="font-semibold text-gray-700">{item.size || "M"}</span> • Color: <span className="font-semibold text-gray-700">{item.color || "Default"}</span> • Qty: <span className="font-semibold text-gray-700">{item.quantity || 1}</span>
                       </p>
                       <p className="text-xs font-bold text-indigo-600 mt-1">
-                        ${(Number(item.price) || 0).toFixed(2)}
+                        {formatVnd(getEffectivePrice(item))}
+                        {getEffectivePrice(item) < (Number(item.price) || 0) && (
+                          <span className="ml-2 text-gray-400 line-through font-normal">
+                            {formatVnd(item.price)}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-extrabold text-gray-900">
-                        ${((Number(item.price) || 0) * (Number(item.quantity) || 1)).toFixed(2)}
+                        {formatVnd(getEffectivePrice(item) * (Number(item.quantity) || 1))}
                       </p>
                     </div>
                   </div>
@@ -263,21 +270,21 @@ const OrderDetail = () => {
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-gray-500">
                   <span>Subtotal</span>
-                  <span className="font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-gray-900">{formatVnd(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
                   <span>Tax (8%)</span>
-                  <span className="font-semibold text-gray-900">${tax.toFixed(2)}</span>
+                  <span className="font-semibold text-gray-900">{formatVnd(tax)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-semibold">
                     <span>Discount</span>
-                    <span>-${discount.toFixed(2)}</span>
+                    <span>-{formatVnd(discount)}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-100 pt-3 flex justify-between text-sm font-black text-gray-900">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatVnd(total)}</span>
                 </div>
               </div>
             </div>

@@ -1,54 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { Select } from "antd";
+import { formatVnd } from "../../../utils/currency";
 
-const MOCK_DATA_BY_RANGE = {
-  last7days: [
-    { label: "Mon", value: 35 },
-    { label: "Tue", value: 55 },
-    { label: "Wed", value: 40 },
-    { label: "Thu", value: 65 },
-    { label: "Fri", value: 45 },
-    { label: "Sat", value: 80 },
-    { label: "Sun", value: 95 },
-  ],
-  last30days: [
-    { label: "Day 1-5", value: 120 },
-    { label: "Day 6-10", value: 210 },
-    { label: "Day 11-15", value: 180 },
-    { label: "Day 16-20", value: 310 },
-    { label: "Day 21-25", value: 250 },
-    { label: "Day 26-30", value: 400 },
-  ],
-  thismonth: [
-    { label: "Week 1", value: 450 },
-    { label: "Week 2", value: 620 },
-    { label: "Week 3", value: 390 },
-    { label: "Week 4", value: 810 },
-  ],
-  thisyear: [
-    { label: "Jan", value: 1200 },
-    { label: "Feb", value: 1900 },
-    { label: "Mar", value: 1500 },
-    { label: "Apr", value: 2200 },
-    { label: "May", value: 2800 },
-    { label: "Jun", value: 2600 },
-    { label: "Jul", value: 3100 },
-    { label: "Aug", value: 2900 },
-    { label: "Sep", value: 3500 },
-    { label: "Oct", value: 3800 },
-    { label: "Nov", value: 4200 },
-    { label: "Dec", value: 5000 },
-  ],
-};
-
-const RevenueChartCard = ({ customData }) => {
+const RevenueChartCard = ({ customData, isLoading = false, isError = false, error, onRetry }) => {
   const [timeRange, setTimeRange] = useState("last7days");
-  const activeChartData = useMemo(() => {
-    if (customData && customData[timeRange]) {
-      return customData[timeRange];
-    }
-    return MOCK_DATA_BY_RANGE[timeRange] || MOCK_DATA_BY_RANGE.last7days;
-  }, [timeRange, customData]);
+  const activeChartData = useMemo(
+    () => (Array.isArray(customData?.[timeRange]) ? customData[timeRange] : []),
+    [timeRange, customData],
+  );
 
   const maxValue = useMemo(() => {
     const max = Math.max(...activeChartData.map((d) => d.value), 100);
@@ -85,6 +44,26 @@ const RevenueChartCard = ({ customData }) => {
         />
       </div>
 
+      {isLoading ? (
+        <div className="min-h-[400px] rounded-md border border-gray-100 bg-[#f0f3fa]/70 flex items-center justify-center text-sm text-gray-500">
+          Loading revenue data...
+        </div>
+      ) : isError ? (
+        <div className="min-h-[400px] rounded-md border border-rose-100 bg-rose-50/50 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="text-sm font-semibold text-rose-700">
+            {error?.response?.data?.message || "Không tải được dữ liệu doanh thu."}
+          </p>
+          {onRetry && (
+            <button type="button" onClick={onRetry} className="rounded-lg bg-white px-4 py-2 text-xs font-bold text-rose-700 border border-rose-200 hover:bg-rose-100">
+              Thử lại
+            </button>
+          )}
+        </div>
+      ) : activeChartData.length === 0 ? (
+        <div className="min-h-[400px] rounded-md border border-gray-100 bg-[#f0f3fa]/70 flex items-center justify-center text-sm text-gray-500">
+          Chưa có dữ liệu doanh thu trong khoảng thời gian này.
+        </div>
+      ) : (
       <div className="bg-[#f0f3fa]/70 rounded-md p-6 min-h-[400px] flex items-end justify-between gap-3 sm:gap-6 border border-gray-100">
         {activeChartData.map((item, idx) => {
           const heightPercent = Math.max(10, Math.round((item.value / maxValue) * 100));
@@ -95,11 +74,14 @@ const RevenueChartCard = ({ customData }) => {
           return (
             <div
               key={idx}
-              className="flex-1 flex flex-col items-center gap-2 group h-full justify-end"
+              tabIndex={0}
+              aria-label={`${item.label}: ${formatVnd(item.value)}`}
+              className="relative z-0 flex-1 flex flex-col items-center gap-2 group h-full justify-end outline-none hover:z-50 focus-visible:z-50"
             >
               {/* Tooltip value on hover */}
-              <span className="text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                ${item.value}
+              <span className="pointer-events-none absolute left-1/2 top-0 z-[60] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-semibold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                <span className="block text-slate-300">{item.label}</span>
+                <span className="mt-0.5 block">{formatVnd(item.value)}</span>
               </span>
 
               {/* Column Bar */}
@@ -119,6 +101,7 @@ const RevenueChartCard = ({ customData }) => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };

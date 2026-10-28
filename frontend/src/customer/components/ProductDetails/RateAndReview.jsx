@@ -8,19 +8,28 @@ import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import SendIcon from "@mui/icons-material/Send";
 import { useReviews, useCreateReview } from "../../../hooks/useReviewQuery";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../../store/useAuthStore";
+
+const getReviewAuthorName = (review) =>
+    review.authorName?.trim() || review.userName?.trim() || "Người dùng";
+
+const getReviewAuthorAvatar = (review) => review.authorAvatar || review.avatarUrl;
 
 const RateAndReview = ({ product, productId: propProductId }) => {
     const routeParams = useParams();
+    const navigate = useNavigate();
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const currentProductId = propProductId || product?.id || routeParams.productId;
 
     const [activeFilter, setActiveFilter] = useState("all");
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [likedReviews, setLikedReviews] = useState({});
 
-    const { data: reviews = [] } = useReviews(currentProductId)
-    const { mutateAsync: createReviewMutate, isPending: isSubmitting } = useCreateReview()
+    const { data: reviews = [], isError: reviewsError } = useReviews(currentProductId)
+    const { mutate: createReview, isPending: isSubmitting } = useCreateReview()
     // New review form states
-    const [newRating, setNewRating] = useState(5);
+    const [newRating, setNewRating] = useState(0);
     const [newTitle, setNewTitle] = useState("");
     const [newComment, setNewComment] = useState("");
 
@@ -37,13 +46,26 @@ const RateAndReview = ({ product, productId: propProductId }) => {
     const handleAddReview = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
+        if (!isAuthenticated) {
+            toast.error("Vui lòng đăng nhập để gửi đánh giá.");
+            navigate("/login");
+            return;
+        }
+        if (!currentProductId) {
+            toast.error("Không xác định được sản phẩm cần đánh giá. Vui lòng tải lại trang.");
+            return;
+        }
 
         if (!newComment.trim()) {
             toast.error("Vui lòng nhập nội dung đánh giá chi tiết!");
             return;
         }
+        if (!newRating) {
+            toast.error("Vui lòng chọn số sao đánh giá!");
+            return;
+        }
 
-        createReviewMutate({
+        createReview({
             productId: currentProductId,
             storeId: product?.id_store || product?.storeId,
             rating: newRating,
@@ -52,14 +74,15 @@ const RateAndReview = ({ product, productId: propProductId }) => {
         },
             {
                 onSuccess: () => {
-                    setNewRating(5)
+                    setNewRating(0)
                     setNewTitle("")
                     setNewComment("")
                     setShowReviewForm(false)
                     toast.success("Đánh giá của bạn đã được gửi thành công!")
                 },
                 onError: (error) => {
-                    toast.error("Có lỗi xảy ra khi gửi đánh giá: " + error.message);
+                    const message = error.response?.data?.message || error.message;
+                    toast.error("Không gửi được đánh giá: " + message);
                 }
             }
         )
@@ -68,12 +91,12 @@ const RateAndReview = ({ product, productId: propProductId }) => {
     // Calculate dynamic rating metrics
     const totalReviewsCount = reviews.length;
     const avgRatingScore = totalReviewsCount > 0
-        ? (reviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / totalReviewsCount).toFixed(1)
-        : (product?.rating ? Number(product.rating).toFixed(1) : "5.0");
+        ? (reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / totalReviewsCount).toFixed(1)
+        : "0.0";
 
     const satisfiedPercent = totalReviewsCount > 0
         ? Math.round((reviews.filter((r) => Number(r.rating) >= 4).length / totalReviewsCount) * 100)
-        : 100;
+        : 0;
 
     const starCountsBreakdown = [5, 4, 3, 2, 1].map((stars) => {
         const count = reviews.filter((r) => Math.round(Number(r.rating)) === stars).length;
@@ -105,13 +128,31 @@ const RateAndReview = ({ product, productId: propProductId }) => {
 
                 <button
                     type="button"
-                    onClick={() => setShowReviewForm(!showReviewForm)}
+                    onClick={() => {
+                        if (!isAuthenticated) {
+                            toast.error("Vui lòng đăng nhập để xem và viết đánh giá.");
+                            navigate("/login");
+                            return;
+                        }
+                        setShowReviewForm(!showReviewForm);
+                    }}
                     className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
                 >
                     <RateReviewOutlinedIcon sx={{ fontSize: 16 }} />
                     <span>{showReviewForm ? "Đóng Form Đánh Giá" : "Viết Đánh Giá"}</span>
                 </button>
             </div>
+
+            {!isAuthenticated && (
+                <div className="mb-8 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+                    Đăng nhập để xem đánh giá và chia sẻ trải nghiệm của bạn.
+                </div>
+            )}
+            {isAuthenticated && reviewsError && (
+                <div role="alert" className="mb-8 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    Không tải được đánh giá. Vui lòng thử tải lại trang.
+                </div>
+            )}
 
             {/* Review Form Modal / Collapse */}
             {showReviewForm && (
@@ -135,7 +176,7 @@ const RateAndReview = ({ product, productId: propProductId }) => {
                             <Rating
                                 name="new-rating"
                                 value={newRating}
-                                onChange={(e, val) => setNewRating(val || 5)}
+                                onChange={(e, val) => setNewRating(val || 0)}
                                 size="medium"
                                 sx={{ color: "#6366f1" }}
                             />
@@ -309,18 +350,18 @@ const RateAndReview = ({ product, productId: propProductId }) => {
                             <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-2xl overflow-hidden bg-indigo-50 shrink-0 border border-indigo-100 flex items-center justify-center font-bold text-indigo-700 text-sm">
-                                        {review.avatarUrl ? (
-                                            <img src={review.avatarUrl} alt={review.userName} className="w-full h-full object-cover" />
+                                        {getReviewAuthorAvatar(review) ? (
+                                            <img src={getReviewAuthorAvatar(review)} alt={getReviewAuthorName(review)} className="w-full h-full object-cover" />
                                         ) : (
-                                            (review.userName || "U").charAt(0).toUpperCase()
+                                            getReviewAuthorName(review).charAt(0).toUpperCase()
                                         )}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-1.5">
                                             <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-                                                {review.userName}
+                                                {getReviewAuthorName(review)}
                                             </h4>
-                                            {review.verified && (
+                                            {(review.isVerifiedPurchase ?? review.verified) && (
                                                 <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5 bg-emerald-50 px-2 py-0.5 rounded-full">
                                                     <CheckCircleIcon sx={{ fontSize: 12 }} />
                                                     Đã mua hàng
@@ -334,7 +375,7 @@ const RateAndReview = ({ product, productId: propProductId }) => {
                                 </div>
 
                                 {/* Rating */}
-                                <Rating value={Number(review.rating) || 5} readOnly size="small" sx={{ color: "#6366f1" }} />
+                                <Rating value={Number(review.rating) || 0} readOnly size="small" sx={{ color: "#6366f1" }} />
                             </div>
 
                             {/* Title & Comment */}
@@ -360,7 +401,7 @@ const RateAndReview = ({ product, productId: propProductId }) => {
                                         }`}
                                 >
                                     <ThumbUpOutlinedIcon sx={{ fontSize: 14 }} />
-                                    <span>Hữu ích ({(review.likes || 0) + (likedReviews[review.id] ? 1 : 0)})</span>
+                                    <span>Hữu ích ({(review.likesCount ?? review.likes ?? 0) + (likedReviews[review.id] ? 1 : 0)})</span>
                                 </button>
                             </div>
                         </div>

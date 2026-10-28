@@ -35,11 +35,20 @@ export const useStoreDetail = (storeId) => {
     })
 }
 
+export const usePublicStoreProducts = (storeId, tab = 'all', search = '') => {
+    return useQuery({
+        queryKey: ['publicStoreProducts', storeId, tab, search],
+        queryFn: () => storeService.fetchStoreProducts(storeId, tab, search),
+        enabled: Boolean(storeId),
+        staleTime: 60 * 1000,
+    })
+}
+
 // Cập nhật storeSetting
 export const useUpdateStoreSettings = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ storeId, settings }) => storeService.updateStoreSettings(storeId, settings),
+        mutationFn: ({ settings }) => storeService.updateStoreSettings(settings),
         onSuccess: (savedStore) => {
             if (savedStore) {
                 qc.setQueryData(QUERY_KEYS.CURRENT_STORE, savedStore);
@@ -64,28 +73,31 @@ export const useStoreRevenue = (storeId) => {
 export const useApplyStoreManager = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: async ({ formData, storeId, currentUser }) => {
+        mutationFn: async ({ formData, currentUser }) => {
             const userEmail = (currentUser?.email || formData.businessEmail || "").toLowerCase().trim();
 
-            // 1. Kiểm tra xem user này đã gửi đơn đăng ký gian hàng trước đó hay chưa
-            const existingApps = await storeService.getStoreApplications();
-            const hasExisting = Array.isArray(existingApps) && existingApps.some(
-                (app) => (app.applicantEmail?.toLowerCase().trim() === userEmail) || (app.businessEmail?.toLowerCase().trim() === userEmail)
-            );
-
-            if (hasExisting) {
+            // This endpoint returns only the current user's application.
+            // /stores/applications is admin-only and must not be called here.
+            const existingApplication = await storeService.getStoreApplication();
+            if (existingApplication) {
                 throw new Error("Bạn đã gửi đơn đăng ký trở thành Store Manager rồi! Vui lòng chờ Admin xét duyệt.");
             }
 
             const appRes = await storeService.saveStoreApplication({
-                id: `app_${Date.now()}`,
-                ...formData,
-                storeId,
-                shopName: formData.storeName || formData.shopName,
-                status: "Pending",
-                submittedAt: new Date().toISOString(),
-                applicantEmail: currentUser?.email || formData.businessEmail,
-                applicantName: `${currentUser?.firstName || ""} ${currentUser?.lastName || ""}`.trim() || formData.storeName,
+                shopName: formData.shopName || formData.storeName,
+                shopDescription: formData.shopDescription,
+                primaryCategory: formData.primaryCategory,
+                businessType: formData.businessType,
+                taxCode: formData.taxCode,
+                documentFileName: formData.documentFileName,
+                businessEmail: formData.businessEmail || userEmail,
+                phone: formData.phone,
+                address: formData.pickupAddress,
+                city: formData.city,
+                idCardNumber: formData.idCardNumber,
+                bankName: formData.bankName,
+                accountNumber: formData.accountNumber,
+                accountHolder: formData.accountHolder,
             });
 
             try {

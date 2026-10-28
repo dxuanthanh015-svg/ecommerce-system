@@ -1,4 +1,5 @@
 import React from "react";
+import { formatVnd } from "../../../utils/currency";
 
 const getAvatarStyle = (initial, name = "") => {
   const upper = (initial || name.charAt(0) || "S").toUpperCase();
@@ -85,9 +86,7 @@ const SellerRow = ({ seller, onReview, onEdit, onMore }) => {
 
       {/* 3. Total GMV */}
       <td className="py-3.5 px-5 text-gray-800 font-medium text-xs">
-        {typeof seller.gmv === "number"
-          ? `$${seller.gmv.toLocaleString()}`
-          : seller.gmv || "$0"}
+        {formatVnd(seller.gmv)}
       </td>
 
       {/* 4. Status */}

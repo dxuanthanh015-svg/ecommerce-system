@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import { formatVnd } from "../../../utils/currency";
 
 
 const getStatusBadge = (status) => {
@@ -81,7 +82,7 @@ const RecentOrdersTable = ({
                       {displayDate}
                     </td>
                     <td className="py-4 px-4 font-black text-gray-900">
-                      ${orderTotal.toFixed(2)}
+                      {formatVnd(orderTotal)}
                     </td>
                     <td className="py-4 px-4">
                       <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider ${getStatusBadge(order.status)}`}>

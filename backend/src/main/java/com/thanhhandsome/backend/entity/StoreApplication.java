@@ -25,6 +25,22 @@ public class StoreApplication extends BaseEntity {
     @Column(name = "shop_name", nullable = false)
     String shopName;
 
+
+    @Column(name = "shop_description", length = 2000)
+    String shopDescription;
+
+    @Column(name = "primary_category", length = 100)
+    String primaryCategory;
+
+    @Column(name = "business_type", length = 50)
+    String businessType;
+
+    @Column(name = "tax_code", length = 50)
+    String taxCode;
+
+    @Column(name = "document_file_name", length = 255)
+    String documentFileName;
+
     @Column(name = "business_email", nullable = false)
     String businessEmail;
 

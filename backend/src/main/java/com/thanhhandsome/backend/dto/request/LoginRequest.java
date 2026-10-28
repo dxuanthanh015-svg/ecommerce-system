@@ -13,16 +13,16 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 
 public class LoginRequest {
-    @NotBlank(message = "USERNAME_REQUIRED")
-    @Size(min = 4, message = "USERNAME_INVALID")
-    String username;
+    @NotBlank(message = "EMAIL_REQUIRED")
+    @Size(min = 4, message = "EMAIL_INVALID")
+    String email;
 
     @NotBlank(message = "PASSWORD_REQUIRED")
     @Size(min = 6, message = "PASSWORD_INVALID")
     String password;
 
-    public void setUsername(String username) {
-        this.username = username == null ? null : username.trim();
+    public void setEmail(String email) {
+        this.email = email == null ? null : email.trim();
     }
 
     public void setPassword(String password) {

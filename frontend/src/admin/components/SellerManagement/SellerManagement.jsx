@@ -9,6 +9,7 @@ import {
   useRejectStoreApplication,
   useAdminDashboardQuery,
 } from "../../../hooks/useAdminQuery";
+import { formatVnd } from "../../../utils/currency";
 
 const SellerManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,7 +23,7 @@ const SellerManagement = () => {
 
   // Data queries & mutations
   const { data: dashboardData, isLoading, isError } = useAdminDashboardQuery();
-  const apiStores = dashboardData?.store || [];
+  const apiStores = dashboardData?.stores || dashboardData?.store || [];
   const approveMutation = useApproveStoreApplication();
   const rejectMutation = useRejectStoreApplication();
 
@@ -36,7 +37,7 @@ const SellerManagement = () => {
         name: storeName,
         description: s.category || s.primaryCategory || "Retail & E-commerce",
         owner: s.owner || s.ownerName || s.email || "Store Owner",
-        gmv: s.totalSales ? `$${Number(s.totalSales).toLocaleString()}` : "$0",
+        gmv: Number(s.totalSales) || 0,
         status: (s.status || "ACTIVE").toUpperCase(),
         joined: s.createdAt
           ? new Date(s.createdAt).toLocaleDateString("en-US", {
@@ -56,9 +57,9 @@ const SellerManagement = () => {
         id: log.id || app.storeId,
         initials: storeName.charAt(0).toUpperCase(),
         name: storeName,
-        description: app.primaryCategory || app.shopDescription || "Pending Store",
-        owner: app.applicantName || app.accountHolder || log.applicantName || "Merchant",
-        gmv: "$0",
+        description: app.primaryCategory || app.shopDescription || "Chưa phân loại",
+        owner: app.userName || log.applicantName || app.userEmail || "Merchant",
+        gmv: 0,
         status: "PENDING APPROVAL",
         joined: log.submittedAt || "Today",
         raw: app,
@@ -104,7 +105,7 @@ const SellerManagement = () => {
   const handleApprovePending = () => {
     if (!reviewModalStore) return;
     const app = reviewModalStore.raw || reviewModalStore;
-    approveMutation.mutate(app, {
+    approveMutation.mutate(app.id || reviewModalStore.id, {
       onSuccess: () => setReviewModalStore(null),
     });
   };

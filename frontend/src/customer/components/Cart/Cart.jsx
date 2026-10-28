@@ -6,19 +6,19 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import HomeSectionCarousel from "../Home/HomeSectionCarousel/HomeSectionCarousel";
-import { product_mock_data } from "../../../Data/product_mock_data";
-import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { useProducts } from "../../../hooks/useProductQuery";
 import { useAllStores } from "../../../hooks/useStoreQuery";
 import { useCart, useUpdateCart, useRemoveFromCart } from "../../../hooks/useCartQuery";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
+import { getEffectivePrice } from "../../../utils/productPricing";
 
 const Cart = () => {
   const navigate = useNavigate();
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
-  const { data: allProducts = product_mock_data } = useProducts();
-  const { data: allStores = store_manager_mock_data } = useAllStores();
+  const { data: allProducts = [] } = useProducts();
+  const { data: allStores = [] } = useAllStores();
   const { data: items = [], isLoading: isCartLoading } = useCart(currentUser?.email, { enabled: !isUserLoading });
 
   const { mutate: updateCartItemMutate } = useUpdateCart();
@@ -38,7 +38,7 @@ const Cart = () => {
         const storeInfo = safeStores.find((s) => String(s.id) === String(storeId)) || {
           id: storeId,
           name: foundProduct?.brand || "Official Partner Store",
-          rating: 5.0,
+          rating: 0,
         };
         groups[storeId] = {
           store: storeInfo,
@@ -107,7 +107,7 @@ const Cart = () => {
     navigate("/checkout?step=1", { state: { checkoutItems } });
   };
 
-  const subtotal = checkoutItems.reduce((acc, item) => acc + item.price * (item.quantity || 1), 0);
+  const subtotal = checkoutItems.reduce((acc, item) => acc + getEffectivePrice(item) * (item.quantity || 1), 0);
   const totalCartCount = items.length;
 
   return (
@@ -211,25 +211,25 @@ const Cart = () => {
 
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-bold text-gray-900">${subtotal.toFixed(2)}</span>
+                    <span className="font-bold text-gray-900">{formatVnd(subtotal)}</span>
                   </div>
 
                   <div className="flex justify-between">
                     <span>Estimated Shipping</span>
                     <span className="font-bold text-emerald-600">
-                      {subtotal > 500 ? `$${(subtotal * 0.005).toFixed(2)}` : "Free"}
+                      {subtotal > 500000 ? formatVnd(subtotal * 0.005) : "Free"}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span>Estimated Tax (8%)</span>
-                    <span className="font-bold text-gray-900">${(subtotal * 0.08).toFixed(2)}</span>
+                    <span className="font-bold text-gray-900">{formatVnd(subtotal * 0.08)}</span>
                   </div>
 
                   <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
                     <span className="text-sm font-extrabold text-gray-900">Total</span>
                     <span className="text-xl font-black text-indigo-600">
-                      ${(subtotal + (subtotal > 500 ? subtotal * 0.005 : 0) + (subtotal * 0.08)).toFixed(2)}
+                      {formatVnd(subtotal + (subtotal > 500000 ? subtotal * 0.005 : 0) + (subtotal * 0.08))}
                     </span>
                   </div>
                 </div>

@@ -14,6 +14,8 @@ import { voucherService, cartService } from "../../../services";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { useVouchers } from "../../../hooks/useVoucherQuery";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
+import { getEffectivePrice } from "../../../utils/productPricing";
 
 const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => {
   const navigate = useNavigate();
@@ -53,11 +55,11 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
   }, [currentUser, isUserLoading]);
 
   const subtotal = items.reduce((acc, item) => {
-    return acc + Number(item.price || 0) * (Number(item.quantity) || 1);
+    return acc + getEffectivePrice(item) * (Number(item.quantity) || 1);
   }, 0);
 
-  // 0.5% shipping fee for orders > $500, otherwise FREE
-  const rawShippingFee = subtotal > 500 ? subtotal * 0.005 : 0;
+  // 0.5% shipping fee for orders over 500,000 VND, otherwise FREE
+  const rawShippingFee = subtotal > 500000 ? subtotal * 0.005 : 0;
   const isFreeShippingApplied = appliedVoucher?.discountType === "Free Shipping";
   const shippingFee = isFreeShippingApplied ? 0 : rawShippingFee;
 
@@ -127,6 +129,7 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
       storeId: storeId,
       subtotal: subtotal,
       tax: taxes,
+      shippingFee: shippingFee,
       discountAmount: discountAmount,
       voucherCode: appliedVoucher?.code || null,
       total: finalTotal,
@@ -164,7 +167,7 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
                 </div>
               </div>
               <span className="text-xs font-extrabold text-gray-900 shrink-0">
-                ${(Number(item.price || 0) * (Number(item.quantity) || 1)).toFixed(2)}
+                {formatVnd(getEffectivePrice(item) * (Number(item.quantity) || 1))}
               </span>
             </div>
           ))}
@@ -293,7 +296,7 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
         <div className="space-y-3 text-xs text-gray-600">
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span className="font-bold text-gray-900">${subtotal.toFixed(2)}</span>
+            <span className="font-bold text-gray-900">{formatVnd(subtotal)}</span>
           </div>
 
           <div className="flex justify-between">
@@ -302,27 +305,27 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
               {shippingFee === 0 ? (
                 <span className="text-emerald-600">FREE</span>
               ) : (
-                `$${shippingFee.toFixed(2)}`
+                formatVnd(shippingFee)
               )}
             </span>
           </div>
 
           <div className="flex justify-between">
             <span>Estimated Taxes (8%)</span>
-            <span className="font-bold text-gray-900">${taxes.toFixed(2)}</span>
+            <span className="font-bold text-gray-900">{formatVnd(taxes)}</span>
           </div>
 
           {discountAmount > 0 && (
             <div className="flex justify-between text-emerald-600 font-bold">
               <span>Promo Discount ({appliedVoucher?.code})</span>
-              <span>-${discountAmount.toFixed(2)}</span>
+              <span>-{formatVnd(discountAmount)}</span>
             </div>
           )}
 
           <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
             <span className="text-sm font-extrabold text-gray-900">Total</span>
             <span className="text-2xl font-black text-indigo-600">
-              ${finalTotal.toFixed(2)}
+              {formatVnd(finalTotal)}
             </span>
           </div>
         </div>
@@ -334,7 +337,7 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
           className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white py-3.5 px-6 rounded-xl font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
         >
           <LockOutlinedIcon sx={{ fontSize: 16 }} />
-          <span>PAY WITH VIETQR (${finalTotal.toFixed(2)})</span>
+          <span>PAY WITH VIETQR ({formatVnd(finalTotal)})</span>
         </button>
 
         {/* Trust Badges */}

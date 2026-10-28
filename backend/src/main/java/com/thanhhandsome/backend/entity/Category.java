@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Entity
 @Getter
@@ -31,6 +32,13 @@ public class Category extends BaseEntity{
 
     @Column(name = "image_s3_key", length = 500)
     String imageS3Key;
+
+    @Column(name = "commission_rate", precision = 5, scale = 2)
+    BigDecimal commissionRate;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    Boolean active = true;
 
     // Danh mục cha
     @ManyToOne(fetch = FetchType.LAZY)

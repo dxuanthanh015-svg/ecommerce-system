@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { formatVnd } from "../../../../utils/currency";
 
 const HomeSectionCard = ({ product }) => {
   const navigate = useNavigate();
@@ -44,12 +45,12 @@ const HomeSectionCard = ({ product }) => {
         <div className="mt-2 flex items-center gap-2">
           {displayPrice !== undefined && (
             <span className={`text-sm font-bold ${originalPrice ? 'text-indigo-600' : 'text-gray-900'}`}>
-              ${typeof displayPrice === 'number' ? displayPrice.toFixed(2) : displayPrice}
+              {formatVnd(displayPrice)}
             </span>
           )}
           {originalPrice && (
             <span className="text-xs text-gray-400 line-through">
-              ${typeof originalPrice === 'number' ? originalPrice.toFixed(2) : originalPrice}
+              {formatVnd(originalPrice)}
             </span>
           )}
         </div>

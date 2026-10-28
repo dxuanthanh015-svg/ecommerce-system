@@ -8,6 +8,7 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { useAddCart, useAddToWishList } from "../../../hooks/useCartQuery";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
 
 const StoreProductsGrid = ({ products }) => {
   const navigate = useNavigate();
@@ -23,9 +24,13 @@ const StoreProductsGrid = ({ products }) => {
     e.stopPropagation();
     const newItem = {
       id: product.id,
+      productId: product.id,
       id_store: product.id_store || product.storeId || "store-001",
       title: product.title,
-      price: product.discountedPrice || product.price,
+      price: Number(product.price) || 0,
+      discountedPrice: Number(product.discountedPrice) > 0 && Number(product.discountedPrice) < Number(product.price)
+        ? Number(product.discountedPrice)
+        : Number(product.price) || 0,
       quantity: 1,
       imageUrl: product.imageUrl,
       color: "Default",
@@ -67,10 +72,7 @@ const StoreProductsGrid = ({ products }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {products.map((product) => {
-        const discountPercent =
-          product.price && product.discountedPrice && product.price > product.discountedPrice
-            ? Math.round(((product.price - product.discountedPrice) / product.price) * 100)
-            : null;
+        const discountPercent = Number(product.discountPercent) || 0;
 
         return (
           <div
@@ -89,7 +91,7 @@ const StoreProductsGrid = ({ products }) => {
 
                 {/* Badges */}
                 <div className="absolute top-3 left-3 flex flex-col gap-1">
-                  {discountPercent && (
+                  {discountPercent > 0 && (
                     <span className="bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-2xs">
                       -{discountPercent}%
                     </span>
@@ -122,17 +124,22 @@ const StoreProductsGrid = ({ products }) => {
                 </h3>
 
                 <div className="flex items-center gap-1.5 pt-1">
-                  <Rating value={4.8} precision={0.5} readOnly size="small" sx={{ color: "#6366f1" }} />
-                  <span className="text-[11px] font-semibold text-gray-400">(4.8)</span>
+                  <Rating value={Number(product.rating) || 0} precision={0.1} readOnly size="small" sx={{ color: "#6366f1" }} />
+                  <span className="text-[11px] font-semibold text-gray-400">
+                    {(Number(product.rating) || 0).toFixed(1)} ({Number(product.reviewCount) || 0} đánh giá)
+                  </span>
                 </div>
+                {Number(product.soldCount) > 0 && (
+                  <p className="pt-1 text-[11px] font-medium text-gray-500">Đã bán {Number(product.soldCount).toLocaleString("vi-VN")}</p>
+                )}
 
                 <div className="flex items-center gap-2 pt-1">
                   <span className="text-sm font-black text-gray-900">
-                    ${(product.discountedPrice || product.price || 0).toFixed(2)}
+                    {formatVnd(product.discountedPrice || product.price || 0)}
                   </span>
                   {product.price && product.discountedPrice && product.price > product.discountedPrice && (
                     <span className="text-xs text-gray-400 line-through">
-                      ${product.price.toFixed(2)}
+                      {formatVnd(product.price)}
                     </span>
                   )}
                 </div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import UserRow from "./UserRow";
 
-const UserTable = ({ users, totalCount = users.length, calculateRFMScore, ordersData }) => {
+const UserTable = ({ users, totalCount = users.length, page = 0, pageSize = 10 }) => {
   const [selectedIds, setSelectedIds] = useState([]);
 
   const toggleSelect = (id, checked) => {
@@ -15,7 +15,7 @@ const UserTable = ({ users, totalCount = users.length, calculateRFMScore, orders
     <div className="bg-white rounded-lg shadow-sm">
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">Showing 1-10 of {totalCount.toLocaleString()}</div>
+          <div className="text-sm text-gray-600">Showing {totalCount === 0 ? 0 : page * pageSize + 1}-{Math.min((page + 1) * pageSize, totalCount)} of {totalCount.toLocaleString()}</div>
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 hover:bg-gray-50 rounded-lg text-sm font-medium text-gray-700 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@ const UserTable = ({ users, totalCount = users.length, calculateRFMScore, orders
         </thead>
         <tbody>
           {users.map((user) => (
-            <UserRow key={user.id} user={user} onToggleSelect={toggleSelect} selected={selectedIds.includes(user.id)} calculateRFMScore={calculateRFMScore} ordersData={ordersData} />
+            <UserRow key={user.id} user={user} onToggleSelect={toggleSelect} selected={selectedIds.includes(user.id)} />
           ))}
         </tbody>
       </table>

@@ -7,8 +7,7 @@ import AutorenewOutlinedIcon from '@mui/icons-material/AutorenewOutlined';
 import FlashSaleSection from './FlashSaleSection/FlashSaleSection';
 import InspirationCard from './InspirationCard/InspirationCard';
 import { inspirationItems } from './InspirationCard/inspiration-data';
-import { product_mock_data } from '../../../Data/product_mock_data.js';
-import { useProducts } from '../../../hooks/useProductQuery';
+import { useTop5Product } from '../../../hooks/useProductQuery';
 
 const categories = [
   {
@@ -35,9 +34,7 @@ const categories = [
 ];
 
 const Home = () => {
-  const { data: allProducts = product_mock_data, isLoading } = useProducts();
-
-  const trendingProduct = allProducts?.filter(product => product.isTrending === true && product.isVisible !== true).slice(0, 10);
+  const { data: trendingProducts = [], isLoading: trendingLoading } = useTop5Product();
   return (
     <div className="w-full bg-white min-h-screen">
       <MainCarousal />
@@ -82,7 +79,7 @@ const Home = () => {
         </section>
         <div className="w-full max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
           <section className="w-full">
-            <HomeSectionCarousel data={trendingProduct} sectionName="Trending Now" />
+            <HomeSectionCarousel data={trendingProducts?.slice(0, 5)} sectionName="Trending Now" />
           </section>
 
         </div>
@@ -146,7 +143,7 @@ const Home = () => {
               </div>
               <h3 className="text-lg font-bold text-gray-900">Complimentary Delivery</h3>
               <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-                Enjoy free, fast standard shipping on all orders over $50, delivered straight to your door.
+                Enjoy free, fast standard shipping on orders over 500.000 VND, delivered straight to your door.
               </p>
             </div>
 

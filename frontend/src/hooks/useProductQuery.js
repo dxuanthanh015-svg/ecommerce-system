@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productService } from "../services/productService";
 import { viewsService } from "../services/viewsService";
 import { QUERY_KEYS } from "../constants/queryKeys";
-import { getMostViewProducts, top5BestSellers, getStoreAnalyticsData } from "../storeManager/components/Analytics/analytics.utils";
-import { useStoreRevenue } from "../hooks/useStoreQuery";
+import { storeService } from "../services/storeService";
 
 
 export const useProducts = (filters = {}) => {
@@ -165,28 +164,28 @@ export const useSaveViewsData = () => {
     })
 }
 
-export const useMostViewProduct = (storeId, allViews, revenueData) => {
+export const useTop5Product = () => useQuery({
+    queryKey: ['products', 'trending', 5, 'v2'],
+    queryFn: () => productService.fetchTrendingProducts(5),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+});
+
+// Hook lấy Top 10 Most Viewed - gọi GET /products/most-viewed
+export const useMostViewedProducts = (limit = 10) => {
     return useQuery({
-        queryKey: ['mostViewProduct', storeId],
-        queryFn: () => getMostViewProducts(storeId, allViews, revenueData),
+        queryKey: ['products', 'most-viewed', limit],
+        queryFn: () => productService.fetchMostViewedProducts(limit),
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
     })
 }
 
-export const useTop5Product = (storeId, revenueData) => {
+export const useStoreAnalytics = (range = 'Last 6 Months') => {
     return useQuery({
-        queryKey: ['top5Product', storeId],
-        queryFn: () => top5BestSellers(storeId, revenueData),
-        staleTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false,
-    })
-}
-
-export const useStoreAnalytics = (storeId, range = 'Last 6 Months', revenueData) => {
-    return useQuery({
-        queryKey: QUERY_KEYS.STORE_ANALYTICS(storeId, range, revenueData),
-        queryFn: () => getStoreAnalyticsData(storeId, range, revenueData),
+        queryKey: QUERY_KEYS.STORE_ANALYTICS('my-store', range),
+        queryFn: () => storeService.fetchStoreAnalytics(range),
+        enabled: Boolean(range),
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
     })

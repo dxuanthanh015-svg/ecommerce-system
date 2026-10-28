@@ -12,10 +12,10 @@ const VariantsSection = ({
   const [newSizeName, setNewSizeName] = useState("");
 
   const onAddClick = () => {
-    if (newSizeName.trim()) {
-      handleAddSize(newSizeName);
-      setNewSizeName("");
-    }
+    const name = newSizeName.trim();
+    if (!name || sizesList.some((size) => size.name?.toLowerCase() === name.toLowerCase())) return;
+    handleAddSize({ name, quantity: 0 });
+    setNewSizeName("");
   };
 
   const sizesList = formData.size || [];
@@ -68,7 +68,7 @@ const VariantsSection = ({
                   type="number"
                   min="0"
                   value={sizeItem.quantity ?? 0}
-                  onChange={(e) => handleSizeQuantityChange(idx, e.target.value)}
+                  onChange={(e) => handleSizeQuantityChange(sizeItem.name, "quantity", Number(e.target.value))}
                   className="w-20 bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-3 py-1.5 text-xs text-gray-900 font-extrabold text-center"
                 />
               </div>
@@ -91,6 +91,7 @@ const VariantsSection = ({
         <input
           type="text"
           value={newSizeName}
+          maxLength={10}
           onChange={(e) => setNewSizeName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {

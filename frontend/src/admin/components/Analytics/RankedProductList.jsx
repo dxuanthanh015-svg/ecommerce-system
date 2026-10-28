@@ -1,12 +1,6 @@
 import React from "react";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-
-const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  }).format(value);
+import { formatVnd } from "../../../utils/currency";
 
 const formatNumber = (value) => new Intl.NumberFormat("en-US").format(value);
 
@@ -28,11 +22,7 @@ const RankedProductList = ({ title, metricType = "currency", items = [] }) => {
               </span>
 
               {/* Product Image */}
-              <img
-                src={item.imageUrl}
-                alt={item.name}
-                className="w-10 h-10 rounded-lg object-cover shrink-0 bg-gray-100"
-              />
+              {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="w-10 h-10 rounded-lg object-cover shrink-0 bg-gray-100" /> : <div className="w-10 h-10 shrink-0 rounded-lg bg-gray-100" />}
 
               {/* Product Info */}
               <div className="flex-1 min-w-0">
@@ -46,7 +36,7 @@ const RankedProductList = ({ title, metricType = "currency", items = [] }) => {
               <div className="shrink-0 text-right">
                 {metricType === "currency" ? (
                   <span className="text-sm font-bold text-gray-800">
-                    {formatCurrency(item.metricValue)}
+                    {formatVnd(item.metricValue)}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-sm font-bold text-gray-500">

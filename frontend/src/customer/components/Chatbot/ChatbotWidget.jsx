@@ -3,7 +3,7 @@ import ChatbotButton from "./ChatbotButton";
 import ChatbotHeader from "./ChatbotHeader";
 import ChatbotMessageList from "./ChatbotMessageList";
 import ChatbotInput from "./ChatbotInput";
-import { product_mock_data } from "../../../Data/product_mock_data.js";
+import { useProducts } from "../../../hooks/useProductQuery";
 import { callGrok } from "./grokService";
 
 const createMessage = (sender, text) => ({
@@ -27,6 +27,7 @@ const ChatbotWidget = () => {
   const [messages, setMessages] = useState(initialMessages);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  const { data: productsData = [] } = useProducts();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -48,7 +49,7 @@ const ChatbotWidget = () => {
     setIsTyping(true);
 
     try {
-      const aiResponseText = await callGrok(cleanText, product_mock_data, messages);
+      const aiResponseText = await callGrok(cleanText, productsData, messages);
       setMessages((prev) => [...prev, createMessage("ai", aiResponseText)]);
     } catch (error) {
       console.error("Error fetching from Grok:", error);

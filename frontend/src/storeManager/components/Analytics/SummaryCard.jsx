@@ -30,10 +30,10 @@ const accentStyles = {
 };
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
+    currency: "VND",
+    maximumFractionDigits: 0,
   }).format(value);
 
 const SummaryCard = ({

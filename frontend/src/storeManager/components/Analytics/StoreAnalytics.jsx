@@ -4,34 +4,21 @@ import SummaryCardsRow from "./SummaryCardsRow";
 import RevenueChart from "./RevenueChart";
 import TransferHistoryTable from "./TransferHistoryTable";
 import RankedProductList from "./RankedProductList";
-import { useCurrentStore } from "../../../hooks/useStoreQuery";
-import { useStoreRevenue } from "../../../hooks/useOrderQuery";
 import { defaultAnalyticsData } from "./analytics.data";
 import { exportAnalyticsReportCSV } from "./analytics.utils";
 import {
-  useMostViewProduct,
-  useTop5Product,
-  useViewsData,
   useStoreAnalytics,
 } from "../../../hooks/useProductQuery";
 
 const StoreAnalytics = () => {
-  const { data: currentStore } = useCurrentStore();
-  const storeId = currentStore?.id || currentStore?._id;
-  const storeName = currentStore?.name || "NexCart Store";
+  const storeName = "Store";
 
   const [activeRange, setActiveRange] = useState("Last 6 Months");
 
   // Sử dụng React Query cache để tải dữ liệu analytics
-  const { data: allViews } = useViewsData();
-  const { data: revenueData } = useStoreRevenue(storeId);
-  const { data: viewed } = useMostViewProduct(storeId, allViews, revenueData);
-  const { data: top5Product } = useTop5Product(storeId, revenueData);
-  const { data: analyticData } = useStoreAnalytics(storeId, activeRange, revenueData);
+  const { data: analyticData } = useStoreAnalytics(activeRange);
 
   const analyticsData = (analyticData && analyticData.header) ? analyticData : defaultAnalyticsData;
-  const bestSellers = top5Product || [];
-  const mostViewed = viewed || [];
 
   const handleExport = () => {
     exportAnalyticsReportCSV(analyticsData, storeName);
@@ -50,6 +37,8 @@ const StoreAnalytics = () => {
     () => analyticsData?.rankedLists?.find((l) => l.id === "most-viewed") || analyticsData?.rankedLists?.[1],
     [analyticsData]
   );
+  const bestSellers = bestSellersList?.items || [];
+  const mostViewed = mostViewedList?.items || [];
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-10">
@@ -68,6 +57,7 @@ const StoreAnalytics = () => {
       <RevenueChart
         title={analyticsData.revenueBreakdown.title}
         series={analyticsData.revenueBreakdown.series}
+        labels={analyticsData.revenueBreakdown.labels}
         activeRange={analyticsData.revenueBreakdown.activeRange}
         rangeOptions={analyticsData.revenueBreakdown.rangeOptions}
         onRangeChange={handleRangeChange}

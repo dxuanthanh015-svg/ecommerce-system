@@ -1,177 +1,130 @@
-import {
-  loadVouchers,
-  createVoucher,
-  voucherValidate,
-  consumeVoucher,
-  getPromotionMetrics,
-} from '../storeManager/components/Promotions/voucher.utils'
+import apiClient from './apiClient'
 
-const BASE_URL = import.meta.env.VITE_BASE_URL
-const API_KEY = import.meta.env.VITE_API_KEY
+// Voucher data and metrics are loaded from the Spring Boot API.
 
-// ==========================================
-// RESOURCE: /voucher (Mã giảm giá của các gian hàng)
-// ==========================================
 export const voucherService = {
+  toLocalDateTime: (date, endOfDay = false) => date
+    ? `${date}T${endOfDay ? "23:59:59" : "00:00:00"}` : null,
+  normalizeVoucher: (voucher) => {
+    if (!voucher) return voucher;
+    const statusMap = { ACTIVE: "Active", DRAFT: "Draft", EXPIRED: "Expired", DISABLED: "Disabled" };
+    const typeMap = { PERCENTAGE: "Percentage", FLAT_AMOUNT: "Flat Amount", FREE_SHIPPING: "Free Shipping" };
+    const type = typeMap[voucher.discountType] || voucher.discountType;
+    return { ...voucher, status: statusMap[voucher.status] || voucher.status, discountType: type,
+      value: voucher.value ?? voucher.discountValue,
+      discountValue: voucher.value ?? voucher.discountValue,
+      type: type === "Flat Amount" ? "amount" : type === "Free Shipping" ? "shipping" : "percentage",
+      maxDiscount: voucher.maxDiscountAmount ?? voucher.maxDiscount };
+  },
+
+  // GET /vouchers?storeId= -> Lấy danh sách voucher (lọc theo store nếu có)
   fetchVouchers: async (storeId = null) => {
     try {
-      const res = await fetch(`${BASE_URL}/voucher?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch vouchers')
-      const json = await res.json()
-      let list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-      if (storeId) {
-        list = list.filter((v) => String(v.storeId) === String(storeId))
-      }
-      return list
+      const params = storeId ? { storeId } : {}
+      const res = await apiClient.get('/vouchers', { params })
+      if (!Array.isArray(res.data.result)) throw new Error('API không trả về danh sách voucher')
+      return res.data.result.map(voucherService.normalizeVoucher)
     } catch (error) {
-      console.warn('[voucherService] fetchVouchers fallback:', error.message)
-      return loadVouchers(storeId)
+      console.warn('[voucherService] fetchVouchers error:', error.response?.data || error.message)
+      throw error
     }
   },
 
+  // GET /vouchers/code/{code}?storeId= -> Tìm voucher theo mã
   fetchVoucherByCode: async (code, storeId = null) => {
+    if (!code) return null
     try {
-      const vouchers = await voucherService.fetchVouchers(storeId)
-      return vouchers.find(
-        (v) => (v.code || '').toUpperCase() === (code || '').toUpperCase()
-      ) || null
+      const params = storeId ? { storeId } : {}
+      const res = await apiClient.get(`/vouchers/code/${code.toUpperCase()}`, { params })
+      return voucherService.normalizeVoucher(res.data.result || null)
     } catch (error) {
       console.warn('[voucherService] fetchVoucherByCode error:', error.message)
       return null
     }
   },
 
+  // GET /vouchers/metrics?storeId= -> Lấy số liệu thống kê voucher của store
   fetchMetrics: async (storeId) => {
     try {
-      const vouchers = await voucherService.fetchVouchers(storeId)
-      const activeCount = vouchers.filter((v) => v.status === 'Active').length
-      const totalRedemptions = vouchers.reduce((sum, v) => sum + (Number(v.usedCount) || 0), 0)
-      const totalDiscountGiven = vouchers.reduce(
-        (sum, v) => sum + (Number(v.totalDiscountGiven) || 0), 0
-      )
-      return { activeVouchers: activeCount, totalRedemptions, totalDiscountGiven }
+      const res = await apiClient.get('/vouchers/metrics', { params: { storeId } })
+      if (!res.data.result) throw new Error('API không trả về thống kê voucher')
+      return res.data.result
     } catch (error) {
-      console.warn('[voucherService] fetchMetrics fallback:', error.message)
-      return getPromotionMetrics(storeId)
+      console.warn('[voucherService] fetchMetrics error:', error.response?.data || error.message)
+      throw error
     }
   },
 
-  createVoucher: async (voucherDraft, storeId, status = 'Active') => {
+  // POST /vouchers -> Tạo voucher mới
+  // payload: { storeId, code, discountType, discountValue, minOrderValue, usageLimit, expiryDate, ... }
+  createVoucher: async (voucherDraft, storeId, status = 'ACTIVE') => {
     try {
-      const newVoucher = {
-        id: voucherDraft.id || `vouch_${Date.now()}`,
-        storeId: storeId || 'store-001',
-        status,
-        createdAt: new Date().toISOString(),
-        usedCount: 0,
-        totalDiscountGiven: 0,
-        ...voucherDraft,
-      }
-      const res = await fetch(`${BASE_URL}/voucher?apiKey=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newVoucher),
+      const type = voucherDraft.discountType || voucherDraft.type;
+      const discountType = type === "Flat Amount" || type === "amount" ? "FLAT_AMOUNT"
+        : type === "Free Shipping" || type === "shipping" ? "FREE_SHIPPING" : "PERCENTAGE";
+      const res = await apiClient.post('/vouchers', {
+        code: voucherDraft.code,
+        description: voucherDraft.description,
+        discountType,
+        value: Number(voucherDraft.value ?? voucherDraft.discountValue ?? 0),
+        minOrderValue: Number(voucherDraft.minOrderValue) || 0,
+        maxDiscountAmount: Number(voucherDraft.maxDiscountAmount ?? voucherDraft.maxDiscount) || 0,
+        usageLimit: Number(voucherDraft.usageLimit) > 0 ? Number(voucherDraft.usageLimit) : null,
+        startDate: voucherService.toLocalDateTime(voucherDraft.startDate),
+        endDate: voucherService.toLocalDateTime(voucherDraft.endDate, true),
+        limitPerCustomer: Boolean(voucherDraft.limitPerCustomer),
+        storeId: storeId || voucherDraft.storeId,
+        status: String(status).toUpperCase(),
       })
-      if (!res.ok) throw new Error('Failed to create voucher')
-      const json = await res.json()
-      return json.data || newVoucher
+      return voucherService.normalizeVoucher(res.data.result)
     } catch (error) {
-      console.warn('[voucherService] createVoucher fallback:', error.message)
-      return createVoucher(voucherDraft, storeId, status)
+      console.warn('[voucherService] createVoucher error:', error.message)
+      throw error
     }
   },
 
+  // PUT /vouchers/{id} -> Cập nhật voucher
   updateVoucher: async (voucherId, updateData) => {
     try {
-      const res = await fetch(`${BASE_URL}/voucher?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch vouchers')
-      const json = await res.json()
-      const list = Array.isArray(json.data?.data) ? json.data.data : Array.isArray(json.data) ? json.data : []
-      const matched = list.find(
-        (v) => String(v.id || v._id) === String(voucherId)
-      )
-      if (matched) {
-        const mongoId = matched._id || matched.id
-        const updateRes = await fetch(`${BASE_URL}/voucher/${mongoId}?apiKey=${API_KEY}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...matched, ...updateData }),
-        })
-        if (!updateRes.ok) throw new Error('Failed to update voucher')
-        const updateJson = await updateRes.json()
-        return updateJson.data || { ...matched, ...updateData }
-      }
-      return updateData
+      const payload = { ...updateData };
+      if (payload.status) payload.status = String(payload.status).toUpperCase();
+      if (payload.discountType) payload.discountType = payload.discountType === "Flat Amount" ? "FLAT_AMOUNT" : payload.discountType === "Free Shipping" ? "FREE_SHIPPING" : String(payload.discountType).toUpperCase();
+      const res = await apiClient.put(`/vouchers/${voucherId}`, payload)
+      return voucherService.normalizeVoucher(res.data.result)
     } catch (error) {
       console.warn('[voucherService] updateVoucher error:', error.message)
-      return updateData
+      throw error
     }
   },
 
+  // DELETE /vouchers/{id} -> Xóa voucher
   deleteVoucher: async (voucherId) => {
     try {
-      const res = await fetch(`${BASE_URL}/voucher?apiKey=${API_KEY}`)
-      if (!res.ok) return false
-      const json = await res.json()
-      const list = Array.isArray(json.data?.data) ? json.data.data : Array.isArray(json.data) ? json.data : []
-      const matched = list.find((v) => String(v.id || v._id) === String(voucherId))
-      if (matched) {
-        const mongoId = matched._id || matched.id
-        await fetch(`${BASE_URL}/voucher/${mongoId}?apiKey=${API_KEY}`, { method: 'DELETE' })
-      }
+      await apiClient.delete(`/vouchers/${voucherId}`)
       return true
     } catch (error) {
       console.warn('[voucherService] deleteVoucher error:', error.message)
-      return false
+      throw error
     }
   },
 
+  // POST /vouchers/validate -> Kiểm tra tính hợp lệ của voucher (Backend xử lý toàn bộ logic)
+  // payload: { code, storeId, subtotal, cartItems }
   validateVoucher: async (code, storeId, subtotal, cartItems = []) => {
     try {
-      const voucher = await voucherService.fetchVoucherByCode(code, storeId)
-      if (!voucher) return { isValid: false, message: 'Mã giảm giá không tồn tại!' }
-      if (voucher.status !== 'Active') return { isValid: false, message: 'Mã giảm giá đã hết hạn hoặc tạm dừng!' }
-      if (voucher.minOrderValue && subtotal < Number(voucher.minOrderValue)) {
-        return { isValid: false, message: `Đơn hàng phải đạt tối thiểu ${voucher.minOrderValue.toLocaleString()}đ!` }
-      }
-      if (voucher.usageLimit && (voucher.usedCount || 0) >= voucher.usageLimit) {
-        return { isValid: false, message: 'Mã giảm giá đã hết lượt sử dụng!' }
-      }
-      // Tính discount
-      let discountAmount = 0
-      if (voucher.discountType === 'percentage') {
-        discountAmount = (subtotal * Number(voucher.discountValue || 0)) / 100
-        if (voucher.maxDiscount) discountAmount = Math.min(discountAmount, Number(voucher.maxDiscount))
-      } else {
-        discountAmount = Number(voucher.discountValue || 0)
-      }
-      return {
-        isValid: true,
-        discountAmount,
-        voucher,
-        message: `Áp dụng mã "${voucher.code}" thành công! Giảm ${discountAmount.toLocaleString()}đ`,
-      }
+      const res = await apiClient.post('/vouchers/validate', {
+        code: code.toUpperCase(),
+        storeId,
+        subtotal,
+        cartItems,
+      })
+      return res.data.result
     } catch (error) {
-      console.warn('[voucherService] validateVoucher fallback:', error.message)
-      return voucherValidate(code, storeId, subtotal, cartItems)
+      const message = error.response?.data?.message || 'Mã giảm giá không hợp lệ!'
+      return { isValid: false, message }
     }
   },
 
-  consumeVoucher: async (code, storeId, discountAmount = 0) => {
-    try {
-      const voucher = await voucherService.fetchVoucherByCode(code, storeId)
-      if (!voucher) return false
-      const voucherId = voucher.id || voucher._id
-      await voucherService.updateVoucher(voucherId, {
-        usedCount: (Number(voucher.usedCount) || 0) + 1,
-        totalDiscountGiven: (Number(voucher.totalDiscountGiven) || 0) + discountAmount,
-      })
-      return true
-    } catch (error) {
-      console.warn('[voucherService] consumeVoucher fallback:', error.message)
-      return consumeVoucher(code, storeId, discountAmount)
-    }
-  },
 }
 
 export default voucherService

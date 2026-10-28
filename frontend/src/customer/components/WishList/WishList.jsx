@@ -9,6 +9,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { useWishList, useRemoveFromWishList, useAddCart } from "../../../hooks/useCartQuery";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
 
 const WishList = () => {
   const navigate = useNavigate();
@@ -35,9 +36,13 @@ const WishList = () => {
   const handleAddToCart = (item) => {
     const newItem = {
       id: item.id,
+      productId: item.id,
       id_store: item.id_store || item.storeId || "store-001",
       title: item.title,
-      price: item.discountedPrice || item.price,
+      price: Number(item.price) || 0,
+      discountedPrice: Number(item.discountedPrice) > 0 && Number(item.discountedPrice) < Number(item.price)
+        ? Number(item.discountedPrice)
+        : Number(item.price) || 0,
       quantity: 1,
       imageUrl: item.imageUrl,
       color: "Default",
@@ -157,11 +162,11 @@ const WishList = () => {
                       {/* Price row */}
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-base font-extrabold text-gray-900">
-                          ${discountedPrice.toFixed(2)}
+                          {formatVnd(discountedPrice)}
                         </span>
                         {hasDiscount && (
                           <span className="text-xs font-semibold text-gray-400 line-through">
-                            ${price.toFixed(2)}
+                            {formatVnd(price)}
                           </span>
                         )}
                       </div>

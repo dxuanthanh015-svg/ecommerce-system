@@ -30,7 +30,7 @@ const PromotionQuickCreateCard = ({
             name="code"
             value={form.code || ""}
             onChange={handleChange}
-            placeholder="e.g. SUMMER24"
+            placeholder="Nhập mã voucher"
           />
 
           <div className="grid grid-cols-[1.15fr_0.85fr] gap-3">

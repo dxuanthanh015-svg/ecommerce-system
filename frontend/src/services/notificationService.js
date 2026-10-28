@@ -1,63 +1,78 @@
-import axios from "axios";
+import apiClient from './apiClient'
 
-const BASE_URL = import.meta.env.VITE_BASE_URL
-const API_KEY = import.meta.env.VITE_API_KEY
+// ==========================================
+// NOTIFICATION SERVICE - Gọi Spring Boot API
+// TODO: Backend cần implement các endpoint dưới đây
+// ==========================================
 
 export const notificationService = {
-    fetchNotification: async () => {
-        try {
-            const res = await axios.get(`${BASE_URL}/notification?apiKey=${API_KEY}`);
-            let raw = res.data;
-            if (raw && typeof raw === 'object') {
-                if (Array.isArray(raw.data?.data)) raw = raw.data.data;
-                else if (Array.isArray(raw.data)) raw = raw.data;
-                else if (Array.isArray(raw)) raw = raw;
-                else raw = [];
-            } else {
-                raw = [];
-            }
-            return raw;
-        } catch (error) {
-            console.warn("Failed to fetch notifications", error.message);
-            return [];
-        }
-    },
 
-    postNotification: async (notification) => {
-        try {
-            const payload = {
-                id: notification.id || `noti_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-                ...notification
-            };
-            const res = await axios.post(`${BASE_URL}/notification?apiKey=${API_KEY}`, payload, {
-                headers: { "Content-Type": "application/json" }
-            });
-            return res.data?.data || payload;
-        } catch (error) {
-            console.warn("Failed to post notification", error.message);
-            return notification;
-        }
-    },
-
-    putNotification: async (id, notification) => {
-        try {
-            const res = await axios.put(`${BASE_URL}/notification/${id}?apiKey=${API_KEY}`, notification, {
-                headers: { "Content-Type": "application/json" }
-            });
-            return res.data?.data || notification;
-        } catch (error) {
-            console.warn("Failed to update notification", error.message);
-            return null;
-        }
-    },
-
-    deleteNotification: async (id) => {
-        try {
-            const res = await axios.delete(`${BASE_URL}/notification/${id}?apiKey=${API_KEY}`);
-            return res.data?.data;
-        } catch (error) {
-            console.warn("Failed to delete notification", error.message);
-            return null;
-        }
+  // GET /notifications -> Lấy danh sách thông báo của user hiện tại (via JWT)
+  fetchNotification: async () => {
+    try {
+      const res = await apiClient.get('/notifications')
+      return res.data.result || []
+    } catch (error) {
+      console.warn('[notificationService] fetchNotification error:', error.response?.data || error.message)
+      return []
     }
-};
+  },
+
+  // POST /notifications -> Tạo thông báo mới
+  // payload: { title, message, type, targetUserId (optional) }
+  postNotification: async (notification) => {
+    try {
+      const res = await apiClient.post('/notifications', notification)
+      return res.data.result
+    } catch (error) {
+      console.warn('[notificationService] postNotification error:', error.message)
+      throw error
+    }
+  },
+
+  // PUT /notifications/{id} -> Cập nhật thông báo (ví dụ: đánh dấu đã đọc)
+  putNotification: async (id, data) => {
+    try {
+      const res = await apiClient.put(`/notifications/${id}`, data)
+      return res.data.result
+    } catch (error) {
+      console.warn('[notificationService] putNotification error:', error.message)
+      return null
+    }
+  },
+
+  // PATCH /notifications/{id}/read -> Đánh dấu 1 thông báo đã đọc
+  markAsRead: async (id) => {
+    try {
+      const res = await apiClient.patch(`/notifications/${id}/read`)
+      return res.data.result
+    } catch (error) {
+      console.warn('[notificationService] markAsRead error:', error.message)
+      return null
+    }
+  },
+
+  // PATCH /notifications/read-all -> Đánh dấu toàn bộ thông báo đã đọc
+  markAllAsRead: async () => {
+    try {
+      await apiClient.patch('/notifications/read-all')
+      return true
+    } catch (error) {
+      console.warn('[notificationService] markAllAsRead error:', error.message)
+      return false
+    }
+  },
+
+  // DELETE /notifications/{id} -> Xóa 1 thông báo
+  deleteNotification: async (id) => {
+    try {
+      await apiClient.delete(`/notifications/${id}`)
+      return true
+    } catch (error) {
+      console.warn('[notificationService] deleteNotification error:', error.message)
+      return null
+    }
+  },
+}
+
+export default notificationService

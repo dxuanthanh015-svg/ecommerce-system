@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { createDefaultProductFormState } from "../productManagement.data";
 import { useCurrentUser } from "../../../../hooks/useAuthQuery";
-import { useCurrentStore } from "../../../../hooks/useStoreQuery";
 import { useDetailProducts, useSaveProduct } from "../../../../hooks/useProductQuery";
 
 export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) => {
@@ -11,7 +10,6 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
   const [formData, setFormData] = useState(createDefaultProductFormState);
 
   const { data: activeUser } = useCurrentUser();
-  const { data: currentStore } = useCurrentStore();
   const { data: productDetail } = useDetailProducts(isEdit ? productId : null);
   const { mutateAsync: saveProductMutate, isPending: isSubmitting } = useSaveProduct();
 
@@ -80,33 +78,39 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
       return;
     }
 
-    if (!formData.title || !formData.price) {
-      toast.error("Vui lòng nhập Tên sản phẩm và Giá bán!");
+    if (!formData.title?.trim() || !formData.brand?.trim()) {
+      toast.error("Vui lòng nhập Tên sản phẩm và Thương hiệu!");
       return;
     }
 
-    const priceNum = Number(formData.price) || 0;
-    const discountedNum = Number(formData.discountedPrice) || priceNum;
-    const discountPersent =
-      priceNum > 0 && priceNum > discountedNum
-        ? Math.round(((priceNum - discountedNum) / priceNum) * 100)
-        : 0;
+    const priceNum = Number(formData.price);
+    if (!Number.isFinite(priceNum) || priceNum <= 0) {
+      toast.error("Giá sản phẩm phải lớn hơn 0.");
+      return;
+    }
+    const discountedNum = formData.discountedPrice === "" || formData.discountedPrice == null
+      ? priceNum
+      : Number(formData.discountedPrice);
+    if (!Number.isFinite(discountedNum) || discountedNum < 0 || discountedNum > priceNum) {
+      toast.error("Giá khuyến mãi phải từ 0 đến giá gốc.");
+      return;
+    }
 
-    const activeStoreId = currentStore?.id || activeUser?.storeId || formData.id_store;
     const primaryImage = formData.images?.[0] || formData.imageUrl || "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=1600&auto=format&fit=crop";
 
     const payload = {
       ...formData,
-      id: formData.id || `prod-${Date.now()}`,
-      id_store: activeStoreId,
-      storeId: activeStoreId,
+      title: formData.title.trim(),
+      brand: formData.brand.trim(),
       price: priceNum,
       discountedPrice: discountedNum,
-      discountPersent,
+      quantity: (formData.size || []).reduce((total, size) => total + (Number(size.quantity) || 0), 0),
+      size: (formData.size || [])
+        .filter((size) => size && typeof size === "object" && size.name?.trim())
+        .map((size) => ({ name: size.name.trim(), quantity: Number(size.quantity) || 0 })),
       imageUrl: primaryImage,
       isFlashSale: Boolean(formData.isFlashSale),
       flashSaleEndTime: formData.isFlashSale ? (formData.flashSaleEndTime || null) : null,
-      createdAt: formData.createdAt || new Date().toISOString(),
     };
 
     if (onSubmitProduct) {
@@ -122,10 +126,11 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
         navigate("/store-manager/products");
       } catch (err) {
         console.error('[useProductForm] Lỗi lưu sản phẩm:', err);
-        toast.error("Lỗi khi lưu sản phẩm: " + err.message);
+        const message = err.response?.data?.message || err.response?.data?.result?.message || err.message;
+        toast.error("Lỗi khi lưu sản phẩm: " + message);
       }
     }
-  }, [formData, isEdit, productId, navigate, onSubmitProduct, activeUser, currentStore, saveProductMutate]);
+  }, [formData, isEdit, productId, navigate, onSubmitProduct, activeUser, saveProductMutate]);
 
   return {
     formData,

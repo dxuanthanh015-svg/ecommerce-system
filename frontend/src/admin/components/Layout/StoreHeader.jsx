@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
-import { useNotification, useMarkAsRead, useDeleteNotification } from "../../../hooks/useNotification";
+import { useNotification, useMarkAsRead } from "../../../hooks/useNotification";
 
 const StoreHeader = () => {
   const navigate = useNavigate();
@@ -11,17 +11,17 @@ const StoreHeader = () => {
   const markAsReadNoti = useMarkAsRead();
 
 
-  const unreadApplications = useMemo(() => {
+  const unreadNotifications = useMemo(() => {
     return (notification || []).filter((noti) => !noti.isRead);
   }, [notification]);
 
-  const markAsReadNotification = (targetNoti) => {
-    const targetId = targetNoti._id || targetNoti.id;
-    if (targetId) {
-      markAsReadNoti.mutate({ id: targetId, notification: { ...targetNoti, isRead: true } });
+  const openNotification = (targetNotification) => {
+    if (!targetNotification.isRead && targetNotification.id) {
+      markAsReadNoti.mutate(targetNotification.id);
     }
     setIsNotificationOpen(false);
-    navigate("/admin/sellers");
+    if (targetNotification.type === "STORE_APPLICATION") navigate("/admin/sellers");
+    else if (targetNotification.type === "ORDER_UPDATE") navigate("/admin/orders");
   }
 
   const handleOpenNotification = () => {
@@ -43,9 +43,9 @@ const StoreHeader = () => {
             aria-expanded={isNotificationOpen}
           >
             <NotificationsOutlinedIcon sx={{ fontSize: 20 }} className="text-gray-600" />
-            {unreadApplications.length > 0 && (
+            {unreadNotifications.length > 0 && (
               <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
-                {unreadApplications.length > 99 ? "99+" : unreadApplications.length}
+                {unreadNotifications.length > 99 ? "99+" : unreadNotifications.length}
               </span>
             )}
           </button>
@@ -55,25 +55,25 @@ const StoreHeader = () => {
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Thông báo</p>
-                  <p className="text-xs text-gray-500">Đơn đăng ký Store Manager</p>
+                  <p className="text-xs text-gray-500">Thông báo hệ thống</p>
                 </div>
-                {unreadApplications.length > 0 && (
+                {unreadNotifications.length > 0 && (
                   <span className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600">
-                    {unreadApplications.length} chưa xem
+                    {unreadNotifications.length} chưa xem
                   </span>
                 )}
               </div>
 
               <div className="max-h-96 overflow-y-auto">
-                {unreadApplications.length > 0 ? (
-                  unreadApplications.map((application) => {
-                    const keyId = application._id || application.id;
+                {notification.length > 0 ? (
+                  notification.map((item) => {
+                    const keyId = item.id;
                     return (
                       <button
                         key={keyId}
                         type="button"
-                        onClick={() => markAsReadNotification(application)}
-                        className="flex w-full gap-3 border-b border-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-50 last:border-b-0"
+                        onClick={() => openNotification(item)}
+                        className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-50 last:border-b-0 ${item.isRead ? "bg-white" : "bg-indigo-50/60"}`}
                       >
                         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
                           <StorefrontOutlinedIcon sx={{ fontSize: 19 }} />
@@ -81,15 +81,15 @@ const StoreHeader = () => {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-start justify-between gap-2">
                             <span className="truncate text-sm font-semibold text-gray-900">
-                              {application.applicantName || "Người dùng mới"}
+                              {item.title || "Thông báo"}
                             </span>
-                            {/* {isUnread && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-500" />} */}
+                            {!item.isRead && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-600" />}
                           </span>
                           <span className="mt-0.5 block text-xs leading-5 text-gray-500">
-                            Đã gửi đơn đăng ký trở thành Store Manager.
+                            {item.message}
                           </span>
                           <span className="mt-1 block text-[11px] text-gray-400">
-                            {application.submittedAt || "Vừa xong"}
+                            {item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : "Vừa xong"}
                           </span>
                         </span>
                       </button>
@@ -97,7 +97,7 @@ const StoreHeader = () => {
                   })
                 ) : (
                   <div className="px-4 py-10 text-center text-sm text-gray-500">
-                    Chưa có đơn đăng ký mới.
+                    Chưa có thông báo mới.
                   </div>
                 )}
               </div>

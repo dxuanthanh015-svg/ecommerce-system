@@ -28,33 +28,37 @@ export default function StoreSettings() {
   }, [currentStore]);
 
   const createSettingsFromStore = (store = {}) => {
+    const savedSettings = store.settings || {};
     return createStoreSettingsState({
       brandIdentity: {
+        ...savedSettings.brandIdentity,
         storeName: store.name || "Aura Minimalist Goods",
         contactEmail: store.email || "hello@auragoods.com",
         phone: store.phone || "+1 (555) 234-5678",
-        category: store.category || "Home & Living",
+        category: savedSettings.brandIdentity?.category || "Home & Living",
         bio: store.description || "Curated essential goods for the modern, mindful home.",
-        logoImage: store.imageUrl || "/nexCart.svg",
-        bannerImage: store.bannerUrl || store.bannerImage || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop",
+        logoImage: store.logoUrl || savedSettings.brandIdentity?.logoImage || "/nexCart.svg",
+        bannerImage: store.bannerUrl || savedSettings.brandIdentity?.bannerImage || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop",
       },
       payoutDetails: {
-        bankName: store.bankInfo?.bankName || "Chase Bank",
-        accountHolder: store.bankInfo?.accountName || store.owner || "Aura Goods LLC",
-        routingNumber: store.bankInfo?.routingNumber || "123456789",
-        accountNumber: store.bankInfo?.accountNumber || "9876543210",
-        payoutSchedule: store.bankInfo?.payoutSchedule || "weekly",
+        ...savedSettings.payoutDetails,
+        bankName: store.bankName || savedSettings.payoutDetails?.bankName || "",
+        accountHolder: store.accountName || savedSettings.payoutDetails?.accountHolder || "",
+        routingNumber: savedSettings.payoutDetails?.routingNumber || "",
+        accountNumber: store.accountNumber || savedSettings.payoutDetails?.accountNumber || "",
+        payoutSchedule: savedSettings.payoutDetails?.payoutSchedule || "weekly",
       },
       fulfillmentCenter: {
-        streetAddress: store.address || "100 Innovation Drive, Suite 400",
-        city: store.city || "San Francisco",
-        state: store.state || "CA",
-        zipCode: store.zipCode || "94103",
-        country: store.country || "United States",
-        processingTime: store.shippingPolicy?.processingTime || "1-2 business days",
-        freeShippingThreshold: store.shippingPolicy?.freeShippingThreshold || 50,
+        ...savedSettings.fulfillmentCenter,
+        streetAddress: store.address || savedSettings.fulfillmentCenter?.streetAddress || "",
+        city: savedSettings.fulfillmentCenter?.city || "",
+        state: savedSettings.fulfillmentCenter?.state || "",
+        zipCode: savedSettings.fulfillmentCenter?.zipCode || "",
+        country: savedSettings.fulfillmentCenter?.country || "",
+        processingTime: savedSettings.fulfillmentCenter?.processingTime || "1-2 business days",
+        freeShippingThreshold: savedSettings.fulfillmentCenter?.freeShippingThreshold ?? 0,
       },
-      customerPolicies: store.customerPolicies || {
+      customerPolicies: savedSettings.customerPolicies || {
         returnWindowDays: 30,
         freeReturns: true,
         restockingFee: 0,
@@ -63,7 +67,7 @@ export default function StoreSettings() {
         warrantyMonths: 12,
         privacyPolicyText: "We value customer privacy and do not sell or share personal information with third parties.",
       },
-      storeOperations: store.storeOperations || {
+      storeOperations: savedSettings.storeOperations || {
         vacationMode: store.status === "paused" || false,
         vacationMessage: "Our store is currently on vacation mode and will resume taking orders soon.",
         emailNotifications: true,
@@ -124,12 +128,15 @@ export default function StoreSettings() {
     setIsSaving(true);
     try {
       const payload = buildStoreSettingsPayload(storeSettings);
-      await updateSettingsMutate({ storeId: currentStore?.id, settings: payload });
+      await updateSettingsMutate({ settings: payload });
       setSavedSettings(cloneStoreSettings(storeSettings));
       showToast("Cài đặt cửa hàng đã được lưu và cập nhật thành công!", "success");
     } catch (err) {
       console.error("Error saving store settings:", err);
-      showToast("Có lỗi xảy ra khi lưu cài đặt!", "error");
+      showToast(
+        err.response?.data?.message || err.response?.data?.result?.message || err.message || "Có lỗi xảy ra khi lưu cài đặt!",
+        "error",
+      );
     } finally {
       setIsSaving(false);
     }

@@ -31,7 +31,24 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(1202, "Resource not found", HttpStatus.NOT_FOUND),
 
     // System
-    INTERNAL_SERVER_ERROR(9999, "Unexpected error", HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_SERVER_ERROR(9999, "Unexpected error", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // Product & Store
+    PRODUCT_NOT_FOUND(1301, "Sản phẩm không tồn tại", HttpStatus.NOT_FOUND),
+    STORE_NOT_FOUND(1302, "Cửa hàng không tồn tại", HttpStatus.NOT_FOUND),
+    CATEGORY_NOT_FOUND(1303, "Danh mục không tồn tại", HttpStatus.NOT_FOUND),
+    PRODUCT_NOT_OWNED(1304, "Bạn không có quyền chỉnh sửa sản phẩm của cửa hàng khác", HttpStatus.FORBIDDEN),
+
+    // Voucher
+    VOUCHER_NOT_FOUND(1401, "Voucher không tồn tại", HttpStatus.NOT_FOUND),
+    VOUCHER_INVALID(1402, "Voucher không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+
+    // Notification
+    NOTIFICATION_NOT_FOUND(1501, "Thông báo không tồn tại", HttpStatus.NOT_FOUND),
+
+    // Order
+    ORDER_NOT_FOUND(1601, "Đơn hàng không tồn tại", HttpStatus.NOT_FOUND);
+
 
     int code;
     String message;

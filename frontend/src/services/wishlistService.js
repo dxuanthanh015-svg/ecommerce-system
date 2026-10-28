@@ -1,90 +1,63 @@
-const BASE_URL = import.meta.env.VITE_BASE_URL
-const API_KEY = import.meta.env.VITE_API_KEY
+import apiClient from './apiClient'
 
 // ==========================================
-// RESOURCE: /wishlist (Danh sách sản phẩm yêu thích)
+// WISHLIST SERVICE - Gọi Spring Boot API
+// TODO: Backend cần implement các endpoint dưới đây
 // ==========================================
+
 export const wishlistService = {
-  fetchWishlist: async (userEmail = null) => {
+
+  // GET /wishlist -> Lấy danh sách yêu thích của user (via JWT)
+  fetchWishlist: async () => {
     try {
-      const res = await fetch(`${BASE_URL}/wishlist?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch wishlist')
-      const json = await res.json()
-      const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-      if (userEmail) {
-        const userWishlist = list.find(
-          (w) => w.userEmail?.toLowerCase() === userEmail.toLowerCase()
-        )
-        return userWishlist?.items || []
-      }
-      return list[0]?.items || []
+      const res = await apiClient.get('/wishlist')
+      const data = res.data?.result
+      return Array.isArray(data) ? data : (data?.items || [])
     } catch (error) {
       console.warn('[wishlistService] fetchWishlist error:', error.message)
       return []
     }
   },
 
-  saveWishlist: async (items, userEmail) => {
-    if (!userEmail) return
+  // POST /wishlist/items -> Thêm sản phẩm vào wishlist
+  // payload: { productId, title, price, imageUrl, ... }
+  addToWishlist: async (product) => {
     try {
-      const res = await fetch(`${BASE_URL}/wishlist?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch wishlist')
-      const json = await res.json()
-      const list = json.data?.data || []
-      const existing = list.find(
-        (w) => w.userEmail?.toLowerCase() === userEmail.toLowerCase()
-      )
-
-      const payload = { userEmail, items, updatedAt: new Date().toISOString() }
-
-      if (existing) {
-        const mongoId = existing._id || existing.id
-        await fetch(`${BASE_URL}/wishlist/${mongoId}?apiKey=${API_KEY}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...existing, ...payload }),
-        })
-      } else {
-        await fetch(`${BASE_URL}/wishlist?apiKey=${API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      }
-      window.dispatchEvent(new Event('wishlistUpdated'))
+      const res = await apiClient.post('/wishlist/items', { productId: product.id || product.productId, ...product })
+      const data = res.data?.result
+      return Array.isArray(data) ? data : (data?.items || [])
     } catch (error) {
-      console.warn('[wishlistService] saveWishlist error:', error.message)
+      console.warn('[wishlistService] addToWishlist error:', error.message)
+      throw error
     }
   },
 
-  addToWishlist: async (product, userEmail) => {
-    const currentItems = await wishlistService.fetchWishlist(userEmail)
-    const isAlreadySaved = currentItems.some(
-      (item) => String(item.id) === String(product.id)
-    )
-    if (isAlreadySaved) return currentItems
-    const updatedItems = [product, ...currentItems]
-    await wishlistService.saveWishlist(updatedItems, userEmail)
-    return updatedItems
+  // DELETE /wishlist/items/{productId} -> Xóa sản phẩm khỏi wishlist
+  removeFromWishlist: async (productId) => {
+    try {
+      const res = await apiClient.delete(`/wishlist/items/${productId}`)
+      const data = res.data?.result
+      return Array.isArray(data) ? data : (data?.items || [])
+    } catch (error) {
+      console.warn('[wishlistService] removeFromWishlist error:', error.message)
+      throw error
+    }
   },
 
-  removeFromWishlist: async (productId, userEmail) => {
-    const currentItems = await wishlistService.fetchWishlist(userEmail)
-    const updatedItems = currentItems.filter(
-      (item) => String(item.id) !== String(productId)
-    )
-    await wishlistService.saveWishlist(updatedItems, userEmail)
-    return updatedItems
+  // DELETE /wishlist -> Xóa toàn bộ wishlist
+  clearWishlist: async () => {
+    try {
+      await apiClient.delete('/wishlist')
+      return []
+    } catch (error) {
+      console.warn('[wishlistService] clearWishlist error:', error.message)
+      throw error
+    }
   },
 
-  clearWishlist: async (userEmail) => {
-    await wishlistService.saveWishlist([], userEmail)
-    return []
-  },
-
-  isInWishlist: async (productId, userEmail) => {
-    const currentItems = await wishlistService.fetchWishlist(userEmail)
-    return currentItems.some((item) => String(item.id) === String(productId))
+  // Kiểm tra sản phẩm đã có trong wishlist chưa (client-side, từ cached data)
+  isInWishlist: (items = [], productId) => {
+    return items.some((item) => String(item.id || item.productId) === String(productId))
   },
 }
 

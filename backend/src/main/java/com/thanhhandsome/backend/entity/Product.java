@@ -57,8 +57,8 @@ public class Product extends BaseEntity {
     @Builder.Default
     Integer quantity = 0; // Tổng tồn kho (hoặc tổng của các Variant)
 
-    @Column(name = "image_url", length = 500)
-    String imageUrl; // Ảnh đại diện chính
+    @Column(name = "image_url", columnDefinition = "LONGTEXT")
+    String imageUrl; // URL hoặc data URL Base64 của ảnh đại diện
 
     @Column(name = "image_s3_key", length = 500)
     String imageS3Key;
@@ -87,6 +87,18 @@ public class Product extends BaseEntity {
 
     @Column(name = "last_viewed_at")
     LocalDateTime lastViewedAt;
+
+    @Column(name = "is_active")
+    @Builder.Default
+    Boolean isActive = true;
+
+    @Column(name = "is_trending", nullable = false)
+    @Builder.Default
+    Boolean isTrending = false;
+
+    @Column(name = "is_flash_sale", nullable = false)
+    @Builder.Default
+    Boolean isFlashSale = false;
 
     // Quản lý biến thể (Size, Color, SKU)
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)

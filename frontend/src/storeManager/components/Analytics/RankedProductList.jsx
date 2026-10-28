@@ -2,10 +2,10 @@ import React from "react";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
+    currency: "VND",
+    maximumFractionDigits: 0,
   }).format(value);
 
 const formatNumber = (value) => new Intl.NumberFormat("en-US").format(value);

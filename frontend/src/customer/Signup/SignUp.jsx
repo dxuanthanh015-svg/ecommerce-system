@@ -5,6 +5,10 @@ import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useRegisterMutation } from "../../hooks/useAuthQuery";
 import toast, { Toaster } from "react-hot-toast";
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
+const SCOPE = import.meta.env.VITE_GOOGLE_SCOPE;
+
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -20,6 +24,16 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const handleGoogleSignIn = () => {
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${CLIENT_ID}&` +
+    `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+    `response_type=code&` +
+    `scope=${encodeURIComponent(SCOPE)}&` +
+    `prompt=consent`;
+    window.location.href = googleAuthUrl;
+  }
 
   const handleChange = (e) => {
     setErrorMsg("");
@@ -92,6 +106,7 @@ const SignUp = () => {
           <button
             type="button"
             className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors cursor-pointer shadow-2xs"
+            onClick={handleGoogleSignIn}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { formatVnd } from "../../../utils/currency";
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
@@ -44,12 +45,12 @@ const ProductCard = ({ product }) => {
         {/* Price Row */}
         <div className="mt-3 flex items-center flex-wrap gap-1.5">
           <span className={`text-xs sm:text-sm font-bold ${hasDiscount ? 'text-indigo-600' : 'text-gray-900'}`}>
-            ${product.discountedPrice || product.price}
+            {formatVnd(product.discountedPrice || product.price)}
           </span>
           {hasDiscount && (
             <>
               <span className="text-[11px] text-gray-400 line-through">
-                ${product.price}
+                {formatVnd(product.price)}
               </span>
               <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                 Save {product.discountPersent}%

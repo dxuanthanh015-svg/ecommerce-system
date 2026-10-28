@@ -2,9 +2,13 @@ import React, { useState } from "react";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
+import { formatVnd } from "../../../utils/currency";
+import { getEffectivePrice } from "../../../utils/productPricing";
 
 const CartItem = ({ item, onRemove, onUpdateQuantity }) => {
   const [quantity, setQuantity] = useState(item?.quantity || 1);
+  const effectivePrice = getEffectivePrice(item);
+  const hasDiscount = effectivePrice < (Number(item?.price) || 0);
 
   const handleDecrease = () => {
     if (quantity > 1) {
@@ -73,9 +77,16 @@ const CartItem = ({ item, onRemove, onUpdateQuantity }) => {
 
       {/* Right: Price & Remove Action */}
       <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-between w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 h-full">
-        <span className="text-base sm:text-lg font-bold text-gray-900">
-          ${((item?.price || 0) * quantity).toFixed(2)}
-        </span>
+        <div className="flex sm:flex-col items-end gap-2 sm:gap-1">
+          <span className="text-base sm:text-lg font-bold text-gray-900">
+            {formatVnd(effectivePrice * quantity)}
+          </span>
+          {hasDiscount && (
+            <span className="text-xs text-gray-400 line-through">
+              {formatVnd((Number(item.price) || 0) * quantity)}
+            </span>
+          )}
+        </div>
 
         <button
           onClick={() => onRemove && onRemove(item?.id)}

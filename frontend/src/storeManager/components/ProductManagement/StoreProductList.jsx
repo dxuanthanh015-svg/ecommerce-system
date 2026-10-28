@@ -24,9 +24,10 @@ const StoreProductList = ({
   onToggleVisibility
 }) => {
   const navigate = useNavigate();
-  const { data: fetchedProducts = [], isLoading } = useCurrentProducts();
+  const { data: fetchedProducts = [], isLoading, isError, error, refetch } = useCurrentProducts();
   const products = productsList || fetchedProducts;
   const loading = isLoading && !productsList;
+  const loadError = isError && !productsList;
 
   const { mutate: deleteProductMutate, isPending: isDeletingProduct, variables: deletingId } = useDeleteProduct();
   const { mutate: toggleVisibilityMutate, isPending: isTogglingVisibility, variables: togglingVar } = useToggleProductVisibility();
@@ -164,7 +165,14 @@ const StoreProductList = ({
               ) : (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-gray-500 font-medium text-xs">
-                    {loading ? "Loading products..." : "No products found matching your filters."}
+                    {loading ? "Loading products..." : loadError ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <span>{error?.response?.data?.message || "Không tải được danh sách sản phẩm."}</span>
+                        <button type="button" onClick={() => refetch()} className="font-bold text-indigo-600 hover:text-indigo-800">
+                          Thử lại
+                        </button>
+                      </div>
+                    ) : "No products found matching your filters."}
                   </td>
                 </tr>
               )}

@@ -63,6 +63,21 @@ const ContactInfoSection = ({ formData, handleChange }) => {
             className="w-full bg-[#f8f9fc] border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-3 text-xs sm:text-sm text-gray-900 font-medium transition-all"
           />
         </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
+            CITY / PROVINCE <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="city"
+            value={formData.city || ""}
+            onChange={handleChange}
+            placeholder="e.g., Ho Chi Minh City"
+            required
+            className="w-full bg-[#f8f9fc] border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-3 text-xs sm:text-sm text-gray-900 font-medium transition-all"
+          />
+        </div>
       </div>
     </div>
   );

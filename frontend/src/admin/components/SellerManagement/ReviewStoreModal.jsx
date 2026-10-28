@@ -2,6 +2,21 @@ import React from "react";
 
 const ReviewStoreModal = ({ store, onClose, onApprove, onReject, isApproving, isRejecting }) => {
   if (!store) return null;
+  const application = store.raw || {};
+  const details = [
+    ["Email kinh doanh", application.businessEmail],
+    ["Số điện thoại", application.phone],
+    ["Loại hình kinh doanh", application.businessType],
+    ["Mã số thuế", application.taxCode],
+    ["Mô tả gian hàng", application.shopDescription],
+    ["Địa chỉ lấy hàng", [application.address, application.city].filter(Boolean).join(", ")],
+    ["Số CCCD / hộ chiếu", application.idCardNumber],
+    ["Tên file giấy tờ", application.documentFileName],
+    ["Ngân hàng", application.bankName],
+    ["Chủ tài khoản ngân hàng", application.accountHolder],
+    ["Số tài khoản", application.accountNumber],
+    ["Email tài khoản", application.userEmail],
+  ].filter(([, value]) => value);
 
   return (
     <div
@@ -30,25 +45,25 @@ const ReviewStoreModal = ({ store, onClose, onApprove, onReject, isApproving, is
           </button>
         </div>
 
-        <div className="py-4 space-y-2.5 text-xs sm:text-sm">
-          <div className="grid grid-cols-3 gap-2 py-1 border-b border-gray-50">
+        <div className="max-h-[55vh] overflow-y-auto py-4 pr-1 text-xs sm:text-sm">
+          <div className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-3 py-2 border-b border-gray-50">
             <span className="text-gray-500">Chủ gian hàng:</span>
-            <span className="col-span-2 font-semibold text-gray-800">
-              {store.owner}
-            </span>
+            <span className="font-semibold text-gray-800">{application.userName || store.owner || "—"}</span>
           </div>
-          <div className="grid grid-cols-3 gap-2 py-1 border-b border-gray-50">
+          <div className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-3 py-2 border-b border-gray-50">
             <span className="text-gray-500">Ngành hàng:</span>
-            <span className="col-span-2 font-semibold text-gray-800">
-              {store.description}
-            </span>
+            <span className="font-semibold text-gray-800">{application.primaryCategory || store.description || "—"}</span>
           </div>
-          <div className="grid grid-cols-3 gap-2 py-1 border-b border-gray-50">
+          <div className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-3 py-2 border-b border-gray-50">
             <span className="text-gray-500">Trạng thái:</span>
-            <span className="col-span-2 font-semibold text-amber-600">
-              {store.status}
-            </span>
+            <span className="font-semibold text-amber-600">{application.status || store.status}</span>
           </div>
+          {details.map(([label, value]) => (
+            <div key={label} className="grid grid-cols-[minmax(130px,1fr)_2fr] gap-3 py-2 border-b border-gray-50 last:border-0">
+              <span className="text-gray-500">{label}:</span>
+              <span className="break-words font-medium text-gray-800">{value}</span>
+            </div>
+          ))}
         </div>
 
         <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">

@@ -1,9 +1,12 @@
 package com.thanhhandsome.backend.entity;
 
 import com.thanhhandsome.backend.enums.StoreStatus;
+import com.thanhhandsome.backend.converter.JsonMapConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.Map;
 
 @Builder
 @Entity
@@ -68,6 +71,10 @@ public class Store extends BaseEntity {
 
     @Column(name = "qr_s3_key", length = 255)
     String qrS3Key;
+
+    @Convert(converter = JsonMapConverter.class)
+    @Column(name = "settings_json", columnDefinition = "LONGTEXT")
+    Map<String, Object> settings;
 
     Double commissionRate = 5.0;
 

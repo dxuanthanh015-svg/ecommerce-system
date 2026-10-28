@@ -5,9 +5,6 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { product_detail_data } from "../../../Data/product_detail_data";
-import { product_mock_data } from "../../../Data/product_mock_data";
-import store_manager_mock_data from "../../../Data/store-manager_mock_data";
 import HomeSectionCarousel from "../Home/HomeSectionCarousel/HomeSectionCarousel";
 import StoreInformation from "./StoreInformation";
 import RateAndReview from "./RateAndReview";
@@ -17,6 +14,7 @@ import { useAllStores } from "../../../hooks/useStoreQuery";
 import { useAddCart, useAddToWishList } from "../../../hooks/useCartQuery";
 import { useReviews } from "../../../hooks/useReviewQuery";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
 
 export default function ProductDetails() {
   const { productId } = useParams();
@@ -26,8 +24,8 @@ export default function ProductDetails() {
   // Lấy dữ liệu từ reactquery
   const { data: currentUser } = useCurrentUser();
   const { data: foundProduct } = useDetailProducts(productId);
-  const { data: allProds = product_mock_data } = useProducts();
-  const { data: stores = store_manager_mock_data } = useAllStores();
+  const { data: allProds = [] } = useProducts();
+  const { data: stores = [] } = useAllStores();
   const { data: reviewsList = [] } = useReviews(productId);
 
   // 2. Mutation
@@ -42,16 +40,22 @@ export default function ProductDetails() {
   const [selectImage, setSelectImage] = useState(0);
 
   // Sản phẩm hiện tại 
-  const product = foundProduct || allProds.find(p => String(p.id) === String(productId)) || product_mock_data[0];
+  const product = foundProduct || allProds.find(p => String(p.id) === String(productId));
 
   // Xác định thông tin Store của sản phẩm
-  const storeId = product?.id_store || product?.storeId;
-  const safeStores = Array.isArray(stores) ? stores : store_manager_mock_data;
-  const store = (storeId && safeStores.find(s => String(s.id) === String(storeId))) || safeStores[0];
+  const storeId = product?.id_store || product?.storeId || product?.store?.id;
+  const safeStores = Array.isArray(stores) ? stores : [];
+  const store = storeId
+    ? safeStores.find((candidate) => String(candidate.id) === String(storeId)) || null
+    : null;
 
   // Sản phẩm cùng shop và sản phẩm tương tự
-  const storeProducts = allProds.filter(p => String(p.id_store || p.storeId) === String(storeId) && String(p.id) !== String(product?.id));
-  const productRelevant = allProds.filter(p => p.topLavelCategory === product?.topLavelCategory && String(p.id) !== String(product?.id));
+  const storeProducts = allProds.filter(p => String(p.id_store || p.storeId || p.store?.id) === String(storeId) && String(p.id) !== String(product?.id));
+  const currentCategory = product?.category?.id || product?.categoryId || product?.topLavelCategory;
+  const productRelevant = allProds.filter(p => {
+    const category = p?.category?.id || p?.categoryId || p?.topLavelCategory;
+    return category && category === currentCategory && String(p.id) !== String(product?.id);
+  });
 
   useEffect(() => {
     if (foundProduct?.id && trackedProductIdRef.current !== foundProduct.id) {
@@ -60,20 +64,33 @@ export default function ProductDetails() {
     }
   }, [foundProduct?.id, trackProductView]);
 
-  const extraDetail =
-    (product?.id && product_detail_data[product.id]) ||
-    (productId && product_detail_data[productId]) ||
-    {};
+  useEffect(() => {
+    setSelectImage(0);
+  }, [product?.id]);
+
+  const extraDetail = {};
+  const originalPrice = Number(product?.price ?? extraDetail.price ?? 0) || 0;
+  const discountedPriceValue = product?.discountedPrice ?? extraDetail.discountedPrice;
+  const discountedPrice = discountedPriceValue == null || discountedPriceValue === "" || !Number.isFinite(Number(discountedPriceValue))
+    ? originalPrice
+    : Number(discountedPriceValue);
+  const calculatedDiscountPercent = originalPrice > discountedPrice
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0;
+  const productImages = [...new Set([
+    ...(Array.isArray(product?.images) ? product.images : []),
+    product?.imageUrl,
+  ].filter((image) => typeof image === "string" && image.trim()))];
 
   const detailProduct = {
     name: product?.title || extraDetail.title || "Product Details",
     title: product?.title || extraDetail.title || "Product Details",
     brand: product?.brand || extraDetail.brand || "NexCart",
-    price: product?.price || extraDetail.price || 0,
-    discountedPrice: product?.discountedPrice || product?.price || extraDetail.discountedPrice || 0,
-    discountPersent: product?.discountPersent || extraDetail.discountPersent || 0,
-    rating: extraDetail.rating || product?.rating || 4.8,
-    reviewCount: extraDetail.reviewCount || product?.reviewCount || 12,
+    price: originalPrice,
+    discountedPrice,
+    discountPersent: Number(product?.discountPersent || extraDetail.discountPersent) || calculatedDiscountPercent,
+    rating: Number(product?.rating) || 0,
+    reviewCount: Number(product?.reviewCount) || 0,
     description: extraDetail.description || product?.description || "High quality product from NexCart Store.",
     bullets: (extraDetail.bullets && extraDetail.bullets.length > 0)
       ? extraDetail.bullets
@@ -105,19 +122,7 @@ export default function ProductDetails() {
           { name: "L", inStock: true, quantity: 12 },
           { name: "XL", inStock: false, quantity: 0 },
         ],
-    images: (extraDetail.images && extraDetail.images.length > 0)
-      ? extraDetail.images
-      : (product?.imageUrl
-        ? [
-          product.imageUrl,
-          "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=800&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop"
-        ]
-        : [
-          "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop"
-        ]
-      ),
+    images: productImages,
   };
 
   const currentSizeObj = detailProduct.sizes.find(
@@ -146,10 +151,14 @@ export default function ProductDetails() {
 
     const newItem = {
       id: product.id,
+      productId: product.id,
       id_store: product.id_store || product.storeId || "store-001",
       title: detailProduct.title,
       brand: detailProduct.brand,
-      price: detailProduct.discountedPrice || detailProduct.price,
+      price: Number(detailProduct.price) || 0,
+      discountedPrice: Number(detailProduct.discountedPrice) > 0 && Number(detailProduct.discountedPrice) < Number(detailProduct.price)
+        ? Number(detailProduct.discountedPrice)
+        : Number(detailProduct.price) || 0,
       quantity,
       size: finalSize,
       color: finalColor,
@@ -206,20 +215,24 @@ export default function ProductDetails() {
           <div className="lg:col-span-7 flex flex-col space-y-4">
             {/* Large Image */}
             <div className="w-full h-[450px] sm:h-[580px] lg:h-[620px] rounded-xl overflow-hidden bg-gray-50 shadow-xs border border-gray-100">
-              <img
-                src={detailProduct?.images?.[selectImage] || product?.imageUrl}
-                alt={detailProduct.title}
-                className="w-full h-full object-cover object-center transition-all duration-300 hover:scale-105"
-              />
+              {detailProduct.images.length > 0 ? (
+                <img
+                  src={detailProduct.images[selectImage]}
+                  alt={detailProduct.title}
+                  className="w-full h-full object-cover object-center transition-all duration-300 hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-gray-400">Sản phẩm chưa có ảnh</div>
+              )}
             </div>
 
             {/* Thumbnail list */}
-            <div className="grid grid-cols-4 gap-3 sm:gap-4">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               {detailProduct.images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectImage(idx)}
-                  className={`relative h-20 sm:h-28 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectImage === idx
+                  className={`relative h-20 w-24 sm:h-28 sm:w-36 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${selectImage === idx
                     ? "border-indigo-600 ring-2 ring-indigo-600/20"
                     : "border-transparent opacity-70 hover:opacity-100"
                     }`}
@@ -256,7 +269,7 @@ export default function ProductDetails() {
                     reviewsList.length > 0
                       ? Number(
                         (
-                          reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
+                          reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
                           reviewsList.length
                         ).toFixed(1)
                       )
@@ -270,7 +283,7 @@ export default function ProductDetails() {
                 <span className="text-xs text-gray-500 font-medium">
                   {reviewsList.length > 0
                     ? `${(
-                      reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
+                      reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
                       reviewsList.length
                     ).toFixed(1)} (${reviewsList.length} customer reviews)`
                     : "Chưa có đánh giá"}
@@ -280,12 +293,12 @@ export default function ProductDetails() {
               {/* Price Section */}
               <div className="flex items-baseline space-x-3">
                 <span className="text-3xl font-black text-gray-900">
-                  ${detailProduct.discountedPrice}
+                  {formatVnd(detailProduct.discountedPrice)}
                 </span>
                 {detailProduct.discountPersent > 0 && (
                   <>
                     <span className="text-lg text-gray-400 line-through font-medium">
-                      ${detailProduct.price}
+                      {formatVnd(detailProduct.price)}
                     </span>
                     <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                       -{detailProduct.discountPersent}% OFF
@@ -477,7 +490,7 @@ export default function ProductDetails() {
               Explore handpicked items curated just for you
             </p>
           </div>
-          <HomeSectionCarousel data={productRelevant.length > 0 ? productRelevant : product_mock_data} />
+          <HomeSectionCarousel data={productRelevant} />
         </div>
 
       </div>

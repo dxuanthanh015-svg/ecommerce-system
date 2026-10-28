@@ -8,6 +8,20 @@ import { storeService, orderService } from "../../../services";
 import { useLoginMutation } from "../../../hooks/useAuthQuery";
 import { hasRole, ROLE } from "../../../constants/roles";
 import toast from "react-hot-toast";
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
+const SCOPE = import.meta.env.VITE_GOOGLE_SCOPE;
+
+  const handleGoogleSignIn = () => {
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${CLIENT_ID}&` +
+    `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+    `response_type=code&` +
+    `scope=${encodeURIComponent(SCOPE)}&` +
+    `prompt=consent`;
+    window.location.href = googleAuthUrl;
+  }
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,23 +41,10 @@ const Login = () => {
 
     try {
       let matchedUser = await login({ email: inputEmail, password });
-      // Demo account fallback
-      if (!matchedUser && inputEmail === "nexcart.user@example.com" && password === "password123") {
-        matchedUser = {
-          firstName: "Premium",
-          lastName: "Member",
-          email: "nexcart.user@example.com",
-          password: "password123",
-          avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop",
-          isVerified: true,
-          // ⭐️ THAY ĐỔI: Thay isManager bằng roles array
-          roles: [ROLE.CUSTOMER, ROLE.STORE_MANAGER],
-          storeId: "store-001"
-        };
-      }
 
       if (matchedUser) {
-        if (hasRole(matchedUser.roles, ROLE.STORE_MANAGER) && matchedUser.storeId) {
+        const roles = matchedUser.roles || matchedUser.role;
+        if (hasRole(roles, ROLE.STORE_MANAGER) && matchedUser.storeId) {
           try {
             const currentStore = await storeService.getCurrentStore();
             if (currentStore) {
@@ -54,11 +55,18 @@ const Login = () => {
           }
         }
 
-        // Gộp giỏ hàng guest vào tài khoản sau khi đăng nhập
-        await migrateGuestCartOnLogin(matchedUser.email);
+        // Cart migration is unrelated to authentication; a cart API failure
+        // must not prevent an otherwise valid login from completing.
+        if (!hasRole(roles, ROLE.ADMIN)) {
+          try {
+            await migrateGuestCartOnLogin(matchedUser.email);
+          } catch (error) {
+            console.warn("[Login] Không thể gộp giỏ hàng sau đăng nhập:", error.message);
+          }
+        }
 
         toast.success(`Đăng nhập thành công! Chào mừng ${matchedUser.firstName || "bạn"} quay trở lại.`);
-        navigate("/");
+        navigate(hasRole(roles, ROLE.ADMIN) ? "/admin/dashboard" : "/");
       } else {
         toast.error("Email hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại.");
       }
@@ -99,6 +107,7 @@ const Login = () => {
           {/* Google Button */}
           <button
             type="button"
+            onClick={handleGoogleSignIn}
             className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors cursor-pointer shadow-2xs"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">

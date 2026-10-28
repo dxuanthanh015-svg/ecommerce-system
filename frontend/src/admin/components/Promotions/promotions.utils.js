@@ -2,9 +2,9 @@ export const formatCompactValue = (value, valueType) => {
   if (valueType === "currencyCompact") {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "VND",
       notation: "compact",
-      maximumFractionDigits: 1,
+      maximumFractionDigits: 0,
     }).format(value);
   }
 
@@ -65,5 +65,5 @@ export const filterPromotionsByTab = (promotions = [], activeTab = "All") => {
     return promotions;
   }
 
-  return promotions.filter((promotion) => promotion.status === activeTab);
+  return promotions.filter((promotion) => promotion.status?.toLowerCase() === activeTab.toLowerCase());
 };

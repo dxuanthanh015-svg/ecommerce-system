@@ -5,7 +5,6 @@
   import { styled, alpha } from '@mui/material/styles';
   import InputBase from '@mui/material/InputBase';
   import { useState } from "react";
-  import { products } from "../../../Data/product_mock_data";
 
   const Search = styled('div')(({ theme }) => ({
     position: 'relative',

@@ -1,10 +1,10 @@
 import Product from '../../components/Product/Product';
-import { productService } from '../../../services';
 import { useProducts } from '../../../hooks/useProductQuery';
-import { product_mock_data } from '../../../Data/product_mock_data';
 
 const ProductPage = () => {
-  const { data: productsData = product_mock_data, isLoading } = useProducts();
+  // Fetch the full catalog page so category navigation can filter every product,
+  // including items beyond the API's default page size.
+  const { data: productsData = [] } = useProducts({ size: 100 });
 
   return (
     <div>

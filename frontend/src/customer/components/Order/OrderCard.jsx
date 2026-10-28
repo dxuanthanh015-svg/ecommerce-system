@@ -5,38 +5,43 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import PendingActionsTwoToneIcon from '@mui/icons-material/PendingActionsTwoTone';
 import FreeCancellationRoundedIcon from '@mui/icons-material/FreeCancellationRounded';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
+import { formatVnd } from "../../../utils/currency";
 
 const getStatusBadge = (status) => {
-  switch (status) {
-    case "Delivered":
+  const s = (status || "").toLowerCase();
+  switch (s) {
+    case "delivered":
+    case "completed":
       return (
         <span className="bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <CheckCircleOutlinedIcon sx={{ fontSize: 14 }} />
           <span>Delivered</span>
         </span>
       );
-    case "Shipped":
+    case "shipped":
+    case "in transit":
       return (
         <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <LocalShippingOutlinedIcon sx={{ fontSize: 14 }} />
           <span>In Transit</span>
         </span>
       );
-    case "Processing":
+    case "processing":
+    case "packing":
       return (
         <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <AccessTimeOutlinedIcon sx={{ fontSize: 14 }} />
           <span>Processing</span>
         </span>
       );
-    case "Pending":
+    case "pending":
       return (
         <span className="bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <PendingActionsTwoToneIcon sx={{ fontSize: 14 }} />
           <span>Pending</span>
         </span>
       );
-    case "Cancelled":
+    case "cancelled":
       return (
         <span className="bg-rose-50 text-rose-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
           <FreeCancellationRoundedIcon sx={{ fontSize: 14 }} />
@@ -52,6 +57,9 @@ const getStatusBadge = (status) => {
       );
   }
 };
+
+const getOrderItemImage = (item) =>
+  item?.productImageUrl || item?.imageUrl || item?.image || (typeof item === "string" ? item : undefined);
 
 const OrderCard = ({ order, product, onConfirmReceived, isConfirming = false }) => {
   const navigate = useNavigate();
@@ -96,8 +104,8 @@ const OrderCard = ({ order, product, onConfirmReceived, isConfirming = false }) 
           {displayItems.map((item, idx) => (
             <img
               key={item.id || idx}
-              src={item.imageUrl || item.image || item}
-              alt="Item thumbnail"
+              src={getOrderItemImage(item) || "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=300"}
+              alt={item.productTitle || item.title || "Order item"}
               className="w-14 h-14 object-cover rounded-xl border border-gray-100 bg-gray-50 shrink-0"
             />
           ))}
@@ -115,7 +123,7 @@ const OrderCard = ({ order, product, onConfirmReceived, isConfirming = false }) 
               TOTAL
             </span>
             <span className="text-lg font-extrabold text-gray-900">
-              ${typeof total === "number" ? total.toFixed(2) : total}
+              {formatVnd(total)}
             </span>
           </div>
 

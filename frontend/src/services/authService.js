@@ -1,242 +1,111 @@
-import { storeService } from './storeService'
-
-const BASE_URL = import.meta.env.VITE_BASE_URL
-const API_KEY = import.meta.env.VITE_API_KEY
-let cachedCurrentId = null;
-let cacheRegisterMongoIdMap = {};
+import apiClient from "./apiClient";
+import { useAuthStore } from "../store/useAuthStore";
 
 export const authService = {
+    // 1. Đăng ký tài khoản
     register: async (userData) => {
         try {
-            const inputEmail = userData.email?.toLowerCase().trim();
+            const response = await apiClient.post("/auth/register", {
+                email: userData.email?.trim().toLowerCase(),
+                password: userData.password,
+                firstName: userData.firstName?.trim(),
+                lastName: userData.lastName?.trim(),
+                phone: userData.phone || null,
+                gender: userData.gender || null,
+            });
+            return response.data.result;
+        } catch (error) {
+            const message = error.response?.data?.message || "Đăng ký tài khoản thất bại!";
+            throw new Error(message);
+        }
+    },
 
-            // Kiểm tra email đã tồn tại trên hệ thống hay chưa
-            const checkRes = await fetch(`${BASE_URL}/register?apiKey=${API_KEY}`);
-            if (checkRes.ok) {
-                const json = await checkRes.json();
-                const list = Array.isArray(json.data?.data)
-                    ? json.data.data
-                    : Array.isArray(json.data)
-                        ? json.data
-                        : Array.isArray(json)
-                            ? json
-                            : [];
-                const existingUser = list.find(
-                    (u) => u.email?.toLowerCase().trim() === inputEmail
-                );
-                if (existingUser) {
-                    throw new Error("Email này đã được sử dụng! Vui lòng nhập email khác hoặc đăng nhập.");
-                }
-            }
-
-            const newUser = {
-                id: userData.id || `user_${Date.now()}`,
-                ...userData,
-                phone: "",
-                phonePrefix: "+1",
-                city: "",
-                district: "",
-                specificAddress: "",
-                avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
-                createdAt: new Date().toISOString(),
-                isVerified: true
-            }
-
-            const res = await fetch(`${BASE_URL}/register?apiKey=${API_KEY}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newUser)
+    // 2. Đăng nhập thường
+    login: async (email, password) => {
+        try {
+            const response = await apiClient.post("/auth/login", {
+                email: email.trim().toLowerCase(),
+                password,
             });
 
-            if (!res.ok) throw new Error("Không thể tạo tài khoản trên hệ thống server!");
-            const result = await res.json();
-            return result.data || newUser;
+            const { accessToken, user } = response.data.result;
+            useAuthStore.getState().setAuth(accessToken, user);
+            return user;
         } catch (error) {
-            console.error('[authService] register error:', error);
+            // Network error (backend tắt) vs lỗi từ backend (sai mật khẩu, ...)
+            if (!error.response) {
+                throw new Error("Không thể kết nối đến máy chủ. Kiểm tra backend có đang chạy không!");
+            }
+            const message = error.response?.data?.message || "Đăng nhập thất bại!";
+            throw new Error(message);
+        }
+    },
+
+    // 3. Đăng nhập Google OAuth2
+    loginWithGoogle: async (code) => {
+        try {
+            const response = await apiClient.post("/auth/google", { code });
+            const { accessToken, user } = response.data.result;
+            useAuthStore.getState().setAuth(accessToken, user);
+            return user;
+        } catch (error) {
+            if (!error.response) {
+                throw new Error("Không thể kết nối đến máy chủ. Kiểm tra backend có đang chạy không!");
+            }
+            const message = error.response?.data?.message || "Đăng nhập Google thất bại!";
+            throw new Error(message);
+        }
+    },
+
+    // 4. Đăng xuất
+    logout: async () => {
+        try {
+            await apiClient.post("/auth/logout");
+        } catch (error) {
+            console.warn("[authService] Lỗi gọi API logout:", error);
+        } finally {
+            useAuthStore.getState().clearAuth();
+        }
+    },
+
+    // 5. Làm mới Access Token
+    refreshToken: async () => {
+        try {
+            const response = await apiClient.post("/auth/refresh");
+            const { accessToken, user } = response.data.result;
+            useAuthStore.getState().setAuth(accessToken, user);
+            return { accessToken, user };
+        } catch (error) {
+            useAuthStore.getState().clearAuth();
             throw error;
         }
     },
 
-    login: async (email, password) => {
-        const res = await fetch(`${BASE_URL}/register?apiKey=${API_KEY}`)
-        if (!res.ok) throw new Error('Failed to fetch users from server')
-        const json = await res.json()
-        const list = Array.isArray(json.data?.data)
-            ? json.data.data
-            : Array.isArray(json.data)
-                ? json.data
-                : Array.isArray(json)
-                    ? json
-                    : []
-        const user = list.find(
-            (u) =>
-                u.email?.toLowerCase() === email.trim().toLowerCase() &&
-                u.password === password
-        )
-        if (!user) return null;
-
-        // Xóa sạch currentUser cũ còn tồn đọng trên server trước khi lưu user mới
-        await authService.removeCurrentUser();
-
-        // 1. Lưu vào /currentUser
-        await fetch(`${BASE_URL}/currentUser?apiKey=${API_KEY}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(user)
-        });
-
-        // 2. Nếu là Store Manager => tìm store trong /allStores và lưu vào /currentStore
-        const isStoreManager = user.isManager || (Array.isArray(user.roles) && user.roles.includes("store_manager"));
-        if (isStoreManager && user.storeId) {
-            try {
-                const allStores = await storeService.fetchAllStores()
-                const safeStores = Array.isArray(allStores) ? allStores : []
-                const userStore = safeStores.find(
-                    (s) => String(s.id) === String(user.storeId) || s.ownerEmail === user.email
-                )
-                if (userStore) {
-                    await storeService.setCurrentStore(userStore)
-                } else {
-                    await storeService.removeCurrentStore()
-                }
-            } catch (e) {
-                console.warn('[authService] Lỗi lưu currentStore khi login:', e.message)
-            }
-        } else {
-            // Đăng nhập bằng tài khoản người dùng thường => xóa currentStore cũ nếu có trên server
-            await storeService.removeCurrentStore()
-        }
-
-        return user
-    },
-
-    getCurrentUser: async () => {
-        const res = await fetch(`${BASE_URL}/currentUser?apiKey=${API_KEY}`)
-        if (!res.ok) throw new Error('Failed to fetch current user')
-        const json = await res.json()
-        const list = Array.isArray(json.data?.data)
-            ? json.data.data
-            : Array.isArray(json.data)
-                ? json.data
-                : Array.isArray(json)
-                    ? json
-                    : []
-        const user = list[0] || null;
-        if (user) {
-            cachedCurrentId = user._id || user.id;
-        }
-        return user;
-    },
-
-    removeCurrentUser: async () => {
+    getMyProfile: async () => {
         try {
-            cachedCurrentId = null;
-            const res = await fetch(`${BASE_URL}/currentUser?apiKey=${API_KEY}`);
-            if (res.ok) {
-                const json = await res.json();
-                const list = Array.isArray(json.data?.data) ? json.data.data : json.data || [];
-                for (const u of list) {
-                    const mongoId = u._id || u.id;
-                    if (mongoId) {
-                        await fetch(`${BASE_URL}/currentUser/${mongoId}?apiKey=${API_KEY}`, { method: 'DELETE' });
-                    }
-                }
-            }
-            return true;
+            const response = await apiClient.get("/users/my-profile");
+            return response.data.result;
         } catch (error) {
-            console.warn('[authService] removeCurrentUser error:', error.message);
-            return false;
+            console.error("[authService] Lấy profile thất bại:", error);
+            return null;
         }
     },
 
-    logout: async () => {
-        // 1. Xóa sạch /currentUser trên server
-        await authService.removeCurrentUser();
-
-        // 2. Xóa /currentStore (nếu có)
+    updateProfile: async (data) => {
         try {
-            await storeService.removeCurrentStore()
-        } catch (e) {
-            console.warn('[authService] Lỗi xóa currentStore khi logout:', e.message)
-        }
+            const response = await apiClient.put("/users/my-profile", data);
+            const updatedUser = response.data.result;
 
-        return true;
+            // Cập nhật lại user trong Zustand store
+            const currentToken = useAuthStore.getState().accessToken;
+            useAuthStore.getState().setAuth(currentToken, updatedUser);
+
+            return updatedUser;
+        } catch (error) {
+            const message = error.response?.data?.message || "Cập nhật thông tin thất bại!";
+            throw new Error(message);
+        }
     },
+};
 
-    updateProfile: async (idOrData, maybeData) => {
-        let id = null;
-        let data = {};
-
-        if (typeof idOrData === "object" && idOrData !== null) {
-            data = idOrData;
-            id = idOrData.id || idOrData._id;
-        } else {
-            id = idOrData;
-            data = (typeof maybeData === "object" && maybeData !== null) ? maybeData : {};
-        }
-
-        const userEmail = data.email?.toLowerCase().trim() || "";
-        // Cập nhật currentUser
-        const updateCurrentUserPromise = (async () => {
-            let mongoId = cachedCurrentId;
-            let activeUser = null;
-            // nếu trong cache chưa có ID mới thì get để lấy Id
-            if (!mongoId) {
-                const currentUser = await authService.getCurrentUser()
-                if (currentUser) {
-                    mongoId = currentUser._id || currentUser.id;
-                    cachedCurrentId = mongoId;
-                    activeUser = currentUser || null;
-                }
-            }
-            if (mongoId) {
-                const updateData = { ...activeUser, ...data, id: data?.id || activeUser?.id }
-                const updateRes = await fetch(`${BASE_URL}/currentUser/${mongoId}?apiKey=${API_KEY}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(updateData),
-                });
-                if (!updateRes.ok) {
-                    throw new Error("Cập nhật thất bại");
-                }
-                const resultJson = await updateRes.json();
-                return resultJson.data || updateData || activeUser;
-            }
-
-        })();
-        // Cập nhật register 
-        const updateRegister = (async () => {
-            try {
-                let registerMongoId = userEmail ? cacheRegisterMongoIdMap[userEmail] : null;
-                let matchRegister = null;
-                // Nếu không có trong cache thì get register để tìm
-                if (!registerMongoId) {
-                    const registerRes = await fetch(`${BASE_URL}/register?apiKey=${API_KEY}`)
-                    if (registerRes.ok) {
-                        const registerJson = await registerRes.json();
-                        const registerList = registerJson.data?.data || [];
-                        matchRegister = registerList.find((u) => (id && String(u.id) === String(id)) || (userEmail && String(u.email?.toLowerCase().trim()) === userEmail));
-                        if (matchRegister) {
-                            registerMongoId = matchRegister._id || matchRegister.id;
-                            cacheRegisterMongoIdMap[userEmail] = registerMongoId;
-                        }
-                    }
-                }
-                if (registerMongoId) {
-                    await fetch(`${BASE_URL}/register/${registerMongoId}?apiKey=${API_KEY}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ ...matchRegister, ...data, id: matchRegister?.id || matchRegister?.id })
-                    })
-
-                }
-            } catch (error) {
-                console.warn("Lỗi cập nhật register", error.message)
-            }
-        })();
-        const [updatedCurrentUser] = await Promise.all([updateCurrentUserPromise, updateRegister]);
-        return updatedCurrentUser;
-    }
-}
-
-export default authService
+export default authService;

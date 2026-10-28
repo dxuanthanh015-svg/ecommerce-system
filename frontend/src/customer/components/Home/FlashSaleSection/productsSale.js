@@ -1,1 +1,2 @@
-export { productsSale as products, productsSale } from "../../../../Data/product_mock_data";
+export const products = [];
+export const productsSale = [];

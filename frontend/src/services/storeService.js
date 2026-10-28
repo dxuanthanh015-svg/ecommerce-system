@@ -1,295 +1,149 @@
-import { getStoreAnalyticsData, exportAnalyticsReportCSV } from '../storeManager/components/Analytics/analytics.utils'
-import { defaultStoreSettings } from '../storeManager/components/StoreSettings/storeSettings.data'
-import { store_manager_mock_data } from '../Data/store-manager_mock_data'
+import apiClient from './apiClient'
 
-const BASE_URL = import.meta.env.VITE_BASE_URL
-const API_KEY = import.meta.env.VITE_API_KEY
-
-let cachedCurrentStore = null
-let currentStorePromise = null
-let cachedAllStore = null;
-let allStorePromise = null;
+// ==========================================
+// STORE SERVICE - Gọi Spring Boot API
+// TODO: Backend cần implement các endpoint dưới đây
+// ==========================================
 
 export const storeService = {
-  clearCurrentStoreCache: () => {
-    cachedCurrentStore = null
-    currentStorePromise = null
-    cachedAllStore = null
-    allStorePromise = null
-  },
 
+  // GET /stores -> Lấy toàn bộ danh sách cửa hàng (cho trang khám phá / admin)
   fetchAllStores: async () => {
-    if (cachedAllStore && Array.isArray(cachedAllStore)) return cachedAllStore;
-    if (allStorePromise) return allStorePromise;
-
-    allStorePromise = (async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/allStores?apiKey=${API_KEY}`)
-        if (!res.ok) throw new Error('Failed to fetch allStores')
-        const json = await res.json()
-        const apiStores = Array.isArray(json.data?.data)
-          ? json.data.data
-          : Array.isArray(json.data)
-          ? json.data
-          : []
-        const validStores = apiStores.filter((s) => s && typeof s === 'object')
-
-        // Gộp stores từ API Server và store_manager_mock_data gốc (không trùng id)
-        const apiIds = new Set(validStores.map((s) => String(s.id || s._id)))
-        const mockRemaining = store_manager_mock_data.filter((s) => !apiIds.has(String(s.id)))
-        const result = [...validStores, ...mockRemaining]
-        cachedAllStore = result
-        return result
-      } catch (error) {
-        console.warn('[storeService] fetchAllStores error:', error.message)
-        return store_manager_mock_data
-      } finally {
-        allStorePromise = null
-      }
-    })()
-
-    return allStorePromise
+    try {
+      const res = await apiClient.get('/stores')
+      return res.data.result || []
+    } catch (error) {
+      console.warn('[storeService] fetchAllStores error:', error.message)
+      return []
+    }
   },
 
+  // GET /stores/{storeId} -> Lấy thông tin 1 cửa hàng theo ID
   fetchStoreById: async (storeId) => {
     if (!storeId) return null
-    const allStores = await storeService.fetchAllStores()
-    const safeStores = Array.isArray(allStores) ? allStores : []
-    return safeStores.find((s) => String(s.id) === String(storeId) || String(s._id) === String(storeId)) || null
-  },
-
-  createInAllStores: async (storeData) => {
     try {
-      const res = await fetch(`${BASE_URL}/allStores?apiKey=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storeData),
-      })
-      if (!res.ok) throw new Error('Failed to create store in allStores')
-      const json = await res.json()
-      cachedAllStore = null;
-      return json.data || storeData
+      const res = await apiClient.get(`/stores/profile/${storeId}`)
+      return res.data.result || null
     } catch (error) {
-      console.warn('[storeService] createInAllStores error:', error.message)
-      return storeData
-    }
-  },
-
-  updateInAllStores: async (storeId, updateData) => {
-    try {
-      const allStores = await storeService.fetchAllStores()
-      const safeStores = Array.isArray(allStores) ? allStores : []
-      const target = safeStores.find((s) => s.id === storeId || s._id === storeId)
-      if (target) {
-        const mongoId = target._id || target.id
-        const res = await fetch(`${BASE_URL}/allStores/${mongoId}?apiKey=${API_KEY}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...target, ...updateData }),
-        })
-        if (!res.ok) throw new Error('Failed to update in allStores')
-        const json = await res.json()
-        cachedAllStore = null;
-        return json.data || { ...target, ...updateData }
-      }
-      return updateData
-    } catch (error) {
-      console.warn('[storeService] updateInAllStores error:', error.message)
-      return updateData
-    }
-  },
-
-
-  fetchStores: async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/stores?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch stores')
-      const json = await res.json()
-      return Array.isArray(json.data?.data) ? json.data.data : json.data || []
-    } catch (error) {
-      console.warn('[storeService] fetchStores error:', error.message)
-      return store_manager_mock_data
-    }
-  },
-
-  createStore: async (storeData) => {
-    try {
-      const res = await fetch(`${BASE_URL}/stores?apiKey=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storeData),
-      })
-      if (!res.ok) throw new Error('Failed to create in stores')
-      const json = await res.json()
-      return json.data || storeData
-    } catch (error) {
-      console.warn('[storeService] createStore error:', error.message)
-      return storeData
-    }
-  },
-
-  fetchStoreProfile: async (storeId) => {
-    try {
-      const allStores = await storeService.fetchAllStores()
-      const safeStores = Array.isArray(allStores) ? allStores : []
-      const store = safeStores.find((s) => String(s.id) === String(storeId) || String(s._id) === String(storeId))
-      return store ? { ...defaultStoreSettings, ...store } : defaultStoreSettings
-    } catch (error) {
-      console.warn('[storeService] fetchStoreProfile error:', error.message)
-      return defaultStoreSettings
-    }
-  },
-
-  getCurrentStore: async (forceRefresh = false) => {
-    if (!forceRefresh && cachedCurrentStore) {
-      return cachedCurrentStore
-    }
-    if (currentStorePromise) {
-      return currentStorePromise
-    }
-
-    currentStorePromise = (async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/currentStore?apiKey=${API_KEY}`)
-        if (!res.ok) return null
-        const json = await res.json()
-        const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-        cachedCurrentStore = list[0] || null
-        return cachedCurrentStore
-      } catch (error) {
-        console.warn('[storeService] getCurrentStore error:', error.message)
-        return null
-      } finally {
-        currentStorePromise = null
-      }
-    })()
-
-    return currentStorePromise
-  },
-
-  setCurrentStore: async (storeData) => {
-    try {
-      cachedCurrentStore = storeData
-      // Xóa store cũ trước nếu có để tránh trùng
-      await storeService.removeCurrentStore()
-
-      const res = await fetch(`${BASE_URL}/currentStore?apiKey=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storeData),
-      })
-      if (!res.ok) throw new Error('Failed to set currentStore')
-      const json = await res.json()
-      cachedCurrentStore = json.data || storeData
-      return cachedCurrentStore
-    } catch (error) {
-      console.warn('[storeService] setCurrentStore error:', error.message)
-      return storeData
-    }
-  },
-
-  updateCurrentStore: async (updateData) => {
-    try {
-      const current = await storeService.getCurrentStore()
-      if (!current) throw new Error('No currentStore found')
-
-      const mongoId = current._id || current.id
-      const merged = { ...current, ...updateData }
-
-      const res = await fetch(`${BASE_URL}/currentStore/${mongoId}?apiKey=${API_KEY}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(merged),
-      })
-      if (!res.ok) throw new Error('Failed to update currentStore')
-      const json = await res.json()
-      cachedCurrentStore = json.data || merged
-      return cachedCurrentStore
-    } catch (error) {
-      console.warn('[storeService] updateCurrentStore error:', error.message)
-      return updateData
-    }
-  },
-
-  removeCurrentStore: async () => {
-    try {
-      cachedCurrentStore = null
-      const res = await fetch(`${BASE_URL}/currentStore?apiKey=${API_KEY}`)
-      if (res.ok) {
-        const json = await res.json()
-        const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-        for (const store of list) {
-          const mongoId = store._id || store.id
-          await fetch(`${BASE_URL}/currentStore/${mongoId}?apiKey=${API_KEY}`, { method: 'DELETE' })
-        }
-      }
-      return true
-    } catch (error) {
-      console.warn('[storeService] removeCurrentStore error:', error.message)
-      return false
-    }
-  },
-
-
-  getStoreApplication: async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/storeApplication?apiKey=${API_KEY}`)
-      if (!res.ok) return null
-      const json = await res.json()
-      const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-      return list[0] || null
-    } catch (error) {
-      console.warn('[storeService] getStoreApplication error:', error.message)
+      console.warn('[storeService] fetchStoreById error:', error.message)
       return null
     }
   },
 
+  // GET /products/store/{storeId} -> Lọc sản phẩm public bằng nghiệp vụ backend
+  fetchStoreProducts: async (storeId, tab = 'all', search = '') => {
+    const res = await apiClient.get(`/products/store/${storeId}`, {
+      params: { tab, ...(search.trim() ? { search: search.trim() } : {}) },
+    })
+    return res.data.result || []
+  },
+
+  // GET /stores/my-store -> Lấy thông tin cửa hàng của Store Manager đang đăng nhập (via JWT)
+  getCurrentStore: async () => {
+    try {
+      const res = await apiClient.get('/stores/my-store')
+      if (!res.data.result) throw new Error('API không trả về cửa hàng hiện tại')
+      return res.data.result
+    } catch (error) {
+      console.warn('[storeService] getCurrentStore error:', error.message)
+      throw error
+    }
+  },
+
+  // POST /stores -> Tạo cửa hàng mới (Admin)
+  createStore: async (storeData) => {
+    try {
+      const res = await apiClient.post('/stores', storeData)
+      return res.data.result
+    } catch (error) {
+      console.warn('[storeService] createStore error:', error.message)
+      throw error
+    }
+  },
+
+  // PUT /stores/my-store -> Store Manager cập nhật thông tin cửa hàng của mình
+  updateCurrentStore: async (updateData) => {
+    try {
+      const res = await apiClient.put('/stores/my-store', updateData)
+      return res.data.result
+    } catch (error) {
+      console.warn('[storeService] updateCurrentStore error:', error.message)
+      throw error
+    }
+  },
+
+  // PUT /stores/{storeId} -> Admin cập nhật thông tin bất kỳ cửa hàng nào
+  updateStoreById: async (storeId, updateData) => {
+    try {
+      const res = await apiClient.put(`/stores/${storeId}`, updateData)
+      return res.data.result
+    } catch (error) {
+      console.warn('[storeService] updateStoreById error:', error.message)
+      throw error
+    }
+  },
+
+  // GET /stores/profile/{storeId} -> Lấy thông tin hồ sơ công khai của cửa hàng
+  fetchStoreProfile: async (storeId) => {
+    try {
+      const res = await apiClient.get(`/stores/profile/${storeId}`)
+      return res.data.result || null
+    } catch (error) {
+      console.warn('[storeService] fetchStoreProfile error:', error.message)
+      return null
+    }
+  },
+
+  // PUT /stores/my-store/settings -> Cập nhật toàn bộ cài đặt cửa hàng (từ StoreSettings UI)
+  updateStoreSettings: async (settingsPayload) => {
+    try {
+      const res = await apiClient.put('/stores/my-store/settings', settingsPayload)
+      return res.data.result
+    } catch (error) {
+      console.warn('[storeService] updateStoreSettings error:', error.message)
+      throw error
+    }
+  },
+
+  // GET /stores/applications -> Lấy danh sách đơn đăng ký mở cửa hàng (Admin)
   getStoreApplications: async () => {
     try {
-      const res = await fetch(`${BASE_URL}/storeApplication?apiKey=${API_KEY}`)
-      if (!res.ok) return []
-      const json = await res.json()
-      const list = Array.isArray(json.data?.data)
-        ? json.data.data
-        : Array.isArray(json.data)
-          ? json.data
-          : Array.isArray(json)
-            ? json
-            : []
-      return list
+      const res = await apiClient.get('/stores/applications')
+      return res.data.result || []
     } catch (error) {
       console.warn('[storeService] getStoreApplications error:', error.message)
       return []
     }
   },
 
-  saveStoreApplication: async (applicationData) => {
+  // GET /stores/applications/my -> Lấy đơn đăng ký của user hiện tại
+  getStoreApplication: async () => {
     try {
-      const res = await fetch(`${BASE_URL}/storeApplication?apiKey=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(applicationData),
-      })
-      if (!res.ok) throw new Error('Failed to save storeApplication')
-      const json = await res.json()
-      return json.data || applicationData
+      const res = await apiClient.get('/stores/applications/my')
+      return res.data.result || null
     } catch (error) {
-      console.warn('[storeService] saveStoreApplication error:', error.message)
-      return applicationData
+      if (error.response?.status === 404) return null
+      console.warn('[storeService] getStoreApplication error:', error.message)
+      throw error
     }
   },
 
+  // POST /stores/applications -> Nộp đơn đăng ký mở cửa hàng
+  saveStoreApplication: async (applicationData) => {
+    try {
+      const res = await apiClient.post('/stores/applications', applicationData)
+      return res.data.result
+    } catch (error) {
+      const message = error.response?.data?.message || error.message
+      console.warn('[storeService] saveStoreApplication error:', message)
+      throw new Error(message)
+    }
+  },
+
+  // DELETE /stores/applications/my -> Hủy đơn đăng ký
   removeStoreApplication: async () => {
     try {
-      const res = await fetch(`${BASE_URL}/storeApplication?apiKey=${API_KEY}`)
-      if (res.ok) {
-        const json = await res.json()
-        const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-        for (const app of list) {
-          const mongoId = app._id || app.id
-          await fetch(`${BASE_URL}/storeApplication/${mongoId}?apiKey=${API_KEY}`, { method: 'DELETE' })
-        }
-      }
+      await apiClient.delete('/stores/applications/my')
       return true
     } catch (error) {
       console.warn('[storeService] removeStoreApplication error:', error.message)
@@ -297,49 +151,15 @@ export const storeService = {
     }
   },
 
-  updateStoreSettings: async (storeId, settingsPayload) => {
-    const updatedStore = {
-      name: settingsPayload.brandIdentity?.storeName,
-      email: settingsPayload.brandIdentity?.contactEmail,
-      phone: settingsPayload.brandIdentity?.phone,
-      category: settingsPayload.brandIdentity?.category,
-      imageUrl: settingsPayload.brandIdentity?.logoImage,
-      bannerUrl: settingsPayload.brandIdentity?.bannerImage,
-      description: settingsPayload.brandIdentity?.bio,
-      address: settingsPayload.fulfillmentCenter?.streetAddress,
-      city: settingsPayload.fulfillmentCenter?.city,
-      state: settingsPayload.fulfillmentCenter?.state,
-      zipCode: settingsPayload.fulfillmentCenter?.zipCode,
-      country: settingsPayload.fulfillmentCenter?.country,
-      status: settingsPayload.storeOperations?.vacationMode ? 'paused' : 'active',
-      bankInfo: {
-        bankName: settingsPayload.payoutDetails?.bankName,
-        accountName: settingsPayload.payoutDetails?.accountHolder,
-        accountNumber: settingsPayload.payoutDetails?.accountNumber,
-        routingNumber: settingsPayload.payoutDetails?.routingNumber,
-        payoutSchedule: settingsPayload.payoutDetails?.payoutSchedule,
-      },
-      customerPolicies: settingsPayload.customerPolicies,
-      shippingPolicy: {
-        processingTime: settingsPayload.fulfillmentCenter?.processingTime,
-        freeShippingThreshold: settingsPayload.fulfillmentCenter?.freeShippingThreshold,
-      },
-      storeOperations: settingsPayload.storeOperations,
+  // GET /stores/my-store/analytics?range= -> Lấy dữ liệu analytics của cửa hàng
+  fetchStoreAnalytics: async (range = 'Last 6 Months') => {
+    try {
+      const res = await apiClient.get('/stores/my-store/analytics', { params: { range } })
+      return res.data.result || null
+    } catch (error) {
+      console.warn('[storeService] fetchStoreAnalytics error:', error.message)
+      return null
     }
-
-    const [savedStore] = await Promise.all([
-      storeService.updateCurrentStore(updatedStore),
-      storeService.updateInAllStores(storeId, updatedStore),
-    ])
-    return savedStore || updatedStore
-  },
-
-  fetchStoreAnalytics: async (storeId, range = 'Last 6 Months') => {
-    return getStoreAnalyticsData(storeId)
-  },
-
-  exportReport: (analyticsData, storeName) => {
-    exportAnalyticsReportCSV(analyticsData, storeName)
   },
 }
 

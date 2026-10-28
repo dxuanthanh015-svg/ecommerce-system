@@ -7,6 +7,7 @@ import StoreOrderDetailModal from "./StoreOrderDetailModal";
 import { useCurrentStore } from "../../../hooks/useStoreQuery";
 import { useStoreOrders, useUpdateOrderStatus } from "../../../hooks/useOrderQuery";
 import { sortOrdersByNewest } from "../../../services/orderService";
+import toast from "react-hot-toast";
 
 const StoreOrderList = ({
   onConfirmOrder,
@@ -15,8 +16,8 @@ const StoreOrderList = ({
 }) => {
   const { data: currentStore } = useCurrentStore();
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const { data: rawOrders = [], isLoading: loading } = useStoreOrders(currentStore?.id);
-  const { mutate: updateStatusMutate, isPending: isUpdatingStatus, variables: updatingVars } = useUpdateOrderStatus();
+  const { data: rawOrders = [], isLoading: loading, isError, error } = useStoreOrders(currentStore?.id);
+  const { mutateAsync: updateStatusMutate, isPending: isUpdatingStatus, variables: updatingVars } = useUpdateOrderStatus();
 
   // Map to table rows format with full raw order preserved, sorted by newest first
   const orders = useMemo(() => {
@@ -25,10 +26,10 @@ const StoreOrderList = ({
       orderId: o.orderId,
       customerName: o.customer || o.customerName || o.shippingAddress?.fullName || "Customer",
       customerEmail: o.customerEmail || o.shippingAddress?.email || "customer@example.com",
-      date: o.formattedDate || (o.date ? new Date(o.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "Today"),
+      date: o.formattedDate || (o.createdAt || o.date ? new Date(o.createdAt || o.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "Today"),
       totalAmount: Number(o.totalAmount) || Number(o.total) || 0,
-      paymentStatus: o.paymentMethod ? "Paid" : "Paid",
-      orderStatus: o.status || "Pending",
+      paymentStatus: o.paymentStatus || "Pending",
+      orderStatus: o.orderStatus || o.status || "Pending",
     }));
     return sortOrdersByNewest(mapped);
   }, [rawOrders]);
@@ -42,24 +43,31 @@ const StoreOrderList = ({
     setSearchParams({ page: 1 });
   }, [searchTerm, selectedStatus]);
 
-  const handleStatusChange = (orderId, newStatus) => {
-    if (isUpdatingStatus) return;
-    updateStatusMutate({ orderId, status: newStatus, storeId: currentStore?.id });
-    if (selectedOrder && selectedOrder.orderId === orderId) {
-      setSelectedOrder((prev) => prev ? { ...prev, status: newStatus, orderStatus: newStatus } : null);
+  const handleStatusChange = async (orderId, newStatus) => {
+    if (isUpdatingStatus) return false;
+    try {
+      const savedOrder = await updateStatusMutate({ orderId, status: newStatus, storeId: currentStore?.id });
+      const savedStatus = savedOrder?.orderStatus || savedOrder?.status || newStatus;
+      if (selectedOrder && selectedOrder.orderId === orderId) {
+        setSelectedOrder((prev) => prev ? { ...prev, status: savedStatus, orderStatus: savedStatus } : null);
+      }
+      toast.success("Đã cập nhật trạng thái đơn hàng.");
+      return true;
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data?.result?.message || "Không thể cập nhật đơn hàng. Vui lòng thử lại.";
+      toast.error(message);
+      return false;
     }
   };
 
   // Confirm Order Handler
-  const handleConfirm = (id) => {
-    handleStatusChange(id, "Processing");
-    if (onConfirmOrder) onConfirmOrder(id);
+  const handleConfirm = async (id) => {
+    if (await handleStatusChange(id, "Processing") && onConfirmOrder) onConfirmOrder(id);
   };
 
   // Ship Order Handler
-  const handleShip = (id) => {
-    handleStatusChange(id, "Shipped");
-    if (onShipOrder) onShipOrder(id);
+  const handleShip = async (id) => {
+    if (await handleStatusChange(id, "Shipped") && onShipOrder) onShipOrder(id);
   };
 
   // Deliver Order Handler
@@ -68,10 +76,9 @@ const StoreOrderList = ({
   };
 
   // Cancel Order Handler
-  const handleCancel = (id) => {
+  const handleCancel = async (id) => {
     if (window.confirm("Are you sure you want to cancel this order? Item inventory will be restored.")) {
-      handleStatusChange(id, "Cancelled");
-      if (onCancelOrder) onCancelOrder(id);
+      if (await handleStatusChange(id, "Cancelled") && onCancelOrder) onCancelOrder(id);
     }
   };
 
@@ -150,7 +157,11 @@ const StoreOrderList = ({
               ) : (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-gray-500 font-medium text-xs">
-                    No orders found matching your filters.
+                    {loading
+                      ? "Loading orders..."
+                      : isError
+                        ? (error?.response?.data?.message || "Không tải được danh sách đơn hàng. Vui lòng thử lại.")
+                        : "No orders found matching your filters."}
                   </td>
                 </tr>
               )}

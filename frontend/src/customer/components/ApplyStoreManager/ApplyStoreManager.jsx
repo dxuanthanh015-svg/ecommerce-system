@@ -22,6 +22,7 @@ const ApplyStoreManager = () => {
     businessEmail: "",
     phone: "",
     pickupAddress: "",
+    city: "",
     businessType: "individual",
     taxCode: "",
     idCardNumber: "",
@@ -40,13 +41,13 @@ const ApplyStoreManager = () => {
         return;
       }
 
-      // Kiểm tra xem user đã từng nộp đơn đăng ký hay chưa
-      storeService.getStoreApplications().then((apps) => {
-        const uEmail = user.email?.toLowerCase().trim();
-        const existing = apps?.find((a) => (a.applicantEmail?.toLowerCase().trim() === uEmail) || (a.businessEmail?.toLowerCase().trim() === uEmail));
-        if (existing) {
+      // User chỉ được đọc đơn của chính mình; danh sách toàn bộ đơn dành cho Admin.
+      storeService.getStoreApplication().then((application) => {
+        if (application) {
           toast(`Bạn đã gửi đơn đăng ký trước đó và đang chờ Admin xét duyệt.`, { icon: 'ℹ️', duration: 4500 });
         }
+      }).catch((error) => {
+        console.warn("Không thể kiểm tra đơn đăng ký hiện tại:", error.message);
       });
 
       setCurrentUser(user);
@@ -88,9 +89,8 @@ const ApplyStoreManager = () => {
       return;
     }
 
-    const storeId = `store-${Date.now()}`;
     try {
-      await applyStoreManager({ formData, storeId, currentUser });
+      await applyStoreManager({ formData, currentUser });
       toast.success(`Đơn đăng ký của bạn đã được gửi và đang chờ xét duyệt`);
       navigate("/");
     } catch (err) {

@@ -1,206 +1,141 @@
-const BASE_URL = import.meta.env.VITE_BASE_URL
-const API_KEY = import.meta.env.VITE_API_KEY
+import apiClient from './apiClient'
 
 // ==========================================
-// RESOURCE: /carts (Giỏ hàng của user đã đăng nhập)
-// RESOURCE: /cart_guest (Giỏ hàng của khách vãng lai chưa đăng nhập)
+// CART SERVICE - Gọi Spring Boot API
+// TODO: Backend cần implement các endpoint dưới đây
 // ==========================================
-const userCartIdMap = {}
 
 export const cartService = {
-  // ---------- /carts (User đã đăng nhập) ----------
 
-
-  fetchCart: async (userEmail = null) => {
+  // GET /cart -> Lấy giỏ hàng của user đang đăng nhập (via JWT)
+  fetchCart: async () => {
     try {
-      const res = await fetch(`${BASE_URL}/carts?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch cart')
-      const json = await res.json()
-      const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-      // Mỗi user có 1 bản ghi cart, lọc theo email
-      if (userEmail) {
-        const userCart = list.find(
-          (c) => c.userEmail?.toLowerCase() === userEmail.toLowerCase()
-        )
-        if (userCart) {
-          userCartIdMap[userEmail.toLowerCase()] = userCart._id || userCart.id
-        }
-        return userCart?.items || []
-      }
-      return list[0]?.items || []
+      const res = await apiClient.get('/cart')
+      return res.data.result?.items || []
     } catch (error) {
       console.warn('[cartService] fetchCart error:', error.message)
       return []
     }
   },
 
-
-  saveCart: async (items, userEmail) => {
-    if (!userEmail) return
-    const id = userCartIdMap[userEmail.toLowerCase()]
-    const payload = {
-      userEmail,
-      items,
-      updatedAt: new Date().toISOString(),
-    }
-    if (id) {
-      await fetch(`${BASE_URL}/carts/${id}?apiKey=${API_KEY}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-    } else {
-      const res = await fetch(`${BASE_URL}/carts?apiKey=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (res.ok) {
-        const json = await res.json()
-        const newId = json.data?.id || json.data?._id
-        if (newId)
-          userCartIdMap[userEmail.toLowerCase()] = newId
-      }
-    }
-
-    window.dispatchEvent(new Event('cartUpdated'))
-  },
-
-  addToCart: async (newItem, userEmail, cachedItems = null) => {
-    const currentItems = cachedItems || await cartService.fetchCart(userEmail)
-    const existingIdx = currentItems.findIndex(
-      (item) =>
-        String(item.id) === String(newItem.id) &&
-        item.size === newItem.size &&
-        item.color === newItem.color
-    )
-
-    let updatedItems
-    if (existingIdx > -1) {
-      updatedItems = currentItems.map((item, idx) =>
-        idx === existingIdx
-          ? { ...item, quantity: (item.quantity || 1) + (newItem.quantity || 1) }
-          : item
-      )
-    } else {
-      updatedItems = [newItem, ...currentItems]
-    }
-    await cartService.saveCart(updatedItems, userEmail)
-    return updatedItems
-  },
-
-  updateCartItem: async (itemId, size, color, newQty, userEmail, cachedItems = null) => {
-    const currentItems = cachedItems || await cartService.fetchCart(userEmail)
-    const updatedItems = currentItems.map((item) =>
-      String(item.id) === String(itemId) && item.size === size && item.color === color
-        ? { ...item, quantity: newQty }
-        : item
-    ).filter((item) => item.quantity > 0)
-    await cartService.saveCart(updatedItems, userEmail)
-    return updatedItems
-  },
-
-  removeFromCart: async (itemId, size, color, userEmail, cachedItems = null) => {
-    const currentItems = cachedItems || await cartService.fetchCart(userEmail)
-    const updatedItems = currentItems.filter(
-      (item) =>
-        !(String(item.id) === String(itemId) && item.size === size && item.color === color)
-    )
-    await cartService.saveCart(updatedItems, userEmail)
-    return updatedItems
-  },
-
-  clearCart: async (userEmail) => {
-    await cartService.saveCart([], userEmail)
-    return []
-  },
-
-  // ---------- /cart_guest (Khách vãng lai chưa đăng nhập) ----------
-  fetchGuestCart: async () => {
+  // POST /cart/items -> Thêm sản phẩm vào giỏ hàng
+  // payload: { productId, variantId, size, color, quantity, price, title, imageUrl }
+  addToCart: async (item) => {
     try {
-      const res = await fetch(`${BASE_URL}/cart_guest?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch cart_guest')
-      const json = await res.json()
-      const list = Array.isArray(json.data?.data) ? json.data.data : json.data || []
-      return list[0]?.items || []
+      const res = await apiClient.post('/cart/items', item)
+      return res.data.result?.items || []
     } catch (error) {
-      console.warn('[cartService] fetchGuestCart error:', error.message)
+      console.warn('[cartService] addToCart error:', error.message)
+      throw error
+    }
+  },
+
+  // PUT /cart/items/{itemId} -> Cập nhật số lượng item trong giỏ
+  // payload: { quantity }
+  updateCartItem: async (itemId, quantity) => {
+    try {
+      const res = await apiClient.put(`/cart/items/${itemId}`, { quantity })
+      return res.data.result?.items || []
+    } catch (error) {
+      console.warn('[cartService] updateCartItem error:', error.message)
+      throw error
+    }
+  },
+
+  // DELETE /cart/items/{itemId} -> Xóa 1 item khỏi giỏ hàng
+  removeFromCart: async (itemId) => {
+    try {
+      const res = await apiClient.delete(`/cart/items/${itemId}`)
+      return res.data.result?.items || []
+    } catch (error) {
+      console.warn('[cartService] removeFromCart error:', error.message)
+      throw error
+    }
+  },
+
+  // DELETE /cart -> Xóa toàn bộ giỏ hàng
+  clearCart: async () => {
+    try {
+      await apiClient.delete('/cart')
+      return []
+    } catch (error) {
+      console.warn('[cartService] clearCart error:', error.message)
+      throw error
+    }
+  },
+
+  // Reconcile the authenticated cart using the item-level DELETE API.
+  // The backend does not expose a save/replace-cart endpoint.
+  replaceCartItems: async (items = []) => {
+    try {
+      const desiredIds = new Set(items.filter((item) => item?.id != null).map((item) => String(item.id)))
+      const cartResponse = await apiClient.get('/cart')
+      const currentItems = cartResponse.data.result?.items || []
+      const removedItems = currentItems.filter((item) => !desiredIds.has(String(item.id)))
+
+      await Promise.all(removedItems.map((item) => apiClient.delete(`/cart/items/${item.id}`)))
+      const updatedResponse = await apiClient.get('/cart')
+      return updatedResponse.data.result?.items || []
+    } catch (error) {
+      console.warn('[cartService] replaceCartItems error:', error.response?.data || error.message)
+      throw error
+    }
+  },
+
+  // ==========================================
+  // GUEST CART - Lưu trên localStorage (không cần Backend)
+  // ==========================================
+
+  fetchGuestCart: () => {
+    try {
+      const raw = localStorage.getItem('guest_cart')
+      return raw ? JSON.parse(raw) : []
+    } catch {
       return []
     }
   },
 
-  saveGuestCart: async (items) => {
+  saveGuestCart: (items) => {
     try {
-      const res = await fetch(`${BASE_URL}/cart_guest?apiKey=${API_KEY}`)
-      if (!res.ok) throw new Error('Failed to fetch cart_guest')
-      const json = await res.json()
-      const list = json.data?.data || []
-
-      const payload = { items, updatedAt: new Date().toISOString() }
-
-      if (list.length > 0) {
-        const mongoId = list[0]._id || list[0].id
-        await fetch(`${BASE_URL}/cart_guest/${mongoId}?apiKey=${API_KEY}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...list[0], ...payload }),
-        })
-      } else {
-        await fetch(`${BASE_URL}/cart_guest?apiKey=${API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      }
+      localStorage.setItem('guest_cart', JSON.stringify(items))
       window.dispatchEvent(new Event('cartUpdated'))
     } catch (error) {
       console.warn('[cartService] saveGuestCart error:', error.message)
     }
   },
 
-  clearGuestCart: async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/cart_guest?apiKey=${API_KEY}`)
-      if (!res.ok) return
-      const json = await res.json()
-      const list = json.data?.data || []
-      for (const item of list) {
-        const mongoId = item._id || item.id
-        await fetch(`${BASE_URL}/cart_guest/${mongoId}?apiKey=${API_KEY}`, { method: 'DELETE' })
-      }
-    } catch (error) {
-      console.warn('[cartService] clearGuestCart error:', error.message)
+  addToGuestCart: (newItem) => {
+    const current = cartService.fetchGuestCart()
+    const idx = current.findIndex(
+      (i) => String(i.productId) === String(newItem.productId) &&
+             i.size === newItem.size && i.color === newItem.color
+    )
+    let updated
+    if (idx > -1) {
+      updated = current.map((i, index) =>
+        index === idx ? { ...i, quantity: (i.quantity || 1) + (newItem.quantity || 1) } : i
+      )
+    } else {
+      updated = [newItem, ...current]
     }
+    cartService.saveGuestCart(updated)
+    return updated
   },
 
-  // ---------- Gộp giỏ hàng khách vãng lai vào tài khoản sau khi đăng nhập ----------
-  migrateGuestCart: async (userEmail) => {
-    if (!userEmail) return
+  clearGuestCart: () => {
+    localStorage.removeItem('guest_cart')
+    window.dispatchEvent(new Event('cartUpdated'))
+  },
+
+  // POST /cart/migrate -> Gộp guest cart vào tài khoản sau khi đăng nhập
+  // Backend nhận danh sách guest items và merge vào cart của user
+  migrateGuestCart: async () => {
     try {
-      const guestItems = await cartService.fetchGuestCart()
+      const guestItems = cartService.fetchGuestCart()
       if (guestItems.length === 0) return
 
-      const userItems = await cartService.fetchCart(userEmail)
-      const merged = [...userItems]
-
-      guestItems.forEach((guestItem) => {
-        const existingIdx = merged.findIndex(
-          (item) =>
-            String(item.id) === String(guestItem.id) &&
-            item.size === guestItem.size &&
-            item.color === guestItem.color
-        )
-        if (existingIdx > -1) {
-          merged[existingIdx].quantity =
-            (merged[existingIdx].quantity || 1) + (guestItem.quantity || 1)
-        } else {
-          merged.push(guestItem)
-        }
-      })
-
-      await cartService.saveCart(merged, userEmail)
-      await cartService.clearGuestCart()
+      await apiClient.post('/cart/migrate', { items: guestItems })
+      cartService.clearGuestCart()
       window.dispatchEvent(new Event('cartUpdated'))
     } catch (error) {
       console.warn('[cartService] migrateGuestCart error:', error.message)

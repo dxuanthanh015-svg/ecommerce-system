@@ -27,7 +27,7 @@ const QuickFilters = ({ quickFilter = {}, counts = {}, onToggle }) => {
         {Object.entries(quickFilter).map(([key, isChecked]) => {
           const count = counts[key]
           return (
-            <label className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+            <label key={key} className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-gray-200">
               <input type="checkbox"
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                 checked={!!isChecked}

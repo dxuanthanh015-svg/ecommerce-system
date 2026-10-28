@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import ExistedDeliveryAddress from "./ExistedDeliveryAddress";
@@ -18,8 +18,10 @@ export default function CheckOut() {
   const [paymentMethod, setPaymentMethod] = useState("creditCard");
 
   // Tính trực tiếp từ React Query cache — không cần useState + useEffect
-  const savedAddress = (() => {
-    if (user?.savedAddresses && Array.isArray(user.savedAddresses)) {
+  const savedAddress = useMemo(() => {
+    if (Array.isArray(user?.addresses)) {
+      return user.addresses;
+    } else if (Array.isArray(user?.savedAddresses)) {
       return user.savedAddresses;
     } else if (user?.address || user?.specificAddress) {
       return [{
@@ -34,14 +36,24 @@ export default function CheckOut() {
       }];
     }
     return [];
-  })();
+  }, [user]);
 
-  // Auto-select địa chỉ đầu tiên chỉ khi chưa chọn gì
+  // Chọn địa chỉ mặc định (hoặc địa chỉ đầu tiên) sau khi profile tải xong.
+  // Nếu danh sách được tải/cập nhật lại, thay lựa chọn cũ bằng object mới từ API.
   useEffect(() => {
-    if (savedAddress.length > 0 && !selectedAddress) {
-      setSelectedAddress(savedAddress[0]);
+    if (savedAddress.length === 0) {
+      setSelectedAddress(null);
+      return;
     }
-  }, [savedAddress]);
+
+    const currentAddress = savedAddress.find((address) => address.id === selectedAddress?.id);
+    if (currentAddress) {
+      if (currentAddress !== selectedAddress) setSelectedAddress(currentAddress);
+      return;
+    }
+
+    setSelectedAddress(savedAddress.find((address) => address.isDefault) || savedAddress[0]);
+  }, [savedAddress, selectedAddress]);
 
   const handleRemove = async (id) => {
     const updated = savedAddress.filter((addr) => addr.id !== id);
@@ -52,7 +64,7 @@ export default function CheckOut() {
       // updateProfile invalida cache → savedAddress recompute tự động
       await updateProfile({ 
         id: user?.id || user?._id, 
-        data: { savedAddresses: updated } 
+        data: { addresses: updated }
       });
       // Manually invalidate the query to trigger refetch
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_USER });
@@ -74,19 +86,20 @@ export default function CheckOut() {
   // Persist danh sách địa chỉ lên server sau khi thêm/sửa
   const handleAddressSaved = async (updatedList) => {
     try {
-      const result = await updateProfile({ 
+      const updatedUser = await updateProfile({
         id: user?.id || user?._id,
-        data: { savedAddresses: updatedList } 
+        data: { addresses: updatedList }
       });
       // Manually invalidate the query to trigger refetch
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_USER });
       // Auto-select địa chỉ mới thêm nếu là địa chỉ đầu tiên
       if (updatedList.length > 0 && !selectedAddress) {
-        setSelectedAddress(updatedList[0]);
+        const persistedAddresses = updatedUser?.addresses || updatedList;
+        setSelectedAddress(persistedAddresses[persistedAddresses.length - 1]);
       }
     } catch (e) {
       console.warn("Error persisting addresses:", e.message);
-      toast.error("Có lỗi xảy ra khi lưu địa chỉ!");
+      throw e;
     }
   };
 
@@ -115,6 +128,7 @@ export default function CheckOut() {
             />
             <DeliveryAddressForm
               savedAddress={savedAddress}
+              selectedAddress={selectedAddress}
               editingAddress={editingAddress}
               onCancelEdit={handleCancelEdit}
               paymentMethod={paymentMethod}

@@ -30,7 +30,7 @@ export const useAddCart = () => {
                 const cachedCart = qc.getQueryData(QUERY_KEYS.CART(userEmail)) || [];
                 return cartService.addToCart(newItem, userEmail, cachedCart);
             }
-            return cartService.saveGuestCart([newItem])
+            return cartService.addToGuestCart(newItem)
         },
         onSuccess: (updatedItems, variables) => {
             qc.setQueryData(QUERY_KEYS.CART(variables.userEmail), updatedItems)
@@ -44,13 +44,13 @@ export const useAddManyCart = () => {
     return useMutation({
         mutationFn: ({ items, userEmail }) => {
             if (userEmail) {
-                return cartService.saveCart(items, userEmail);
+                return cartService.replaceCartItems(items);
             }
-            return cartService.saveGuestCart(items);
+            return cartService.saveGuestCart(items) || items;
         },
         onSuccess: (data, variables) => {
             const queryKey = variables.userEmail ? QUERY_KEYS.CART(variables.userEmail) : QUERY_KEYS.GUEST_CART;
-            qc.setQueryData(queryKey, variables.items || []);
+            qc.setQueryData(queryKey, data || []);
         }
     });
 };
@@ -104,9 +104,10 @@ export const useRemoveAllCart = () => {
 export const useWishList = (userEmail, options = {}) => {
     return useQuery({
         queryKey: QUERY_KEYS.WISHLIST(userEmail),
-        queryFn: () => wishlistService.fetchWishlist(userEmail),
+        queryFn: () => (userEmail ? wishlistService.fetchWishlist(userEmail) : []),
         staleTime: 1000 * 60 * 5,
-        ...options, // để nhận enable từ ngoài
+        enabled: Boolean(userEmail) && (options.enabled !== undefined ? options.enabled : true),
+        ...options,
     })
 }
 

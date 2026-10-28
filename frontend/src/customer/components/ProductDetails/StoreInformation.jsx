@@ -8,8 +8,6 @@ import VerifiedIcon from "@mui/icons-material/Verified";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import store_manager_mock_data from "../../../Data/store-manager_mock_data";
-import { product_mock_data } from "../../../Data/product_mock_data";
 import { useProducts } from "../../../hooks/useProductQuery";
 import { useAllStores } from "../../../hooks/useStoreQuery";
 
@@ -17,23 +15,23 @@ const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propSt
   const navigate = useNavigate();
   const { productId } = useParams();
 
-  const { data: allProds = product_mock_data } = useProducts();
-  const { data: allStores = store_manager_mock_data } = useAllStores();
+  const { data: allProds = [] } = useProducts();
+  const { data: allStores = [] } = useAllStores();
 
-  const product = allProds.find((item) => String(item.id) === String(productId)) || product_mock_data.find((item) => String(item.id) === String(productId));
-  const targetStoreId = String(product?.id_store || product?.storeId || "store-001");
-  const storesList = Array.isArray(allStores) && allStores.length > 0 ? allStores : store_manager_mock_data;
+  const product = allProds.find((item) => String(item.id) === String(productId));
+  const targetStoreId = String(product?.id_store || product?.storeId || "");
+  const storesList = Array.isArray(allStores) ? allStores : [];
 
   const targetStore =
     propStoreData ||
-    storesList.find((item) => String(item.id) === targetStoreId) ||
-    store_manager_mock_data.find((item) => String(item.id) === targetStoreId) ||
-    storesList[0];
+    storesList.find((item) => String(item.id) === targetStoreId);
 
   const storeData = targetStore;
   const storeProductsCount = propStoreProductsCount !== undefined
     ? propStoreProductsCount
     : allProds.filter((item) => String(item.id_store || item.storeId) === String(targetStore?.id)).length;
+  const storeRating = Number(storeData?.rating) || 0;
+  const storeReviewCount = Number(storeData?.reviewCount) || 0;
 
   const handleVisitStore = () => {
     if (storeData?.id) {
@@ -59,9 +57,9 @@ const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propSt
               sx={{ width: 72, height: 72, bgcolor: "#4f46e5" }}
               className="rounded-2xl shadow-md ring-4 ring-indigo-50 border border-indigo-100"
             >
-              {storeData.imageUrl ? (
+              {storeData.logoUrl ? (
                 <img
-                  src={storeData.imageUrl}
+                  src={storeData.logoUrl}
                   alt={storeData.name}
                   className="w-full h-full object-cover rounded-2xl"
                 />
@@ -88,26 +86,27 @@ const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propSt
 
             <p className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
               <span>Được quản lý bởi:</span>
-              <span className="font-bold text-gray-800">{storeData.owner}</span>
+              <span className="font-bold text-gray-800">{storeData.ownerName || "Cửa hàng"}</span>
             </p>
 
             <div className="flex items-center gap-3 pt-1">
               <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/60">
                 <Rating
-                  value={Number(storeData.rating) || 5.0}
+                  value={storeRating}
                   precision={0.1}
                   readOnly
                   size="small"
                   sx={{ fontSize: 14, color: "#f59e0b" }}
                 />
                 <span className="text-xs font-extrabold text-amber-700 ml-1">
-                  {Number(storeData.rating || 5.0).toFixed(1)}
+                  {storeRating.toFixed(1)}
                 </span>
               </div>
-              <span className="text-xs font-medium text-gray-400">•</span>
-              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-                Đang online
+              <span className="text-[11px] text-gray-500">({storeReviewCount} đánh giá)</span>
+              {storeData.status === "ACTIVE" && <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                Đang hoạt động
               </span>
+              }
             </div>
           </div>
         </div>
@@ -120,7 +119,7 @@ const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propSt
               <span className="text-[10px] font-bold uppercase tracking-wider">Sản phẩm</span>
             </div>
             <p className="text-sm sm:text-base font-extrabold text-gray-900">
-              {storeProductsCount || 12}
+              {storeProductsCount ?? storeData.productCount ?? 0}
             </p>
           </div>
 
@@ -130,7 +129,7 @@ const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propSt
               <span className="text-[10px] font-bold uppercase tracking-wider">Khu vực</span>
             </div>
             <p className="text-xs sm:text-xs font-bold text-gray-800 line-clamp-1">
-              {storeData.address ? storeData.address.split(",")[0] : "New York"}
+              {storeData.address || "Chưa cập nhật"}
             </p>
           </div>
 
@@ -140,7 +139,7 @@ const StoreInformation = ({ storeData: propStoreData, storeProductsCount: propSt
               <span className="text-[10px] font-bold uppercase tracking-wider">Hỗ trợ</span>
             </div>
             <p className="text-xs sm:text-xs font-bold text-gray-800 line-clamp-1">
-              {storeData.phone || "24/7"}
+              {storeData.phone || "Chưa cập nhật"}
             </p>
           </div>
         </div>

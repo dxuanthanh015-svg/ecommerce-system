@@ -1,13 +1,10 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import StoreHeader from "./StoreHeader";
 import StoreTabs from "./StoreTabs";
 import StoreProductsGrid from "./StoreProductsGrid";
-import store_manager_mock_data from "../../../Data/store-manager_mock_data";
-import { product_mock_data } from "../../../Data/product_mock_data";
-import { useProducts } from "../../../hooks/useProductQuery";
-import { useAllStores } from "../../../hooks/useStoreQuery";
+import { usePublicStoreProducts, useStoreDetail } from "../../../hooks/useStoreQuery";
 
 const CustomerStoreInterface = () => {
   const navigate = useNavigate();
@@ -16,64 +13,24 @@ const CustomerStoreInterface = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: allStores = store_manager_mock_data } = useAllStores();
-  const { data: allProds = product_mock_data } = useProducts();
+  const { data: storeData, isLoading: storeLoading, isError: storeError } = useStoreDetail(storeId);
+  const { data: filteredProducts = [], isLoading: productsLoading } =
+    usePublicStoreProducts(storeId, activeTab, searchQuery);
 
-  const safeStores = Array.isArray(allStores) ? allStores : store_manager_mock_data;
-  const storeData = safeStores.find((s) => String(s.id) === String(storeId)) || store_manager_mock_data.find((s) => String(s.id) === String(storeId)) || safeStores[0];
-  const storeProducts = allProds.filter((item) => {
-    const pStoreId = item.id_store || item.storeId;
-    return String(pStoreId) === String(storeData?.id);
-  });
+  if (storeLoading || productsLoading) {
+    return <div className="min-h-[50vh] grid place-items-center text-sm text-gray-500">Đang tải thông tin cửa hàng…</div>;
+  }
 
-  // Filter products based on selected tab & search query
-  const filteredProducts = useMemo(() => {
-    return storeProducts.filter((product) => {
-      // Search query filter
-      if (searchQuery && searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const titleMatch = product.title?.toLowerCase().includes(q);
-        const brandMatch = product.brand?.toLowerCase().includes(q);
-        const descMatch = product.description?.toLowerCase().includes(q);
-        const catMatch = product.topLavelCategory?.toLowerCase().includes(q) || product.secondLavelCategory?.toLowerCase().includes(q);
-        if (!titleMatch && !brandMatch && !descMatch && !catMatch) {
-          return false;
-        }
-      }
-
-      // Tab filter
-      if (activeTab === "bestseller") {
-        return Boolean(
-          product.isTrending ||
-          Number(product.rating) >= 4.7 ||
-          (product.claimedPercent && product.claimedPercent >= 50) ||
-          product.badge === "HOT"
-        );
-      }
-      if (activeTab === "new") {
-        return Boolean(
-          product.badge === "NEW" ||
-          product.isNew ||
-          String(product.id).includes("fs-001") ||
-          String(product.id).includes("fs-002") ||
-          String(product.id).includes("fs-003") ||
-          String(product.id).includes("prod_") ||
-          !product.isFlashSale
-        );
-      }
-      if (activeTab === "sale") {
-        return Boolean(
-          (product.discountedPrice && product.discountedPrice < product.price) ||
-          product.isFlashSale ||
-          (product.discountPersent && product.discountPersent > 0)
-        );
-      }
-
-      return true;
-    });
-  }, [storeProducts, activeTab, searchQuery]);
-
-  if (!storeData) return null;
+  if (storeError || !storeData) {
+    return (
+      <div className="min-h-[50vh] grid place-items-center px-4 text-center">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Không tìm thấy cửa hàng</h1>
+          <p className="mt-2 text-sm text-gray-500">Cửa hàng không tồn tại hoặc hiện chưa được công khai.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafbfc] font-sans pb-20">
@@ -98,8 +55,8 @@ const CustomerStoreInterface = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
         {/* Store Header & Stats Banner */}
         <StoreHeader
-          store={storeData}
-          totalProductsCount={storeProducts.length}
+          storeData={storeData}
+          totalProducts={storeData.productCount || 0}
         />
 
         {/* Store Tabs & In-Store Search */}

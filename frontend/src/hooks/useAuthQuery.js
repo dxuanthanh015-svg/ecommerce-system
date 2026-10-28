@@ -4,13 +4,11 @@ import { authService } from "../services/authService";
 
 export { QUERY_KEYS };
 
-// hook lấy thông tin người dùng hiện tại dùng chung cho toàn app
-
 export const useCurrentUser = () => {
     return useQuery({
         queryKey: QUERY_KEYS.CURRENT_USER,
-        queryFn: () => authService.getCurrentUser(),
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        queryFn: () => authService.getMyProfile(),
+        staleTime: 5 * 60 * 1000, // Cache 5 phút
         refetchOnWindowFocus: false,
         retry: 1,
     });
@@ -22,12 +20,29 @@ export const useLoginMutation = () => {
         mutationFn: ({ email, password }) => authService.login(email, password),
         onSuccess: (user) => {
             qc.setQueryData(QUERY_KEYS.CURRENT_USER, user);
-            // Khi đăng nhập lại, cập nhật dữ liệu từ server khi login
+            // Login response intentionally contains only brief user info. Force
+            // useCurrentUser to fetch /users/my-profile (including addresses).
+            qc.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_USER });
             qc.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_STORE })
             qc.invalidateQueries({ queryKey: ['cart'] })
             qc.invalidateQueries({ queryKey: ['wishlist'] })
         }
     })
+}
+
+export const useLoginWithGoogleMutation = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (code) => authService.loginWithGoogle(code),
+        onSuccess: (user) => {
+            qc.setQueryData(QUERY_KEYS.CURRENT_USER, user);
+            // Google login also returns brief user info without saved addresses.
+            qc.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_USER });
+            qc.invalidateQueries({ queryKey: QUERY_KEYS.CURRENT_STORE });
+            qc.invalidateQueries({ queryKey: ['cart'] });
+            qc.invalidateQueries({ queryKey: ['wishlist'] });
+        }
+    });
 }
 
 // Logout
@@ -45,17 +60,22 @@ export const useLogoutMutation = () => {
     })
 }
 
-// Đky tài khoản mới
+
 export const useUpdateProfileMutation = () => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, data }) => {
-            return authService.updateProfile(id, data);
+        mutationFn: (idOrData) => {
+
+            const payload =
+                idOrData && typeof idOrData === "object" && "data" in idOrData
+                    ? idOrData.data
+                    : idOrData;
+            return authService.updateProfile(payload);
         },
-        onSuccess: (updateUser) => {
-            qc.setQueryData(QUERY_KEYS.CURRENT_USER, updateUser)
-        }
-    })
+        onSuccess: (updatedUser) => {
+            qc.setQueryData(QUERY_KEYS.CURRENT_USER, updatedUser);
+        },
+    });
 }
 
 export const useRegisterMutation = () => {

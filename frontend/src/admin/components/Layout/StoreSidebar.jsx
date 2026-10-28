@@ -3,17 +3,19 @@ import { NavLink, useNavigate } from "react-router-dom";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
-import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import QueryStatsOutlinedIcon from "@mui/icons-material/QueryStatsOutlined";
 
 const menuItems = [
   { name: "Dashboard", path: "/admin/dashboard", icon: <DashboardOutlinedIcon sx={{ fontSize: 20 }} /> },
   { name: "Seller Management", path: "/admin/sellers", icon: <StorefrontOutlinedIcon sx={{ fontSize: 20 }} /> },
   { name: "User Management", path: "/admin/users", icon: <PeopleAltOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { name: "Global Categories", path: "/admin/categories", icon: <CategoryOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { name: "Platform Financials", path: "/admin/financials", icon: <PaymentsOutlinedIcon sx={{ fontSize: 20 }} /> },
-  { name: "Store Settings", path: "/admin/settings", icon: <SettingsOutlinedIcon sx={{ fontSize: 20 }} /> },
+  { name: "Orders", path: "/admin/orders", icon: <ReceiptLongOutlinedIcon sx={{ fontSize: 20 }} /> },
+  { name: "Promotions", path: "/admin/promotions", icon: <LocalOfferOutlinedIcon sx={{ fontSize: 20 }} /> },
+  { name: "Analytics", path: "/admin/analytics", icon: <QueryStatsOutlinedIcon sx={{ fontSize: 20 }} /> },
+  { name: "Admin Account", path: "/admin/settings", icon: <SettingsOutlinedIcon sx={{ fontSize: 20 }} /> },
 ];
 
 const StoreSidebar = () => {

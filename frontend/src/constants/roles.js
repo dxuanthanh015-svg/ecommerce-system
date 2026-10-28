@@ -23,19 +23,24 @@ export const ROLE_HIERARCHY = {
 };
 
 
+const normalizeRole = (role) => String(role || "")
+  .trim()
+  .replace(/^ROLE_/i, "")
+  .toLowerCase();
+
 export const hasRole = (userRoles, requiredRole) => {
-  if (!userRoles || !Array.isArray(userRoles)) return false;
-  return userRoles.includes(requiredRole);
+  if (!userRoles) return false;
+  const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
+  return roles.some((role) => normalizeRole(role) === normalizeRole(requiredRole));
 };
 
-export const hasAnyRole = (userRoles, requiredRoles) => {
-  if (!userRoles || !Array.isArray(userRoles)) return false;
-  return requiredRoles.some(role => userRoles.includes(role));
-};
+export const hasAnyRole = (userRoles, requiredRoles) =>
+  requiredRoles.some((role) => hasRole(userRoles, role));
 
 export const hasMinimumRole = (userRoles, minimumRole) => {
-  if (!userRoles || !Array.isArray(userRoles)) return false;
-  const maxRoleLevel = Math.max(...userRoles.map(role => ROLE_HIERARCHY[role] || 0));
-  const minRequiredLevel = ROLE_HIERARCHY[minimumRole] || 0;
+  if (!userRoles) return false;
+  const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
+  const maxRoleLevel = Math.max(...roles.map((role) => ROLE_HIERARCHY[normalizeRole(role)] || 0));
+  const minRequiredLevel = ROLE_HIERARCHY[normalizeRole(minimumRole)] || 0;
   return maxRoleLevel >= minRequiredLevel;
 };

@@ -4,13 +4,12 @@ import QrCodeScannerOutlinedIcon from "@mui/icons-material/QrCodeScannerOutlined
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { store_manager_mock_data } from "../../../Data/store-manager_mock_data";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { useAllStores } from "../../../hooks/useStoreQuery";
 import { useProcessOrder } from "../../../hooks/useOrderQuery";
-import { useUpdateVoucher, useVoucherByCode } from "../../../hooks/useVoucherQuery";
 import { useAddManyCart, useCart, useGuestCart } from "../../../hooks/useCartQuery";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
 
 const QrCode = () => {
   const navigate = useNavigate();
@@ -20,23 +19,19 @@ const QrCode = () => {
     return (
       location.state?.order || {
         orderId: `NX-${Math.floor(10000 + Math.random() * 90000)}`,
-        total: 475.20,
+        total: 475200,
         items: [],
       }
     );
   }, [location.state?.order]);
 
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
-  const { data: allStores = store_manager_mock_data } = useAllStores();
+  const { data: allStores = [] } = useAllStores();
   const [isProcessing, setIsProcessing] = useState(false);
   const { mutateAsync: processOrder } = useProcessOrder();
-  const { mutateAsync: updateVoucher } = useUpdateVoucher();
   const { data: cartItems = [] } = useCart(currentUser?.email, { enabled: Boolean(currentUser?.email) });
   const { mutateAsync: addManyCartItem } = useAddManyCart();
   const { data: guestCart = [] } = useGuestCart({ enabled: !currentUser?.email && !isUserLoading });
-  const voucherStoreId = pendingOrder.items?.[0]?.storeId || pendingOrder.items?.[0]?.id_store || "store-001";
-  const { data: voucherInfo = {} } = useVoucherByCode(pendingOrder.voucherCode, voucherStoreId);
-
   const firstItemStoreId = pendingOrder.items?.[0]?.id_store || pendingOrder.items?.[0]?.storeId || "store-001";
   const safeStores = Array.isArray(allStores) ? allStores : [];
   const storeInfo = safeStores.find((s) => String(s.id) === String(firstItemStoreId)) || safeStores[0] || {};
@@ -70,10 +65,10 @@ const QrCode = () => {
   const storeAccount = storeInfo?.bankInfo?.accountNumber || "0000123456789";
   const storeName = storeInfo?.bankInfo?.accountName || storeInfo?.name || "STORE OWNER";
   const qrData = storeInfo?.bankInfo?.qrCodeUrl
-    ? `${storeInfo.bankInfo.qrCodeUrl}?amount=${Math.round((pendingOrder.total || 0) * 25000)}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(storeName)}`
-    : `https://img.vietqr.io/image/${storeBank}-${storeAccount}-compact2.png?amount=${Math.round((pendingOrder.total || 0) * 25000)}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(storeName)}`;
+    ? `${storeInfo.bankInfo.qrCodeUrl}?amount=${Math.round(Number(pendingOrder.total) || 0)}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(storeName)}`
+    : `https://img.vietqr.io/image/${storeBank}-${storeAccount}-compact2.png?amount=${Math.round(Number(pendingOrder.total) || 0)}&addInfo=${pendingOrder.orderId}&accountName=${encodeURIComponent(storeName)}`;
 
-  const fallbackQr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`STORE: ${storeInfo?.name} | ORDER: ${pendingOrder.orderId} | AMOUNT: $${pendingOrder.total}`)}`;
+  const fallbackQr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`STORE: ${storeInfo?.name} | ORDER: ${pendingOrder.orderId} | AMOUNT: ${formatVnd(pendingOrder.total)}`)}`;
 
   const [hasImgError, setHasImgError] = useState(false);
   const qrSrc = hasImgError ? fallbackQr : qrData;
@@ -85,24 +80,12 @@ const QrCode = () => {
   const handlePaid = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
+    let orderCreated = false;
 
     try {
-      // 1. Process order and store revenue tracking on Mock Server
+      // Server recalculates totals and consumes a voucher atomically with order creation.
       await processOrder({ pendingOrder, currentUser });
-
-      // 2. Consume voucher if used
-      if (pendingOrder.voucherCode && pendingOrder.discountAmount > 0) {
-        // Fetch voucher to get its ID then update usedCount
-        if (voucherInfo) {
-          await updateVoucher({
-            voucherId: voucherInfo.id || voucherInfo._id,
-            updateData: {
-              usedCount: (Number(voucherInfo.usedCount) || 0) + 1,
-              totalDiscountGiven: (Number(voucherInfo.totalDiscountGiven) || 0) + pendingOrder.discountAmount,
-            }
-          });
-        }
-      }
+      orderCreated = true;
 
       // 3. Remove paid items from user cart
       const paidItems = pendingOrder.items || [];
@@ -123,11 +106,17 @@ const QrCode = () => {
         await addManyCartItem({ items: remaining, userEmail: null });
       }
 
-      toast.success(`Đơn hàng ${pendingOrder.orderId} đã thanh toán thành công!`);
+      toast.success(`Đơn hàng ${pendingOrder.orderId} đã được tạo và đang chờ xác nhận thanh toán.`);
       navigate("/account/order");
     } catch (err) {
-      console.error("Error processing order payment:", err);
-      toast.error("Đơn hàng xử lý thất bại: " + err.message);
+      if (orderCreated) {
+        console.error("Order created, but cart cleanup failed:", err);
+        toast.success(`Đơn hàng ${pendingOrder.orderId} đã được tạo. Giỏ hàng chưa đồng bộ; vui lòng kiểm tra lại.`);
+        navigate("/account/order");
+      } else {
+        console.error("Error processing order payment:", err);
+        toast.error("Đơn hàng xử lý thất bại: " + (err.response?.data?.message || err.message));
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -212,7 +201,7 @@ const QrCode = () => {
             <div className="flex justify-between items-center text-gray-500">
               <span>Số tiền thanh toán:</span>
               <span className="font-extrabold text-indigo-600 text-sm">
-                ${Number(pendingOrder.total || 0).toFixed(2)}
+                {formatVnd(pendingOrder.total)}
                 <span className="text-[10px] text-gray-400 font-normal ml-1">
                   (~{Math.round((pendingOrder.total || 0) * 25000).toLocaleString('vi-VN')} VND)
                 </span>

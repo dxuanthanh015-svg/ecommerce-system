@@ -1,5 +1,6 @@
 import React from "react";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import { formatVnd } from "../../../utils/currency";
 
 const getInitials = (name) => {
   if (!name) return "CU";
@@ -71,7 +72,7 @@ const OrderTableRow = ({
 
       {/* Total Amount */}
       <td className="py-4 px-6 text-xs sm:text-sm font-extrabold text-gray-900">
-        ${typeof totalAmount === "number" ? totalAmount.toFixed(2) : totalAmount}
+        {formatVnd(totalAmount)}
       </td>
 
       {/* Status Badge */}

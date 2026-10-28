@@ -3,6 +3,7 @@ import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import { formatVnd } from "../../../utils/currency";
 
 const iconMap = {
   revenue: BusinessCenterOutlinedIcon,
@@ -16,18 +17,11 @@ const accentStyles = {
   emerald: { bg: "bg-emerald-50", text: "text-emerald-500", delta: "text-emerald-500" },
 };
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
-
 const SummaryCard = ({ label, value, valueType, delta, note, trend, iconKey, accent }) => {
   const IconComponent = iconMap[iconKey] || BusinessCenterOutlinedIcon;
   const styles = accentStyles[accent] || accentStyles.indigo;
 
-  const displayValue = valueType === "currency" ? formatCurrency(value) : value;
+  const displayValue = valueType === "currency" ? formatVnd(value) : value;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-2xs p-5 sm:p-6 flex items-start justify-between gap-4 transition-shadow hover:shadow-md">

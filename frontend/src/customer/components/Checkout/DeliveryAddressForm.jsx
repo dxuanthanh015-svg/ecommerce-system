@@ -4,7 +4,7 @@ import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import toast from "react-hot-toast";
 
-const DeliveryAddressForm = ({ savedAddress, editingAddress, onCancelEdit, paymentMethod, setPaymentMethod, onAddressSaved }) => {
+const DeliveryAddressForm = ({ savedAddress, selectedAddress, editingAddress, onCancelEdit, paymentMethod, setPaymentMethod, onAddressSaved }) => {
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
@@ -19,25 +19,26 @@ const DeliveryAddressForm = ({ savedAddress, editingAddress, onCancelEdit, payme
   });
 
   useEffect(() => {
-    if (editingAddress) {
+    const addressToPopulate = editingAddress || selectedAddress;
+    if (addressToPopulate) {
       setFormData({
         ...formData,
-        email: editingAddress.email || "",
-        firstName: editingAddress.firstName || "",
-        lastName: editingAddress.lastName || "",
-        phone: editingAddress.phone || "",
-        address: editingAddress.address || "",
-        city: editingAddress.city || "",
-        district: editingAddress.district || "",
+        email: addressToPopulate.email || "",
+        firstName: addressToPopulate.firstName || "",
+        lastName: addressToPopulate.lastName || "",
+        phone: addressToPopulate.phone || "",
+        address: addressToPopulate.address || addressToPopulate.streetAddress || "",
+        city: addressToPopulate.city || "",
+        district: addressToPopulate.district || "",
       });
     }
-  }, [editingAddress]);
+  }, [editingAddress, selectedAddress]);
 
-  const handleShippingSave = (e) => {
+  const handleShippingSave = async (e) => {
     e.preventDefault();
     const { firstName, lastName, phone, address, city, district } = formData;
-    if (!firstName.trim() && !lastName.trim() && !phone.trim() && !address.trim() && !city.trim() && !district.trim()) {
-      toast.error("Vui lòng điền ít nhất một trường thông tin!");
+    if (![firstName, lastName, phone, address, city, district].every((value) => value.trim())) {
+      toast.error("Vui lòng nhập họ tên, số điện thoại và đầy đủ địa chỉ!");
       return;
     }
 
@@ -58,8 +59,6 @@ const DeliveryAddressForm = ({ savedAddress, editingAddress, onCancelEdit, payme
           }
           : addr
       );
-      onCancelEdit();
-      toast.success("Đã cập nhật địa chỉ giao hàng!");
     } else {
       // Add new address
       const shippingData = {
@@ -73,12 +72,23 @@ const DeliveryAddressForm = ({ savedAddress, editingAddress, onCancelEdit, payme
         district: formData.district,
       };
       updatedList = [...savedAddress, shippingData];
-      toast.success("Đã lưu địa chỉ giao hàng mới!");
     }
 
     // Persist lên server → React Query tự recompute savedAddress
     if (onAddressSaved) {
-      onAddressSaved(updatedList);
+      try {
+        await onAddressSaved(updatedList);
+      } catch {
+        toast.error("Không thể lưu địa chỉ. Vui lòng thử lại!");
+        return;
+      }
+    }
+
+    if (editingAddress) {
+      onCancelEdit();
+      toast.success("Đã cập nhật địa chỉ giao hàng!");
+    } else {
+      toast.success("Đã lưu địa chỉ giao hàng mới!");
     }
 
     setFormData({

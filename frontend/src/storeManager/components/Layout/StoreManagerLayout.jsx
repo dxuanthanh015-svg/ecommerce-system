@@ -3,16 +3,21 @@ import { Navigate, Outlet } from "react-router-dom";
 import StoreSidebar from "./StoreSidebar";
 import StoreHeader from "./StoreHeader";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
+import { hasRole, ROLE } from "../../../constants/roles";
 
-const StoreManagerLayout = () => {
-  const { data: currentUser, isLoading } = useCurrentUser();
+const StoreManagerLayout = ({ requiredRole = ROLE.STORE_MANAGER }) => {
+  const { data: currentUser, isLoading, isFetching } = useCurrentUser();
 
-  if (isLoading) {
-    return null; // Đang kiểm tra phiên đăng nhập từ Cache / Server
+  if (isLoading || isFetching) {
+    return <div className="min-h-screen grid place-items-center text-gray-500">Đang kiểm tra quyền truy cập...</div>;
   }
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!hasRole(currentUser.roles || currentUser.role, requiredRole)) {
+    return <Navigate to="/" replace />;
   }
 
   return (

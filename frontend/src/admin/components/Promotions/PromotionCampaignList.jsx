@@ -10,6 +10,7 @@ const PromotionCampaignList = ({
   selectedPromotionId,
   onTabChange,
   onSelectPromotion,
+  emptyMessage = "Chưa có voucher phù hợp.",
 }) => {
   return (
     <section className="rounded-2xl border border-[#e5e7f2] bg-white shadow-sm">
@@ -49,7 +50,7 @@ const PromotionCampaignList = ({
         ) : (
           <div className="px-6 py-10 text-center">
             <p className="text-sm font-medium text-slate-500">
-              No promotions match this filter yet.
+              {emptyMessage}
             </p>
           </div>
         )}

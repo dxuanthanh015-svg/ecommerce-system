@@ -32,9 +32,18 @@ export const getProductInventoryStatus = (stockCount) => {
 };
 
 export const getProductCategories = (products = []) => {
-  const categories = Array.from(
-    new Set(products.map((product) => product.category).filter(Boolean)),
-  );
+  const categories = Array.from(new Set(
+    products
+      .map((product) => {
+        const category = product?.category;
+        if (typeof category === "string") return category.trim();
+        if (category && typeof category === "object") {
+          return String(category.name || category.slug || "").trim();
+        }
+        return String(product?.categoryName || "").trim();
+      })
+      .filter(Boolean),
+  )).sort((left, right) => left.localeCompare(right));
 
   return ["All Categories", ...categories];
 };
@@ -51,8 +60,11 @@ export const filterProducts = (
       product.title?.toLowerCase().includes(normalizedSearch) ||
       product.sku?.toLowerCase().includes(normalizedSearch);
 
+    const categoryName = typeof product?.category === "string"
+      ? product.category
+      : product?.category?.name || product?.category?.slug || product?.categoryName || "";
     const matchesCategory =
-      selectedCategory === "All Categories" || product.category === selectedCategory;
+      selectedCategory === "All Categories" || categoryName === selectedCategory;
 
     const matchesStatus =
       selectedStatus === "All Statuses" ||

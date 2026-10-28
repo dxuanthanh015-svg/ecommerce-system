@@ -1,171 +1,104 @@
-import React, { useState } from "react";
-import toast from "react-hot-toast";
+import React from "react";
 import { Avatar, Rating } from "@mui/material";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import AddIcon from "@mui/icons-material/Add";
-import CheckIcon from "@mui/icons-material/Check";
-import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
-import StarIcon from "@mui/icons-material/Star";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import StarIcon from "@mui/icons-material/Star";
 
-const StoreHeader = ({ storeData, totalProducts }) => {
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(1280);
-
-  const handleToggleFollow = () => {
-    setIsFollowing((prev) => !prev);
-    setFollowersCount((prev) => (isFollowing ? prev - 1 : prev + 1));
-  };
-
-  const handleChat = () => {
-    toast.success(`Đã mở cửa sổ trò chuyện với gian hàng "${storeData?.name}"!`);
-  };
-
+const StoreHeader = ({ storeData, totalProducts = 0 }) => {
   if (!storeData) return null;
 
+  const rating = Number(storeData.rating) || 0;
+  const reviewCount = Number(storeData.reviewCount) || 0;
+  const joinedDate = storeData.createdAt
+    ? new Date(storeData.createdAt).toLocaleDateString("vi-VN", { month: "long", year: "numeric" })
+    : null;
+
   return (
-    <div className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-md mb-8">
-      {/* Cover Banner */}
-      <div className="h-44 sm:h-56 w-full relative bg-gradient-to-r from-indigo-900 via-indigo-700 to-purple-800">
-        <img
-          src={storeData.imageUrl || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200&auto=format&fit=crop"}
-          alt="Store Banner"
-          className="w-full h-full object-cover opacity-35 mix-blend-overlay"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent" />
+    <section className="mb-8 overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+      <div className="relative h-44 bg-gradient-to-r from-indigo-950 via-indigo-800 to-violet-700 sm:h-60">
+        {storeData.bannerUrl && (
+          <img
+            src={storeData.bannerUrl}
+            alt={`${storeData.name} banner`}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-950/75 via-gray-950/30 to-transparent" />
+        <div className="absolute bottom-5 left-6 right-6 text-white sm:bottom-7 sm:left-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">Cửa hàng chính thức</p>
+          <p className="mt-1 text-sm text-white/90">Khám phá sản phẩm và thông tin cửa hàng</p>
+        </div>
       </div>
 
-      {/* Main Store Identity & Info Card */}
-      <div className="relative px-6 sm:px-8 pb-7 -mt-16 sm:-mt-20">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+      <div className="px-5 pb-6 sm:px-8">
+        <div className="-mt-10 flex flex-col gap-4 sm:-mt-12 sm:flex-row sm:items-end">
+          <Avatar
+            src={storeData.logoUrl || undefined}
+            alt={storeData.name}
+            sx={{ width: { xs: 88, sm: 104 }, height: { xs: 88, sm: 104 }, bgcolor: "#4f46e5", fontSize: 32 }}
+            className="shrink-0 border-4 border-white shadow-lg"
+          >
+            {storeData.name?.trim()?.charAt(0)?.toUpperCase() || "S"}
+          </Avatar>
 
-          {/* Avatar + Store Basic Details */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
-            <Avatar
-              src={storeData.imageUrl}
-              alt={storeData.name}
-              sx={{ width: { xs: 90, sm: 110 }, height: { xs: 90, sm: 110 }, bgcolor: "#4f46e5" }}
-              className="rounded-3xl ring-4 ring-white shadow-xl border border-gray-100 shrink-0"
-            >
-              {storeData.name?.charAt(0).toUpperCase()}
-            </Avatar>
-
-            <div className="space-y-1.5 pt-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                  {storeData.name}
-                </h1>
-                <span className="bg-indigo-100 text-indigo-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider">
-                  <VerifiedIcon sx={{ fontSize: 13 }} />
-                  Official Store
+          <div className="min-w-0 flex-1 pb-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-extrabold tracking-tight text-gray-950 sm:text-3xl">{storeData.name}</h1>
+              {storeData.status === "ACTIVE" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+                  <VerifiedIcon sx={{ fontSize: 14 }} /> Đã xác minh
                 </span>
-              </div>
-
-              <p className="text-xs text-white font-medium">
-                Chủ sở hữu: <strong className="text-white font-bold">{storeData.owner || "NexCart Partner"}</strong>
-              </p>
-
-              {/* Rating & Followers info */}
-              <div className="flex items-center gap-3 text-xs flex-wrap pt-1">
-                <div className="flex items-center gap-1 font-bold text-gray-900">
-                  <Rating value={storeData.rating || 4.9} precision={0.1} readOnly size="small" sx={{ color: "#6366f1" }} />
-                  <span>{storeData.rating || 4.9}</span>
-                  <span className="text-gray-400 font-normal">(150+ đánh giá)</span>
-                </div>
-                <span className="text-gray-300">•</span>
-                <span className="font-semibold text-gray-600">
-                  <strong className="text-gray-900 font-bold">{followersCount.toLocaleString()}</strong> Người theo dõi
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={handleToggleFollow}
-              className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-sm ${isFollowing
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20"
-                }`}
-            >
-              {isFollowing ? (
-                <>
-                  <CheckIcon sx={{ fontSize: 16 }} />
-                  <span>Đã Theo Dõi</span>
-                </>
-              ) : (
-                <>
-                  <AddIcon sx={{ fontSize: 16 }} />
-                  <span>Theo Dõi Shop</span>
-                </>
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleChat}
-              className="flex items-center gap-2 px-5 py-3 bg-white hover:bg-indigo-50/60 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-2xl transition-all cursor-pointer"
-            >
-              <ChatBubbleOutlineOutlinedIcon sx={{ fontSize: 18 }} />
-              <span>Chat Với Shop</span>
-            </button>
-          </div>
-
-        </div>
-
-        {/* Detailed Store Metadata Grid */}
-        <div className="mt-8 pt-6 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-          <div className="flex items-center gap-3 p-3 bg-[#f8f9fc] rounded-2xl border border-gray-100/80">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-              <Inventory2OutlinedIcon sx={{ fontSize: 18 }} />
             </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">SẢN PHẨM</span>
-              <span className="font-extrabold text-gray-900 truncate block">{totalProducts || 10} Sản phẩm</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 bg-[#f8f9fc] rounded-2xl border border-gray-100/80">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-              <StarIcon sx={{ fontSize: 18 }} />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">ĐÁNH GIÁ</span>
-              <span className="font-extrabold text-gray-900 truncate block">{storeData.rating || 4.9} / 5.0 ⭐</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 bg-[#f8f9fc] rounded-2xl border border-gray-100/80">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <PhoneOutlinedIcon sx={{ fontSize: 18 }} />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">HOTLINE</span>
-              <span className="font-extrabold text-gray-900 truncate block">{storeData.phone || "0987654321"}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 bg-[#f8f9fc] rounded-2xl border border-gray-100/80">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-              <LocationOnOutlinedIcon sx={{ fontSize: 18 }} />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">ĐỊA CHỈ</span>
-              <span className="font-bold text-gray-900 truncate block" title={storeData.address}>
-                {storeData.address || "New York"}
-              </span>
-            </div>
+            {storeData.ownerName && <p className="mt-1 text-sm text-gray-500">Chủ cửa hàng: {storeData.ownerName}</p>}
           </div>
         </div>
 
+        {storeData.description && (
+          <p className="mt-5 max-w-4xl whitespace-pre-line text-sm leading-6 text-gray-600">{storeData.description}</p>
+        )}
+
+        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-gray-100 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+          <InfoCard icon={<Inventory2OutlinedIcon sx={{ fontSize: 18 }} />} label="Sản phẩm" value={`${totalProducts} sản phẩm`} tone="indigo" />
+          <InfoCard
+            icon={<StarIcon sx={{ fontSize: 18 }} />}
+            label="Đánh giá"
+            value={`${rating.toFixed(1)} / 5`}
+            description={`${reviewCount} đánh giá`}
+            rating={rating}
+            tone="amber"
+          />
+          {storeData.address && <InfoCard icon={<LocationOnOutlinedIcon sx={{ fontSize: 18 }} />} label="Địa chỉ" value={storeData.address} tone="purple" />}
+          {storeData.phone && <InfoCard icon={<PhoneOutlinedIcon sx={{ fontSize: 18 }} />} label="Liên hệ cửa hàng" value={storeData.phone} tone="emerald" />}
+          {joinedDate && <InfoCard icon={<VerifiedIcon sx={{ fontSize: 18 }} />} label="Hoạt động từ" value={joinedDate} tone="blue" />}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const tones = {
+  indigo: "bg-indigo-50 text-indigo-600",
+  amber: "bg-amber-50 text-amber-600",
+  purple: "bg-purple-50 text-purple-600",
+  emerald: "bg-emerald-50 text-emerald-600",
+  blue: "bg-blue-50 text-blue-600",
+};
+
+function InfoCard({ icon, label, value, description, rating, tone }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50/80 p-3">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tones[tone]}`}>{icon}</div>
+      <div className="min-w-0">
+        <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</span>
+        <span className="block truncate text-sm font-bold text-gray-900" title={value}>{value}</span>
+        {rating != null && <Rating value={rating} precision={0.1} readOnly size="small" sx={{ color: "#d97706", mt: 0.25 }} />}
+        {description && <span className="block text-[10px] text-gray-500">{description}</span>}
       </div>
     </div>
   );
-};
+}
 
 export default StoreHeader;

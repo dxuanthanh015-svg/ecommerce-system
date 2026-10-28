@@ -41,39 +41,48 @@ const HomeSectionCarousel = ({ data, sectionName }) => {
 
   const syncActiveIndex = ({ item }) => setActiveIndex(item);
 
-  const items = data
-    ?.slice(0, 10)
+  const products = Array.isArray(data) ? data.slice(0, 10) : [];
+  const items = products
     .map((product, index) => (
       <HomeSectionCard key={product.id || index} product={product} />
     ));
 
   return (
     <div className="w-full my-6">
-      {/* Section Header */}
-      <div className="flex items-center justify-between py-4 border-b border-gray-100 mb-4 px-2">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight font-sans">{sectionName}</h2>
-        <Link
-          to="/trending"
-          className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-        >
-          {sectionName === "Trending Now" ? "See all" : false}
-        </Link>
-      </div>
+      {sectionName && (
+        <div className="flex items-center justify-between py-4 border-b border-gray-100 mb-4 px-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight font-sans">{sectionName}</h2>
+          {sectionName === "Trending Now" && (
+            <Link to="/trending" className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+              See all
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="relative">
-        <Carousel
-          ref={carouselRef}
-          mouseTracking
-          disableButtonsControls
-          items={items}
-          responsive={responsive}
-          disableDotsControls
-          onSlideChanged={syncActiveIndex}
-          activeIndex={activeIndex}
-          controlsStrategy="responsive"
-        />
+        {products.length <= 4 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 justify-items-center sm:justify-items-start">
+            {products.map((product, index) => (
+              <div key={product.id || index} className="w-full max-w-[280px]">
+                <HomeSectionCard product={product} />             </div>
+            ))}
+          </div>
+        ) : (
+          <Carousel
+            ref={carouselRef}
+            mouseTracking
+            disableButtonsControls
+            items={items}
+            responsive={responsive}
+            disableDotsControls
+            onSlideChanged={syncActiveIndex}
+            activeIndex={activeIndex}
+            controlsStrategy="responsive"
+          />
+        )}
 
-        {items && activeIndex < items.length - visibleItems && (
+        {products.length > 4 && activeIndex < items.length - visibleItems && (
           <Button
             variant="contained"
             onClick={slideNext}
@@ -98,7 +107,7 @@ const HomeSectionCarousel = ({ data, sectionName }) => {
           </Button>
         )}
 
-        {activeIndex !== 0 && (
+        {products.length > 4 && activeIndex !== 0 && (
           <Button
             variant="contained"
             onClick={slidePrev}

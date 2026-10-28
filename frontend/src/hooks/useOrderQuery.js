@@ -19,11 +19,11 @@ export const useUserOrders = (userEmail, options = {}) => {
 // Dùng chung queryKey STORE_REVENUE và select orders để tái sử dụng cache, không fetch lại allStoreRevenue
 export const useStoreOrders = (storeId, options = {}) => {
   return useQuery({
-    queryKey: QUERY_KEYS.STORE_REVENUE(storeId),
-    queryFn: () => orderService.fetchStoreRevenueById(storeId),
-    select: (data) => sortOrdersByNewest(data?.orders || []),
+    queryKey: QUERY_KEYS.ORDERS(storeId),
+    queryFn: () => orderService.fetchStoreOrders(),
+    select: (data) => sortOrdersByNewest(data || []),
     enabled: Boolean(storeId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
     ...options,
   });
@@ -92,7 +92,7 @@ export const useUpdateOrderStatus = () => {
       orderService.updateOrderStatusInAllRevenue(orderId, status, storeId),
     onSuccess: (data, variables) => {
       const orderId = variables?.orderId;
-      const newStatus = variables?.status;
+      const newStatus = data?.orderStatus || data?.status || variables?.status;
       if (!orderId || !newStatus) return;
 
       // 1. Cập nhật trực tiếp cache storeRevenue (Store Manager)
@@ -136,6 +136,10 @@ export const useUpdateOrderStatus = () => {
         if (!old) return old;
         return { ...old, status: newStatus, orderStatus: newStatus };
       });
+      if (variables?.storeId) {
+        qc.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS(variables.storeId) });
+        qc.invalidateQueries({ queryKey: QUERY_KEYS.STORE_REVENUE(variables.storeId) });
+      }
     },
   });
 };

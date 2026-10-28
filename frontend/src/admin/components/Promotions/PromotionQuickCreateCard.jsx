@@ -12,6 +12,7 @@ const PromotionQuickCreateCard = ({
   onDraftChange,
   onSaveDraft,
   onPublish,
+  isCreating = false,
 }) => {
   return (
     <section className="rounded-2xl border border-[#e5e7f2] bg-white p-5 shadow-sm">
@@ -25,7 +26,7 @@ const PromotionQuickCreateCard = ({
             name="code"
             value={draft.code}
             onChange={onDraftChange}
-            placeholder="e.g. SUMMER24"
+            placeholder="Nhập mã voucher"
           />
 
           <div className="grid grid-cols-[1.15fr_0.85fr] gap-3">
@@ -92,6 +93,7 @@ const PromotionQuickCreateCard = ({
           <button
             type="button"
             onClick={onSaveDraft}
+            disabled={isCreating}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-600 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50"
           >
             <SaveOutlinedIcon sx={{ fontSize: 18 }} />
@@ -101,6 +103,7 @@ const PromotionQuickCreateCard = ({
           <button
             type="button"
             onClick={onPublish}
+            disabled={isCreating}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
           >
             <CampaignRoundedIcon sx={{ fontSize: 18 }} />

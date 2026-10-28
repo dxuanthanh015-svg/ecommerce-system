@@ -5,6 +5,7 @@ import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import OrderTracker from "../../../customer/components/Order/OrderTracker";
 import { getOrderDeliveryInfo } from "../../../services/orderService";
+import { formatVnd } from "../../../utils/currency";
 
 
 export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatusChange }) {
@@ -109,13 +110,13 @@ export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatus
                       </div>
                     </div>
                     <span className="text-sm font-bold text-slate-900 shrink-0">
-                      ${((Number(item.price) || 0) * (Number(item.quantity) || 1)).toFixed(2)}
+                      {formatVnd((Number(item.price) || 0) * (Number(item.quantity) || 1))}
                     </span>
                   </div>
                 ))
               ) : (
                 <div className="p-4 text-xs text-slate-500">
-                  Item details stored on order total: ${totalAmount.toFixed(2)}
+                  Item details stored on order total: {formatVnd(totalAmount)}
                 </div>
               )}
             </div>
@@ -130,12 +131,12 @@ export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatus
             {order.voucherCode && (
               <div className="flex justify-between text-xs text-emerald-700 font-semibold">
                 <span>Voucher Applied</span>
-                <span>{order.voucherCode} (-${Number(order.discountAmount || 0).toFixed(2)})</span>
+                <span>{order.voucherCode} (-{formatVnd(order.discountAmount)})</span>
               </div>
             )}
             <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center">
               <span className="text-sm font-bold text-slate-900">Total Order Amount</span>
-              <span className="text-base font-extrabold text-indigo-600">${totalAmount.toFixed(2)}</span>
+              <span className="text-base font-extrabold text-indigo-600">{formatVnd(totalAmount)}</span>
             </div>
           </div>
         </div>

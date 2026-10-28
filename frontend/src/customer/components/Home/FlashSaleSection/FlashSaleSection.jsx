@@ -1,15 +1,17 @@
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { product_mock_data } from "../../../../Data/product_mock_data";
 import CircleIcon from "@mui/icons-material/Circle";
 import FlashSaleCountdown from "./FlashSaleCountDown";
 import { salePoster } from "./salePoster";
 import { useNavigate } from "react-router-dom";
 import { useProducts } from "../../../../hooks/useProductQuery";
+import { formatVnd } from "../../../../utils/currency";
 
 export default function FlashSaleSection() {
   const navigate = useNavigate();
-  const { data: allProducts = product_mock_data, isLoading } = useProducts();
-  const flashSaleItems = allProducts.filter((p) => p.isFlashSale === true);
+  const { data: allProducts = [], isLoading } = useProducts();
+  // Backend chưa có field isFlashSale → dùng salePoster làm fallback
+  const safeProducts = Array.isArray(allProducts) ? allProducts : [];
+  const flashSaleItems = safeProducts.filter((p) => p.isFlashSale === true);
   const displayItems = flashSaleItems.length > 0 ? flashSaleItems : salePoster;
 
   return (
@@ -67,11 +69,11 @@ export default function FlashSaleSection() {
                 </h3>
                 <div className="flex items-baseline gap-2 mb-3">
                   <span className="text-base sm:text-lg font-bold text-gray-900">
-                    ${(item.discountedPrice || item.price || 0).toFixed(2)}
+                    {formatVnd(item.discountedPrice || item.price || 0)}
                   </span>
                   {item.price && (
                     <span className="text-xs sm:text-sm text-gray-400 line-through">
-                      ${item.price.toFixed(2)}
+                      {formatVnd(item.price)}
                     </span>
                   )}
                 </div>

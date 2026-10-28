@@ -2,6 +2,7 @@ import { Children, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Toaster } from 'react-hot-toast';
 import "./index.css";
 import App from "./App.jsx";
 import { AppRouters } from "./Routers/AppRouters.jsx";
@@ -23,6 +24,20 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={AppRouters} />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3500,
+          style: {
+            borderRadius: '12px',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '14px',
+            fontWeight: 500,
+          },
+          success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+        }}
+      />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>,

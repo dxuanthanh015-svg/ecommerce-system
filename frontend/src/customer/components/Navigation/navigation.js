@@ -1,5 +1,4 @@
-import { product_mock_data } from '../../../Data/product_mock_data';
-
+// Navigation configuration with standard e-commerce categories
 const featuredByCategory = {
   women: [
     {
@@ -59,79 +58,109 @@ const featuredByCategory = {
   ],
 };
 
-const displayNames = {
-  // topLavelCategory
-  women: 'Women',
-  men: 'Men',
-  unisex: 'Unisex',
-  accessories: 'Accessories',
-  // secondLavelCategory
-  clothing: 'Clothing',
-  shoes: 'Shoes',
-  bags_accessories: 'Bags & Accessories',
-  // thirdLavelCategory
-  dresses: 'Dresses',
-  tops_blouses: 'Tops & Blouses',
-  trousers_pants: 'Trousers & Pants',
-  jackets_coats: 'Jackets & Coats',
-  hoodies_sweatshirts: 'Hoodies & Sweatshirts',
-  t_shirts: 'T-Shirts',
-  suits_blazers: 'Suit Blazers',
-  heels: 'High Heels',
-  boots: 'Boots',
-  sports_shoes: 'Running & Sports Shoes',
-  casual_shoes: 'Casual Sneakers',
-  bags_handbags: 'Handbags & Purses',
-  wallets: 'Wallets',
-  sunglasses: 'Sunglasses',
-  watches: 'Watches',
-  hats_caps: 'Hats & Caps',
-};
-
-const toDisplayName = (id) =>
-  displayNames[id] ??
-  id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
-function buildNavigation(products) {
-  const tree = {};
-
-  for (const p of products) {
-    const topId = p.topLavelCategory?.toLowerCase();
-    const secId = p.secondLavelCategory?.toLowerCase();
-    const thrId = p.thirdLavelCategory?.toLowerCase();
-
-    if (!topId) continue;
-    if (!tree[topId]) tree[topId] = {};
-    if (secId) {
-      if (!tree[topId][secId]) tree[topId][secId] = new Set();
-      if (thrId) tree[topId][secId].add(thrId);
-    }
-  }
-
-  const categories = Object.entries(tree).map(([topId, sections]) => ({
-    id: topId,
-    name: toDisplayName(topId),
-    href: `/${topId}`,
-    featured: featuredByCategory[topId] ?? [],
-    sections: Object.entries(sections).map(([secId, thirdIds]) => ({
-      id: secId,
-      name: toDisplayName(secId),
-      items: [...thirdIds].map((thrId) => ({
-        id: thrId,
-        name: toDisplayName(thrId),
-        href: `/${topId}/${secId}/${thrId}`,
-      })),
-    })),
-  }));
-
-  return {
-    categories,
-    pages: [
-      { name: 'All Products', href: '/product' },
-      { name: 'Flash Sale 🔥', href: '/flashsale' },
-      { name: 'Trending 🚀', href: '/trending' },
+const defaultCategories = [
+  {
+    id: 'women',
+    name: 'Women',
+    href: '/women',
+    featured: featuredByCategory.women,
+    sections: [
+      {
+        id: 'clothing',
+        name: 'Clothing',
+        items: [
+          { id: 'dresses', name: 'Dresses', href: '/women/clothing/dresses' },
+          { id: 'tops_blouses', name: 'Tops & Blouses', href: '/women/clothing/tops_blouses' },
+          { id: 'trousers_pants', name: 'Trousers & Pants', href: '/women/clothing/trousers_pants' },
+          { id: 'jackets_coats', name: 'Jackets & Coats', href: '/women/clothing/jackets_coats' },
+        ],
+      },
+      {
+        id: 'shoes',
+        name: 'Shoes',
+        items: [
+          { id: 'heels', name: 'High Heels', href: '/women/shoes/heels' },
+          { id: 'boots', name: 'Boots', href: '/women/shoes/boots' },
+          { id: 'casual_shoes', name: 'Casual Sneakers', href: '/women/shoes/casual_shoes' },
+        ],
+      },
     ],
-  };
-}
+  },
+  {
+    id: 'men',
+    name: 'Men',
+    href: '/men',
+    featured: featuredByCategory.men,
+    sections: [
+      {
+        id: 'clothing',
+        name: 'Clothing',
+        items: [
+          { id: 't_shirts', name: 'T-Shirts', href: '/men/clothing/t_shirts' },
+          { id: 'hoodies_sweatshirts', name: 'Hoodies & Sweatshirts', href: '/men/clothing/hoodies_sweatshirts' },
+          { id: 'suits_blazers', name: 'Suit Blazers', href: '/men/clothing/suits_blazers' },
+          { id: 'jackets_coats', name: 'Jackets & Coats', href: '/men/clothing/jackets_coats' },
+        ],
+      },
+      {
+        id: 'shoes',
+        name: 'Shoes',
+        items: [
+          { id: 'sports_shoes', name: 'Sports Shoes', href: '/men/shoes/sports_shoes' },
+          { id: 'casual_shoes', name: 'Casual Sneakers', href: '/men/shoes/casual_shoes' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'unisex',
+    name: 'Unisex',
+    href: '/unisex',
+    featured: featuredByCategory.unisex,
+    sections: [
+      {
+        id: 'clothing',
+        name: 'Clothing',
+        items: [
+          { id: 'hoodies_sweatshirts', name: 'Hoodies & Sweatshirts', href: '/unisex/clothing/hoodies_sweatshirts' },
+          { id: 't_shirts', name: 'T-Shirts', href: '/unisex/clothing/t_shirts' },
+          { id: 'trousers_pants', name: 'Trousers & Pants', href: '/unisex/clothing/trousers_pants' },
+        ],
+      },
+      {
+        id: 'shoes',
+        name: 'Shoes',
+        items: [
+          { id: 'casual_shoes', name: 'Casual Sneakers', href: '/unisex/shoes/casual_shoes' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'accessories',
+    name: 'Accessories',
+    href: '/accessories',
+    featured: featuredByCategory.accessories,
+    sections: [
+      {
+        id: 'bags_accessories',
+        name: 'Bags & Accessories',
+        items: [
+          { id: 'watches', name: 'Watches', href: '/accessories/bags_accessories/watches' },
+          { id: 'bags_handbags', name: 'Bags & Handbags', href: '/accessories/bags_accessories/bags_handbags' },
+          { id: 'sunglasses', name: 'Sunglasses', href: '/accessories/bags_accessories/sunglasses' },
+          { id: 'wallets', name: 'Wallets', href: '/accessories/bags_accessories/wallets' },
+        ],
+      },
+    ],
+  },
+];
 
-export const navigation = buildNavigation(product_mock_data);
+export const navigation = {
+  categories: defaultCategories,
+  pages: [
+    { name: 'All Products', href: '/product' },
+    { name: 'Flash Sale 🔥', href: '/flashsale' },
+    { name: 'Trending 🚀', href: '/trending' },
+  ],
+};

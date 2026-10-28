@@ -3,15 +3,23 @@ import { QUERY_KEYS } from "../constants/queryKeys";
 import { voucherService } from "../services/voucherService";
 
 // 1. Lấy danh sách vouchers theo storeId
-export const useVouchers = (storeId = null) => {
+export const useVouchers = (storeId = null, options = {}) => {
   return useQuery({
     queryKey: QUERY_KEYS.VOUCHERS(storeId),
     queryFn: () => voucherService.fetchVouchers(storeId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 1,
+    enabled: options.enabled ?? true,
   });
 };
+
+export const useVoucherMetrics = (storeId = null, options = {}) => useQuery({
+  queryKey: ["voucher-metrics", storeId],
+  queryFn: () => voucherService.fetchMetrics(storeId),
+  enabled: options.enabled ?? true,
+  staleTime: 60_000,
+});
 
 // 2. Lấy voucher theo mã code
 export const useVoucherByCode = (code, storeId = null) => {
@@ -32,6 +40,7 @@ export const useCreateVoucher = () => {
     onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.VOUCHERS(variables.storeId) });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.VOUCHERS(null) });
+      qc.invalidateQueries({ queryKey: ["voucher-metrics", variables.storeId] });
     },
   });
 };
@@ -44,6 +53,7 @@ export const useUpdateVoucher = () => {
       voucherService.updateVoucher(voucherId, updateData),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vouchers'] });
+      qc.invalidateQueries({ queryKey: ["voucher-metrics"] });
     },
   });
 };
@@ -55,6 +65,7 @@ export const useDeleteVoucher = () => {
     mutationFn: (voucherId) => voucherService.deleteVoucher(voucherId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vouchers'] });
+      qc.invalidateQueries({ queryKey: ["voucher-metrics"] });
     },
   });
 };

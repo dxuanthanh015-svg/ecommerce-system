@@ -14,21 +14,46 @@ export default function ProductGrid({ productsList, filterState = {}, sortOption
   const flashSaleLocation = location.pathname.toLowerCase().includes('flashsale');
   const trendingLocation = location.pathname.toLowerCase().includes('trending');
 
+  const normalizeCategory = (value) => String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+
+  const matchesCategory = (product, routeValue, level) => {
+    if (!routeValue) return true;
+
+    const category = product.category || {};
+    const route = normalizeCategory(routeValue);
+    const aliases = {
+      casualshoes: ["casualshoes", "unisexcasualshoes", "casualsneakers"],
+      heel: ["heel", "heels", "highheels"],
+      heels: ["heels", "heel", "highheels"],
+    };
+    const accepted = new Set([route, ...(aliases[route] || [])]);
+    const candidates = level === "third"
+      ? [product.thirdLavelCategory, category.slug, category.name, category.id]
+      : level === "second"
+        ? [product.secondLavelCategory, category.parent?.slug, category.parent?.name, category.parentCategory?.slug, category.parentCategory?.name]
+        : [product.topLavelCategory, category.parent?.parent?.slug, category.parent?.parent?.name];
+    const normalizedCandidates = candidates.map(normalizeCategory).filter(Boolean);
+
+    // Most API products only contain a leaf category. In that case the URL's
+    // third segment is the reliable filter; don't reject products because the
+    // API does not include their parent hierarchy.
+    if (level !== "third" && normalizedCandidates.length === 0) return true;
+    return normalizedCandidates.some((candidate) => accepted.has(candidate));
+  };
+
   
   const categoryFiltered = productsList.filter(item => {
-    const visibleMatch = item.isVisible !== true; // When true -> hide from user, when false -> show
+    const visibleMatch = item.isVisible !== false && item.isActive !== false;
     const flashSaleMatch = flashSaleLocation ? item.isFlashSale === true : true;
     const trendingMatch = trendingLocation ? item.isTrending === true : true;
-    const searchQueryLower = searchQuery ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
-    const matchTop = topLavelCategory
-      ? item.topLavelCategory?.toLowerCase() === topLavelCategory.toLowerCase()
-      : true;
-    const matchSecond = secondLavelCategory
-      ? item.secondLavelCategory?.toLowerCase() === secondLavelCategory.toLowerCase()
-      : true;
-    const matchThird = thirdLavelCategory
-      ? item.thirdLavelCategory?.toLowerCase() === thirdLavelCategory.toLowerCase()
-      : true;
+    const searchQueryLower = searchQuery ? item.title?.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+    const matchTop = matchesCategory(item, topLavelCategory, "top");
+    const matchSecond = matchesCategory(item, secondLavelCategory, "second");
+    const matchThird = matchesCategory(item, thirdLavelCategory, "third");
     return visibleMatch && matchTop && matchSecond && matchThird && searchQueryLower && flashSaleMatch && trendingMatch;
   });
 

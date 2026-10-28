@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import { formatVnd } from "../../../utils/currency";
 
 const COLORS = {
   netRevenue: "#52c8a2",
@@ -20,6 +21,7 @@ const RevenueChart = ({
   rangeOptions = ["Last 6 Months", "Last 12 Months", "Year to Date"],
   onRangeChange,
   series: seriesProp = [], // Nhận series từ component cha
+  labels: labelsProp = [],
 }) => {
   const [selectedRange, setSelectedRange] = useState(activeRange);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -48,31 +50,7 @@ const RevenueChart = ({
     console.log('[RevenueChart] Net series:', netSeries);
 
     // Tạo labels tháng dựa trên activeRange (đồng bộ với analytics.utils.js)
-    const now = new Date();
-    let labels = [];
-    
-    if (activeRange === "Year to Date") {
-      // Từ tháng 1 đến tháng hiện tại
-      for (let i = 0; i < now.getMonth() + 1; i++) {
-        const d = new Date(now.getFullYear(), i, 1);
-        labels.push(d.toLocaleString("en-US", { month: "short" }));
-      }
-    } else if (activeRange === "Last 6 Months") {
-      // 6 tháng gần nhất
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString("en-US", { month: "short" }));
-      }
-    } else if (activeRange === "Last 12 Months") {
-      // 12 tháng gần nhất
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString("en-US", { month: "short" }));
-      }
-    } else {
-      // Mặc định: dùng số lượng data point từ series
-      labels = grossSeries.map((_, i) => `Month ${i + 1}`);
-    }
+    const labels = labelsProp.length ? labelsProp : grossSeries.map((_, i) => `Month ${i + 1}`);
 
     // Map data sang format cho chart
     return grossSeries.map((gross, index) => {
@@ -87,7 +65,7 @@ const RevenueChart = ({
         grossRevenue: gross,
       };
     });
-  }, [seriesProp, activeRange])
+  }, [seriesProp, activeRange, labelsProp])
 
   const chartData = useMemo(() => {
     const maxTotal = Math.max(
@@ -282,13 +260,13 @@ const RevenueChart = ({
         <div className="absolute top-16 right-6 bg-slate-900 text-white text-xs rounded-sm py-2 px-3 shadow-xl pointer-events-none z-30">
           <p className="font-bold text-slate-200 mb-1">{hoveredBar.month}</p>
           <p className="text-emerald-400">
-            Net: ${hoveredBar.net.toLocaleString()}
+            Net: {formatVnd(hoveredBar.net)}
           </p>
           <p className="text-rose-300">
-            Fees: ${hoveredBar.fee.toLocaleString()}
+            Fees: {formatVnd(hoveredBar.fee)}
           </p>
           <p className="border-t border-slate-700 mt-1 pt-1 font-bold">
-            Gross: ${hoveredBar.total.toLocaleString()}
+            Gross: {formatVnd(hoveredBar.total)}
           </p>
         </div>
       )}

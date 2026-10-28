@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState } from "react";
 import PromotionsHeader from "./PromotionsHeader";
 import PromotionStatsGrid from "./PromotionStatsGrid";
 import PromotionQuickCreateCard from "./PromotionQuickCreateCard";
@@ -6,8 +6,9 @@ import PromotionCampaignList from "./PromotionCampaignList";
 import { promotionsPageConfig } from "./promotions.data";
 import { filterPromotionsByTab } from "./promotions.utils";
 import { useCurrentStore } from "../../../hooks/useStoreQuery";
-import { useVouchers, useCreateVoucher, useUpdateVoucher, useDeleteVoucher } from "../../../hooks/useVoucherQuery";
+import { useVouchers, useVoucherMetrics, useCreateVoucher, useUpdateVoucher, useDeleteVoucher } from "../../../hooks/useVoucherQuery";
 import toast from "react-hot-toast";
+import { formatVnd } from "../../../utils/currency";
 
 const initialFormState = {
   code: "",
@@ -23,8 +24,9 @@ const initialFormState = {
 
 const StorePromotions = () => {
   const { data: currentStore } = useCurrentStore();
-  const storeId = currentStore?.id || "store-001";
-  const { data: vouchers = [], isLoading: loading } = useVouchers(storeId);
+  const storeId = currentStore?.id;
+  const { data: vouchers = [], isLoading: loading } = useVouchers(storeId, { enabled: Boolean(storeId) });
+  const { data: voucherMetrics = {} } = useVoucherMetrics(storeId, { enabled: Boolean(storeId) });
 
   const { mutateAsync: createVoucherMutate, isPending: isCreatingVoucher } = useCreateVoucher();
   const { mutate: updateVoucherMutate, isPending: isUpdatingVoucher, variables: updatingVoucherVar } = useUpdateVoucher();
@@ -34,49 +36,33 @@ const StorePromotions = () => {
   const [formData, setFormData] = useState(initialFormState);
   const [selectedPromotionId, setSelectedPromotionId] = useState(null);
 
-  // Dynamic metrics computed from vouchers
-  const metrics = useMemo(() => {
-    const activeCount = vouchers.filter((v) => (v.status || "").toLowerCase() === "active").length;
-    const totalUsage = vouchers.reduce(
-      (sum, v) => sum + (Number(v.usedCount) || Number(v.usageCount) || 0),
-      0
-    );
-    const revenueImpact = vouchers.reduce(
-      (sum, v) => sum + (Number(v.revenueImpact) || Number(v.totalDiscountGiven) || 0),
-      0
-    );
-
-    return [
+  const metrics = [
       {
         id: "active-vouchers",
         label: "Active Vouchers",
-        value: activeCount,
+        value: voucherMetrics.activeVouchers || 0,
         iconKey: "voucher",
         accent: "indigo",
       },
       {
         id: "total-usage",
         label: "Total Usage",
-        value: totalUsage,
+        value: voucherMetrics.totalRedemptions || 0,
         iconKey: "usage",
         accent: "slate",
       },
       {
         id: "revenue-impact",
         label: "Revenue Impact",
-        value: revenueImpact,
+        value: voucherMetrics.totalDiscountGiven || 0,
         valueType: "currencyCompact",
         iconKey: "impact",
         accent: "violet",
       },
     ];
-  }, [vouchers]);
 
   // Filtered promotions based on selected tab
-  const visiblePromotions = useMemo(
-    () => filterPromotionsByTab(vouchers, activeTab),
-    [vouchers, activeTab]
-  );
+  const visiblePromotions = filterPromotionsByTab(vouchers, activeTab);
 
   const handleFormChange = (event) => {
     const { name, type, value, checked } = event.target;
@@ -98,29 +84,7 @@ const StorePromotions = () => {
       return;
     }
 
-    const isDup = vouchers.some((v) => (v.code || "").toUpperCase() === trimmedCode);
-    if (isDup) {
-      toast.error(`Mã voucher "${trimmedCode}" đã tồn tại trong cửa hàng!`);
-      return;
-    }
-
     const numValue = Number(formData.value) || 0;
-    if (formData.discountType !== "Free Shipping" && numValue <= 0) {
-      toast.error("Vui lòng nhập mức giảm giá hợp lệ lớn hơn 0!");
-      return;
-    }
-
-    if (formData.discountType === "Percentage" && numValue > 100) {
-      toast.error("Mức giảm theo phần trăm không được vượt quá 100%!");
-      return;
-    }
-
-    if (formData.startDate && formData.endDate) {
-      if (new Date(formData.startDate) > new Date(formData.endDate)) {
-        toast.error("Ngày bắt đầu không được lớn hơn ngày kết thúc!");
-        return;
-      }
-    }
 
     try {
       const normalizedType = formData.discountType?.toLowerCase();
@@ -138,7 +102,7 @@ const StorePromotions = () => {
 
       let description = `${formData.value || "0"}% off your campaign`;
       if (type === "amount") {
-        description = `$${formData.value || "0"} off selected orders`;
+        description = `${formatVnd(formData.value || 0)} off selected orders`;
       } else if (type === "shipping") {
         description = "Free shipping offer for selected shoppers";
       }
@@ -161,7 +125,7 @@ const StorePromotions = () => {
         limitPerCustomer: Boolean(formData.limitPerCustomer),
       };
 
-      const newVoucher = await createVoucherMutate({ voucherDraft, storeId, status });
+      const newVoucher = await createVoucherMutate({ voucherDraft, storeId, status: status.toUpperCase() });
       setSelectedPromotionId(newVoucher?.id || `vouch_${Date.now()}`);
       setActiveTab(status === "Active" ? "Active" : "Draft");
       resetForm();
@@ -203,8 +167,8 @@ const StorePromotions = () => {
           publishButtonLabel="Publish Voucher"
           isCreating={isCreatingVoucher}
           onFormChange={handleFormChange}
-          onSaveDraft={() => handleCreateVoucher("Draft")}
-          onPublish={() => handleCreateVoucher("Active")}
+          onSaveDraft={() => handleCreateVoucher("DRAFT")}
+          onPublish={() => handleCreateVoucher("ACTIVE")}
         />
 
         <div className="space-y-4">

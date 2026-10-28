@@ -25,7 +25,9 @@ const SystemLogs = ({ logs = [] }) => {
 
   const handleApprove = () => {
     if (!selectedApp) return;
-    approveApplication.mutate(selectedApp, {
+    const applicationId = selectedApp.id || selectedApp._id || selectedApp.applicationId;
+    if (!applicationId) return;
+    approveApplication.mutate(applicationId, {
       onSuccess: () => handleCloseModal(),
     });
   };

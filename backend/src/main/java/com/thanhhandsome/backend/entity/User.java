@@ -24,7 +24,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true, name = "email", columnDefinition = "VARCHAR(100)")
     String email;
 
-    @Column(nullable = false, columnDefinition = "NVARCHAR(100)", name = "password")
+    @Column(nullable = true, columnDefinition = "NVARCHAR(100)", name = "password")
     String password;
 
     @Column(nullable = false, columnDefinition = "NVARCHAR(50)", name = "first_name")
@@ -33,11 +33,11 @@ public class User extends BaseEntity {
     @Column(nullable = false, columnDefinition = "NVARCHAR(50)", name = "last_name")
     String lastName;
 
-    @Column(nullable = false, columnDefinition = "CHAR(15)", name = "phone")
+    @Column(nullable = true, columnDefinition = "CHAR(15)", name = "phone")
     String phone;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, name = "gender")
+    @Column(nullable = true, name = "gender")
     Gender gender;
 
     @Column(name = "phone_prefix", length = 10)
@@ -54,6 +54,9 @@ public class User extends BaseEntity {
     @Builder.Default
     boolean isVerified = false;
 
+    @Column(name = "google_id", unique = true)
+    String googleId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
@@ -64,6 +67,8 @@ public class User extends BaseEntity {
     @Builder.Default
     List<Address> addresses = new ArrayList<>();
 
+
+
     public void addAddress(Address address) {
         addresses.add(address);
         address.setUser(this);
@@ -73,5 +78,6 @@ public class User extends BaseEntity {
         addresses.remove(address);
         address.setUser(null);
     }
+
 
 }
