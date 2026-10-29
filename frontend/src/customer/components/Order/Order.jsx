@@ -53,7 +53,11 @@ const Order = () => {
     const sorted = sortOrdersByNewest(orders);
     return sorted.filter((order) => {
       const matchesSearch = (order.orderId || "").toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "All" || String(order.status || order.orderStatus).toLowerCase() === statusFilter.toLowerCase();
+      const normalizeStatus = (value) => {
+        const normalized = String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+        return normalized === "intransit" ? "shipped" : normalized;
+      };
+      const matchesStatus = statusFilter === "All" || normalizeStatus(order.status || order.orderStatus) === normalizeStatus(statusFilter);
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchTerm, statusFilter]);

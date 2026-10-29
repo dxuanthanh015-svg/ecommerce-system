@@ -34,7 +34,7 @@ const categories = [
 ];
 
 const Home = () => {
-  const { data: trendingProducts = [], isLoading: trendingLoading } = useTop5Product();
+  const { data: trendingProducts = [], isLoading: trendingLoading, isError: trendingError, refetch: refetchTrending } = useTop5Product();
   return (
     <div className="w-full bg-white min-h-screen">
       <MainCarousal />
@@ -79,7 +79,16 @@ const Home = () => {
         </section>
         <div className="w-full max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
           <section className="w-full">
-            <HomeSectionCarousel data={trendingProducts?.slice(0, 5)} sectionName="Trending Now" />
+            {trendingError ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-center text-sm text-amber-900">
+                Không tải được sản phẩm thịnh hành. Kiểm tra kết nối máy chủ rồi thử lại.
+                <button type="button" onClick={() => refetchTrending()} className="ml-2 font-semibold underline">
+                  Thử lại
+                </button>
+              </div>
+            ) : (
+              <HomeSectionCarousel data={trendingProducts?.slice(0, 5)} sectionName="Trending Now" />
+            )}
           </section>
 
         </div>

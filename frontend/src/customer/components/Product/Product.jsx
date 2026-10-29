@@ -15,7 +15,7 @@ const defaultFilterState = {
   stock: null,
 };
 
-export default function Product({ data }) {
+export default function Product({ data, isLoading = false, isError = false, onRetry }) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filterState, setFilterState] = useState(defaultFilterState);
   const [sortOption, setSortOption] = useState("featured");
@@ -84,6 +84,9 @@ export default function Product({ data }) {
               filterState={filterState}
               sortOption={sortOption}
               searchQuery={searchQuery}
+              isLoading={isLoading}
+              isError={isError}
+              onRetry={onRetry}
             />
           </div>
         </section>

@@ -76,7 +76,7 @@ public class CartService {
         cart.setDiscount(totalPrice.subtract(totalDiscounted));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CartResponse getCart(){
         User user = getCurrentUser();
         Cart cart = getOrCreateCart(user);

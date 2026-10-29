@@ -175,8 +175,11 @@ public class AdminService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
         app.setStatus(ApplicationStatus.REJECTED);
         applicationRepository.save(app);
+        String reason = app.getRejectionReason();
         notificationService.sendToUser(app.getUser().getId(), "Hồ sơ cửa hàng chưa được duyệt",
-                "Hồ sơ " + app.getShopName() + " chưa được duyệt. Vui lòng kiểm tra thông tin và gửi lại.",
+                reason == null || reason.isBlank()
+                        ? "Hồ sơ " + app.getShopName() + " chưa được duyệt. Vui lòng kiểm tra thông tin và gửi lại."
+                        : "Hồ sơ " + app.getShopName() + " chưa được duyệt: " + reason,
                 com.thanhhandsome.backend.enums.NotificationType.STORE_APPLICATION, app.getId());
     }
 

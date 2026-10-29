@@ -8,11 +8,11 @@ import { formatVnd } from "../../../../utils/currency";
 
 export default function FlashSaleSection() {
   const navigate = useNavigate();
-  const { data: allProducts = [], isLoading } = useProducts();
-  // Backend chưa có field isFlashSale → dùng salePoster làm fallback
+  const { data: allProducts = [], isLoading, isError, refetch } = useProducts();
+  // Use the API's flash-sale flag; keep the existing empty-result fallback behavior.
   const safeProducts = Array.isArray(allProducts) ? allProducts : [];
   const flashSaleItems = safeProducts.filter((p) => p.isFlashSale === true);
-  const displayItems = flashSaleItems.length > 0 ? flashSaleItems : salePoster;
+  const displayItems = isLoading || isError ? [] : (flashSaleItems.length > 0 ? flashSaleItems : salePoster);
 
   return (
     <section className="py-12 bg-indigo-50 rounded-md">
@@ -38,6 +38,16 @@ export default function FlashSaleSection() {
         </div>
 
         {/* Product Grid */}
+        {isError ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-center text-sm text-amber-900">
+            Không tải được sản phẩm Flash Sale. Kiểm tra kết nối máy chủ rồi thử lại.
+            <button type="button" onClick={() => refetch()} className="ml-2 font-semibold underline">
+              Thử lại
+            </button>
+          </div>
+        ) : isLoading ? (
+          <div className="py-12 text-center text-sm text-gray-500">Đang tải sản phẩm Flash Sale...</div>
+        ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-[320px]/w-full sm:w-[1100px] mx-auto">
           {displayItems.slice(0, 9).map((item) => (
             <div
@@ -97,6 +107,7 @@ export default function FlashSaleSection() {
             </div>
           ))}
         </div>
+        )}
 
         {/* Footer Link */}
         <div className="mt-10 text-center">

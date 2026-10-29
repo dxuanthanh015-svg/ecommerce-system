@@ -23,6 +23,8 @@ const OrderDetail = () => {
   const { mutateAsync: confirmReceived } = useConfirmOrderReceived();
 
   const currentStatus = userOrder?.status || "Pending";
+  const isInTransit = ["shipped", "in transit", "in_transit", "in-transit"]
+    .includes(String(currentStatus).trim().toLowerCase());
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -112,7 +114,7 @@ const OrderDetail = () => {
 
           {/* Quick Actions (Confirm / Cancel) */}
           <div className="flex items-center gap-2">
-            {currentStatus === "Shipped" && (
+            {isInTransit && (
               <button
                 type="button"
                 onClick={handleConfirmReceived}
@@ -173,7 +175,7 @@ const OrderDetail = () => {
         </div>
 
         {/* Shipped Prompt Banner for User Confirmation */}
-        {currentStatus === "Shipped" && (
+        {isInTransit && (
           <div className="mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">

@@ -33,3 +33,11 @@ export const useDeleteNotification = () => {
         }
     })
 }
+
+export const useMarkAllAsRead = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: () => notificationService.markAllAsRead(),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.NOTIFICATION }),
+    });
+}

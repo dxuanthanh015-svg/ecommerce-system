@@ -88,8 +88,10 @@ export const useCreateOrder = () => {
 export const useUpdateOrderStatus = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ orderId, status, storeId = null }) =>
-      orderService.updateOrderStatusInAllRevenue(orderId, status, storeId),
+    mutationFn: ({ orderId, status, storeId = null, confirmReceived = false }) =>
+      confirmReceived
+        ? orderService.confirmReceived(orderId)
+        : orderService.updateOrderStatusInAllRevenue(orderId, status, storeId),
     onSuccess: (data, variables) => {
       const orderId = variables?.orderId;
       const newStatus = data?.orderStatus || data?.status || variables?.status;

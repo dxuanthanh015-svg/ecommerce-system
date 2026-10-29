@@ -14,7 +14,7 @@ export const cartService = {
       return res.data.result?.items || []
     } catch (error) {
       console.warn('[cartService] fetchCart error:', error.message)
-      return []
+      throw error
     }
   },
 

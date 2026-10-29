@@ -287,7 +287,7 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
         notificationService.sendToUser(saved.getUser().getId(), "Cập nhật đơn hàng",
-                "Đơn hàng " + saved.getOrderCode() + " đã chuyển sang trạng thái " + requestedStatus + ".",
+                "Đơn hàng " + saved.getOrderCode() + " đã chuyển sang trạng thái " + statusLabel(requestedStatus) + ".",
                 com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
         return orderMapper.toOrderResponse(saved);
     }
@@ -313,6 +313,10 @@ public class OrderService {
                     com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
         }
         return orderMapper.toOrderResponse(saved);
+    }
+
+    private String statusLabel(OrderStatus status) {
+        return status == OrderStatus.SHIPPED ? "Đang giao" : status.name();
     }
 
     private boolean isAllowedOrderTransition(OrderStatus current, OrderStatus requested) {

@@ -112,6 +112,16 @@ export const orderService = {
     }
   },
 
+  confirmReceived: async (orderId) => {
+    try {
+      const res = await apiClient.patch(`/orders/my-orders/${orderId}/confirm-received`)
+      return res.data.result
+    } catch (error) {
+      console.warn('[orderService] confirmReceived error:', error.response?.data || error.message)
+      throw error
+    }
+  },
+
   // DELETE /orders/{orderId} -> Xóa đơn hàng (Admin)
   deleteOrder: async (orderId) => {
     try {

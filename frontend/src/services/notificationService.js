@@ -2,7 +2,7 @@ import apiClient from './apiClient'
 
 // ==========================================
 // NOTIFICATION SERVICE - Gọi Spring Boot API
-// TODO: Backend cần implement các endpoint dưới đây
+// Notifications are created by backend business events; the client only reads and acknowledges them.
 // ==========================================
 
 export const notificationService = {
@@ -14,18 +14,6 @@ export const notificationService = {
       return res.data.result || []
     } catch (error) {
       console.warn('[notificationService] fetchNotification error:', error.response?.data || error.message)
-      return []
-    }
-  },
-
-  // POST /notifications -> Tạo thông báo mới
-  // payload: { title, message, type, targetUserId (optional) }
-  postNotification: async (notification) => {
-    try {
-      const res = await apiClient.post('/notifications', notification)
-      return res.data.result
-    } catch (error) {
-      console.warn('[notificationService] postNotification error:', error.message)
       throw error
     }
   },

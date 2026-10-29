@@ -148,7 +148,7 @@ export const productService = {
       return res.data?.result || []
     } catch (error) {
       console.warn('[productService] fetchTrendingProducts error:', error.message)
-      return []
+      throw error
     }
   },
 
@@ -159,7 +159,7 @@ export const productService = {
       return res.data?.result || []
     } catch (error) {
       console.warn('[productService] fetchMostViewedProducts error:', error.message)
-      return []
+      throw error
     }
   },
 }

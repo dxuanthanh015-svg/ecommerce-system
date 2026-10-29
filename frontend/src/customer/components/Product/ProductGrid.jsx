@@ -6,7 +6,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Pagination from '@mui/material/Pagination';
 import PaginationItem from '@mui/material/PaginationItem';
 
-export default function ProductGrid({ productsList, filterState = {}, sortOption = "featured", searchQuery=""}) {
+export default function ProductGrid({ productsList, filterState = {}, sortOption = "featured", searchQuery="", isLoading = false, isError = false, onRetry }) {
   const [page, setPage] = useState(1);
   const { topLavelCategory, secondLavelCategory, thirdLavelCategory } = useParams();
   const location = useLocation();
@@ -116,12 +116,30 @@ export default function ProductGrid({ productsList, filterState = {}, sortOption
 
   const handleChangePage = (event, newPage) => { setPage(newPage); };
 
-  if (sorted.length === 0) {
+  if (isLoading || isError || sorted.length === 0) {
     return (
       <div className="lg:col-span-3 flex flex-col items-center justify-center py-32 text-center">
-        <p className="text-4xl mb-4">🔍</p>
-        <h3 className="text-lg font-semibold text-gray-700">No products found</h3>
-        <p className="text-sm text-gray-400 mt-1">Try adjusting your filters or browse another category.</p>
+        {isLoading ? (
+          <>
+            <p className="text-lg font-semibold text-gray-700">Loading products…</p>
+            <p className="mt-1 text-sm text-gray-400">Fetching the catalog from the server.</p>
+          </>
+        ) : isError ? (
+          <>
+            <p className="text-4xl mb-4">⚠️</p>
+            <h3 className="text-lg font-semibold text-gray-700">Could not load products</h3>
+            <p className="mt-1 text-sm text-gray-500">Check the backend connection, then try again.</p>
+            <button type="button" onClick={onRetry} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+              Try again
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-4xl mb-4">🔍</p>
+            <h3 className="text-lg font-semibold text-gray-700">No products found</h3>
+            <p className="text-sm text-gray-400 mt-1">Try adjusting your filters or browse another category.</p>
+          </>
+        )}
       </div>
     );
   }

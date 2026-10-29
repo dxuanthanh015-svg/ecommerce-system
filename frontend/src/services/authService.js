@@ -87,7 +87,7 @@ export const authService = {
             return response.data.result;
         } catch (error) {
             console.error("[authService] Lấy profile thất bại:", error);
-            return null;
+            throw error;
         }
     },
 

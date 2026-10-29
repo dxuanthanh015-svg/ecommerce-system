@@ -44,7 +44,7 @@ const OrderTracker = ({ status, activeStep }) => {
     indexStep = 0;
   } else if (normalized === "processing" || normalized === "packing") {
     indexStep = 1;
-  } else if (normalized === "shipped" || normalized === "in transit") {
+  } else if (["shipped", "in transit", "in_transit", "in-transit"].includes(normalized)) {
     indexStep = 2;
   } else if (normalized === "delivered" || normalized === "completed") {
     indexStep = 3;

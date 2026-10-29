@@ -67,7 +67,8 @@ const OrderCard = ({ order, product, onConfirmReceived, isConfirming = false }) 
   const currentOrder = order || product || {};
   const orderId = currentOrder.orderId || currentOrder.id || "NX-8472-91";
   const date = currentOrder.date || "Oct 24, 2024";
-  const status = currentOrder.status || "Delivered";
+  const status = currentOrder.status || "Pending";
+  const isInTransit = ["shipped", "in transit", "in_transit"].includes(String(status).trim().toLowerCase());
   const total = currentOrder.total || currentOrder.discountedPrice || currentOrder.price || 142.50;
 
   // Extract items list and image URLs from order items
@@ -128,7 +129,7 @@ const OrderCard = ({ order, product, onConfirmReceived, isConfirming = false }) 
           </div>
 
           <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-            {status === "Shipped" && onConfirmReceived && (
+            {isInTransit && onConfirmReceived && (
               <button
                 type="button"
                 disabled={isConfirming}

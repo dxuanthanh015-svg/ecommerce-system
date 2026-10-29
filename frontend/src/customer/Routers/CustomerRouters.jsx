@@ -31,6 +31,10 @@ export const customerRoutes = {
       element: <ProductPage />,
     },
     {
+      path: "/products",
+      element: <ProductPage />,
+    },
+    {
       path: "/productdetails",
       element: <ProductDetailsPage />,
     },

@@ -15,7 +15,7 @@ export const wishlistService = {
       return Array.isArray(data) ? data : (data?.items || [])
     } catch (error) {
       console.warn('[wishlistService] fetchWishlist error:', error.message)
-      return []
+      throw error
     }
   },
 
