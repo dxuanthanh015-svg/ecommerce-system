@@ -17,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Value;
+import lombok.experimental.NonFinal;
 
 @RestController
 @RequestMapping("/auth")
@@ -25,6 +27,10 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthenticationController {
     AuthenticationService authenticationService;
     UserService userService;
+
+    @NonFinal
+    @Value("${app.cookie.secure:false}")
+    boolean secureCookies;
 
     @PostMapping("/refresh")
     public ApiResponse<LoginResponse> refreshToken(@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response){
@@ -35,7 +41,7 @@ public class AuthenticationController {
         if(newTokens != null ){
             ResponseCookie newRefreshTokenCookie = ResponseCookie.from("refreshToken", newTokens.getRefreshToken())
                     .httpOnly(true)
-                    .secure(false)
+                    .secure(secureCookies)
                     .path("/")
                     .maxAge(7 * 24 * 60 * 60)
                     .sameSite("Lax")
@@ -55,7 +61,7 @@ public class AuthenticationController {
 
         ResponseCookie responseCookie = ResponseCookie.from("refreshToken", loginResponse.getRefreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(secureCookies)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60)
                 .sameSite("Lax")
@@ -76,7 +82,7 @@ public class AuthenticationController {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", loginResponse.getRefreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(secureCookies)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60) // 7 days
                 .sameSite("Lax")
@@ -99,7 +105,7 @@ public class AuthenticationController {
         }
         ResponseCookie deletedCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(secureCookies)
                 .path("/")
                 .maxAge(0)
                 .sameSite("Lax")
