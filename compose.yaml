@@ -43,12 +43,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      FRONTEND_URL: ${PUBLIC_URL:-http://localhost:8080}
+      FRONTEND_URL: ${PUBLIC_URL:-http://localhost:5173}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/oauth2/callback}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:5173/oauth2/callback}
       GOOGLE_USER_INFO_URI: ${GOOGLE_USER_INFO_URI:-https://www.googleapis.com/oauth2/v3/userinfo}
       GOOGLE_TOKEN_URI: ${GOOGLE_TOKEN_URI:-https://oauth2.googleapis.com/token}
       MAIL_USERNAME: ${MAIL_USERNAME:?Set MAIL_USERNAME in .env}
@@ -67,6 +67,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/2908' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
     expose:
       - "2908"
     networks: [app]
@@ -77,13 +83,14 @@ services:
       args:
         VITE_API_URL: /nex-cart
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-        VITE_GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/oauth2/callback}
+        VITE_GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:5173/oauth2/callback}
         VITE_GOOGLE_SCOPE: ${VITE_GOOGLE_SCOPE:-openid email profile}
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
-      - "${APP_HTTP_PORT:-8080}:80"
+      - "${APP_HTTP_PORT:-5173}:80"
     networks: [app]
 
 volumes:

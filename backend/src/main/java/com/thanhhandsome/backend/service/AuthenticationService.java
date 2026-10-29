@@ -3,6 +3,7 @@ package com.thanhhandsome.backend.service;
 import com.thanhhandsome.backend.dto.request.LoginRequest;
 import com.thanhhandsome.backend.dto.response.LoginResponse;
 import com.thanhhandsome.backend.dto.response.OAuthUserInfoResponse;
+import com.thanhhandsome.backend.configuration.JwtSecretKeyFactory;
 import com.thanhhandsome.backend.entity.RedisToken;
 import com.thanhhandsome.backend.entity.User;
 import com.thanhhandsome.backend.enums.Gender;
@@ -14,8 +15,6 @@ import com.thanhhandsome.backend.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
@@ -53,8 +52,7 @@ public class AuthenticationService {
 
 
     private SecretKey getSecretKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return JwtSecretKeyFactory.from(secretKey);
     }
 
     public String generateToken(User user) {

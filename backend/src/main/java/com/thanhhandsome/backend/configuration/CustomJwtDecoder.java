@@ -5,8 +5,6 @@ import com.thanhhandsome.backend.repository.RedisTokenRepository;
 import com.thanhhandsome.backend.repository.RedisVerificationTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
@@ -32,8 +30,7 @@ public class CustomJwtDecoder implements org.springframework.security.oauth2.jwt
 
 
     private SecretKey getSecretKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return JwtSecretKeyFactory.from(secretKey);
     }
 
 

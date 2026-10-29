@@ -4,8 +4,8 @@ The Compose stack builds a static React site served by Nginx, a Spring Boot API,
 
 ## Prepare local or production environment
 
-1. Copy `.env.example` to `.env` in the repository root (`Copy-Item .env.example .env` in PowerShell).
-2. Replace the database passwords, JWT secret, admin credentials, Google OAuth values, and SMTP values. Do not commit `.env`.
+1. Copy `.env.example` to `.env` in the repository root (`Copy-Item .env.example .env` in PowerShell). The local Docker frontend is published on port 5173 by default.
+2. Replace the database passwords, JWT secret, admin credentials, Google OAuth values, and SMTP values. On PowerShell, generate a strong JWT secret with `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`. Do not commit `.env`.
 3. For production, set `PUBLIC_URL` to the real HTTPS website URL, set `COOKIE_SECURE=true`, and set `GOOGLE_REDIRECT_URI` to the matching callback URL, for example `https://shop.example.com/oauth2/callback`.
 4. Add that exact callback URL to the OAuth client's authorized redirect URIs in Google Cloud Console. The frontend and backend use the same callback URL.
 
@@ -22,7 +22,7 @@ docker compose ps
 docker compose logs -f backend
 ```
 
-Open `http://localhost:8080` locally, or `https://your-domain` after putting a TLS reverse proxy/load balancer in front of the frontend container. To change the local published port, edit `APP_HTTP_PORT` in `.env`.
+Open `http://localhost:5173` locally, or `https://your-domain` after putting a TLS reverse proxy/load balancer in front of the frontend container. To change the local published port, edit `APP_HTTP_PORT` in `.env`.
 
 The first start creates an empty database and Hibernate creates/updates its schema. If you already have local products and users, export your existing MySQL database and import that backup into the Compose MySQL instance before switching traffic; the named volume does not automatically copy data from your local MySQL installation.
 
@@ -40,6 +40,6 @@ docker compose down
 
 ## Deploy updates
 
-Pull or copy the new code to the server, then run `docker compose up -d --build`. Put TLS termination and a domain in front of port 8080, and forward the original `Host` and HTTPS `X-Forwarded-Proto` headers. Keep MySQL, Redis, and port 2908 private; this Compose file does not publish them to the host.
+Pull or copy the new code to the server, set `APP_HTTP_PORT=8080` in `.env`, then run `docker compose up -d --build`. Put TLS termination and a domain in front of host port 8080, and forward the original `Host` and HTTPS `X-Forwarded-Proto` headers. Keep MySQL, Redis, and port 2908 private; this Compose file does not publish them to the host.
 
 The application currently uses Hibernate `ddl-auto=update`. Take a database backup before releases that change entities; for production schema evolution, move to versioned Flyway/Liquibase migrations.
