@@ -49,6 +49,7 @@ public class AdminService {
     OrderItemRepository orderItemRepository;
     StorePayoutRepository storePayoutRepository;
     PasswordEncoder passwordEncoder;
+    NotificationService notificationService;
 
     @NonFinal
     @Value("${app.admin.email:}")
@@ -161,6 +162,10 @@ public class AdminService {
         // Xoa don
         applicationRepository.delete(app);
 
+        notificationService.sendToUser(applicant.getId(), "Cửa hàng đã được duyệt",
+                "Hồ sơ " + app.getShopName() + " đã được duyệt. Bạn có thể bắt đầu quản lý cửa hàng.",
+                com.thanhhandsome.backend.enums.NotificationType.STORE_APPLICATION, store.getId());
+
         return toStoreResponse(store);
     }
 
@@ -170,6 +175,9 @@ public class AdminService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
         app.setStatus(ApplicationStatus.REJECTED);
         applicationRepository.save(app);
+        notificationService.sendToUser(app.getUser().getId(), "Hồ sơ cửa hàng chưa được duyệt",
+                "Hồ sơ " + app.getShopName() + " chưa được duyệt. Vui lòng kiểm tra thông tin và gửi lại.",
+                com.thanhhandsome.backend.enums.NotificationType.STORE_APPLICATION, app.getId());
     }
 
     // ===================== STORES =====================

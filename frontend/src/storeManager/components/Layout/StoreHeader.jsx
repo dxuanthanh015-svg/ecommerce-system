@@ -1,8 +1,8 @@
 import React from "react";
 import SearchIcon from "@mui/icons-material/Search";
-import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import NotificationBell from "../../../components/NotificationBell";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { useCurrentStore } from "../../../hooks/useStoreQuery";
 
@@ -33,14 +33,7 @@ const StoreHeader = () => {
       {/* Right Controls */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Notification Bell */}
-        <button
-          type="button"
-          className="relative p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
-          aria-label="Notifications"
-        >
-          <NotificationsOutlinedIcon sx={{ fontSize: 22 }} />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
+        <NotificationBell audience="storeManager" />
 
         {/* Help / Support Icon */}
         <button

@@ -6,7 +6,7 @@ import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import { useOrderDetail, useUpdateOrderStatus } from "../../../hooks/useOrderQuery";
+import { useOrderDetail, useUpdateOrderStatus, useConfirmOrderReceived } from "../../../hooks/useOrderQuery";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { getOrderDeliveryInfo } from "../../../services/orderService";
 import toast from "react-hot-toast";
@@ -20,6 +20,7 @@ const OrderDetail = () => {
   const { data: currentUser } = useCurrentUser();
   const { data: userOrder, isLoading: loading } = useOrderDetail(orderId, currentUser?.email);
   const { mutateAsync: updateStatusMutate } = useUpdateOrderStatus();
+  const { mutateAsync: confirmReceived } = useConfirmOrderReceived();
 
   const currentStatus = userOrder?.status || "Pending";
 
@@ -62,7 +63,7 @@ const OrderDetail = () => {
     if (!window.confirm(`Xác nhận bạn đã nhận được đầy đủ hàng cho đơn #${orderId}?`)) return;
     setConfirming(true);
     try {
-      await updateStatusMutate({ orderId, status: "Delivered" });
+      await confirmReceived(orderId);
       toast.success("Xác nhận đã nhận hàng thành công! Đơn hàng đã hoàn tất.");
     } catch (err) {
       console.error("Error confirming order:", err);

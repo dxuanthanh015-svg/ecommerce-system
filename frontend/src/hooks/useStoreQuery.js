@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../constants/queryKeys";
 import { storeService } from "../services/storeService";
 import { orderService } from "../services/orderService";
-import { notificationService } from "../services/notificationService";
 
 // Lấy store hiện tại
 export const useCurrentStore = () => {
@@ -99,20 +98,6 @@ export const useApplyStoreManager = () => {
                 accountNumber: formData.accountNumber,
                 accountHolder: formData.accountHolder,
             });
-
-            try {
-                await notificationService.postNotification({
-                    type: "Apply Store Manager",
-                    message: "Đã gửi đơn đăng ký trở thành Store Manager.",
-                    applicantName: `${currentUser?.firstName || ""} ${currentUser?.lastName || ""}`.trim() || "Người dùng mới",
-                    applicantEmail: currentUser?.email,
-                    shopName: formData.shopName,
-                    isRead: false,
-                    submittedAt: new Date().toISOString(),
-                });
-            } catch (e) {
-                console.warn("[useApplyStoreManager] Không thể gửi notification:", e.message);
-            }
 
             return appRes;
         },

@@ -59,6 +59,15 @@ public class OrderController {
                 .build();
     }
 
+    @PatchMapping("/my-orders/{orderId}/confirm-received")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'STORE_MANAGER', 'ADMIN')")
+    public ApiResponse<OrderResponse> confirmOrderReceived(@PathVariable String orderId) {
+        return ApiResponse.<OrderResponse>builder()
+                .message("Xác nhận đã nhận hàng thành công")
+                .result(orderService.confirmOrderReceived(orderId))
+                .build();
+    }
+
     // GET /orders/store/my-store -> Lấy đơn hàng của store (Store Manager)
     @GetMapping("/store/my-store")
     @PreAuthorize("hasAnyRole('STORE_MANAGER', 'ADMIN')")

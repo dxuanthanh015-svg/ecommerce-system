@@ -17,6 +17,13 @@ export const sortOrdersByNewest = (ordersList = []) => {
   })
 }
 
+const normalizeOrder = (order) => {
+  if (!order) return order
+  const rawStatus = String(order.orderStatus || order.status || 'PENDING').toUpperCase()
+  const status = rawStatus.charAt(0) + rawStatus.slice(1).toLowerCase()
+  return { ...order, status, orderStatus: status }
+}
+
 // Chuẩn hóa thông tin giao hàng từ nhiều cấu trúc address khác nhau
 export const getOrderDeliveryInfo = (order = {}) => {
   const addrObj = order.shippingAddress || order.address || order.deliveryAddress || {}
@@ -98,7 +105,7 @@ export const orderService = {
   updateOrderStatus: async (orderId, newStatus) => {
     try {
       const res = await apiClient.patch(`/orders/${orderId}/status`, { status: newStatus })
-      return res.data.result
+      return normalizeOrder(res.data.result)
     } catch (error) {
       console.warn('[orderService] updateOrderStatus error:', error.message)
       throw error
@@ -120,7 +127,7 @@ export const orderService = {
   fetchUserOrders: async () => {
     try {
       const res = await apiClient.get('/orders/my-orders')
-      return sortOrdersByNewest(res.data.result || [])
+      return sortOrdersByNewest((res.data.result || []).map(normalizeOrder))
     } catch (error) {
       console.warn('[orderService] fetchUserOrders error:', error.message)
       return []
@@ -131,7 +138,7 @@ export const orderService = {
   fetchUserOrderById: async (orderId) => {
     try {
       const res = await apiClient.get(`/orders/my-orders/${orderId}`)
-      return res.data.result || null
+      return normalizeOrder(res.data.result || null)
     } catch (error) {
       console.warn('[orderService] fetchUserOrderById error:', error.message)
       return null
@@ -142,7 +149,7 @@ export const orderService = {
   fetchStoreOrders: async (filters = {}) => {
     try {
       const res = await apiClient.get('/orders/store/my-store', { params: filters })
-      return sortOrdersByNewest(res.data.result || [])
+      return sortOrdersByNewest((res.data.result || []).map(normalizeOrder))
     } catch (error) {
       console.warn('[orderService] fetchStoreOrders error:', error.message)
       throw error
@@ -236,9 +243,19 @@ export const orderService = {
   updateOrderStatusInAllRevenue: async (orderId, newStatus) => {
     try {
       const res = await apiClient.patch(`/orders/${orderId}/status`, { status: newStatus })
-      return res.data.result
+      return normalizeOrder(res.data.result)
     } catch (error) {
       console.warn('[orderService] updateOrderStatusInAllRevenue error:', error.response?.data || error.message)
+      throw error
+    }
+  },
+
+  confirmOrderReceived: async (orderId) => {
+    try {
+      const res = await apiClient.patch(`/orders/my-orders/${orderId}/confirm-received`)
+      return normalizeOrder(res.data.result)
+    } catch (error) {
+      console.warn('[orderService] confirmOrderReceived error:', error.response?.data || error.message)
       throw error
     }
   },

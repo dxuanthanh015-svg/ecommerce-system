@@ -80,7 +80,8 @@ public class NotificationService {
 
     @Transactional
     public NotificationResponse updateNotification(String id, NotificationRequest req) {
-        Notification notification = notificationRepository.findById(id)
+        User currentUser = getCurrentUser();
+        Notification notification = notificationRepository.findByIdAndUserId(id, currentUser.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
 
         if (req.getTitle() != null) notification.setTitle(req.getTitle());
@@ -92,7 +93,8 @@ public class NotificationService {
 
     @Transactional
     public NotificationResponse markAsRead(String id) {
-        Notification notification = notificationRepository.findById(id)
+        User currentUser = getCurrentUser();
+        Notification notification = notificationRepository.findByIdAndUserId(id, currentUser.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
         notification.setIsRead(true);
         return toResponse(notificationRepository.save(notification));
@@ -106,10 +108,10 @@ public class NotificationService {
 
     @Transactional
     public void deleteNotification(String id) {
-        if (!notificationRepository.existsById(id)) {
-            throw new AppException(ErrorCode.NOTIFICATION_NOT_FOUND);
-        }
-        notificationRepository.deleteById(id);
+        User currentUser = getCurrentUser();
+        Notification notification = notificationRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
+        notificationRepository.delete(notification);
     }
 
     @Transactional

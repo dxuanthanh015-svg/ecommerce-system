@@ -70,11 +70,6 @@ const StoreOrderList = ({
     if (await handleStatusChange(id, "Shipped") && onShipOrder) onShipOrder(id);
   };
 
-  // Deliver Order Handler
-  const handleDeliver = (id) => {
-    handleStatusChange(id, "Delivered");
-  };
-
   // Cancel Order Handler
   const handleCancel = async (id) => {
     if (window.confirm("Are you sure you want to cancel this order? Item inventory will be restored.")) {
@@ -147,7 +142,6 @@ const StoreOrderList = ({
                     order={order}
                     onConfirmOrder={handleConfirm}
                     onShipOrder={handleShip}
-                    onDeliverOrder={handleDeliver}
                     onCancelOrder={handleCancel}
                     onViewOrder={(o) => setSelectedOrder(o)}
                     isUpdating={isUpdatingStatus}

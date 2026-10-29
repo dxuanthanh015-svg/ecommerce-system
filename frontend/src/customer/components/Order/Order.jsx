@@ -8,7 +8,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Pagination from '@mui/material/Pagination';
 import PaginationItem from '@mui/material/PaginationItem';
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
-import { useUserOrders, useUpdateOrderStatus } from "../../../hooks/useOrderQuery";
+import { useUserOrders, useConfirmOrderReceived } from "../../../hooks/useOrderQuery";
 import { sortOrdersByNewest } from "../../../services/orderService";
 import toast from "react-hot-toast";
 
@@ -19,12 +19,12 @@ const Order = () => {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const { data: orders = [], isLoading: isOrdersLoading } = useUserOrders(user?.email, { enabled: !isUserLoading });
-  const { mutate: updateStatusMutate, isPending: isUpdatingStatus, variables: updatingVars } = useUpdateOrderStatus();
+  const { mutate: confirmReceived, isPending: isUpdatingStatus, variables: updatingVars } = useConfirmOrderReceived();
   const loading = isUserLoading || isOrdersLoading;
 
   const handleConfirmReceived = (orderId) => {
-    updateStatusMutate(
-      { orderId, status: "Delivered" },
+    confirmReceived(
+      orderId,
       {
         onSuccess: () => {
           toast.success(`Đã xác nhận nhận hàng thành công cho đơn #${orderId}!`);
@@ -53,7 +53,7 @@ const Order = () => {
     const sorted = sortOrdersByNewest(orders);
     return sorted.filter((order) => {
       const matchesSearch = (order.orderId || "").toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "All" || order.status === statusFilter;
+      const matchesStatus = statusFilter === "All" || String(order.status || order.orderStatus).toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchTerm, statusFilter]);
@@ -121,7 +121,7 @@ const Order = () => {
           <div className="space-y-6">
             {currentOrders.map((order) => {
               const currentOrderId = order.orderId || order.id;
-              const isConfirming = isUpdatingStatus && String(updatingVars?.orderId) === String(currentOrderId);
+              const isConfirming = isUpdatingStatus && String(updatingVars) === String(currentOrderId);
               return (
                 <OrderCard
                   key={currentOrderId}

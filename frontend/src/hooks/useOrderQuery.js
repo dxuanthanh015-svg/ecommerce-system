@@ -144,6 +144,19 @@ export const useUpdateOrderStatus = () => {
   });
 };
 
+export const useConfirmOrderReceived = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId) => orderService.confirmOrderReceived(orderId),
+    onSuccess: (order, orderId) => {
+      qc.invalidateQueries({ queryKey: ['userOrders'] });
+      qc.invalidateQueries({ queryKey: ['order', orderId] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['notification'] });
+    },
+  });
+};
+
 // 7. Mutation xử lý thanh toán & lưu doanh thu (QrCode payment)
 export const useProcessOrder = () => {
   const qc = useQueryClient();

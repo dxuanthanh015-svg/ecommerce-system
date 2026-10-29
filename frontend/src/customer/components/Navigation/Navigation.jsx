@@ -28,6 +28,7 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
+import NotificationBell from "../../../components/NotificationBell";
 import { useCurrentUser, useLogoutMutation } from "../../../hooks/useAuthQuery";
 import { useCart, useWishList } from "../../../hooks/useCartQuery";
 
@@ -526,6 +527,8 @@ export default function Navigation() {
 
 
 
+
+                {isLoggedIn && <div className="ml-3 flow-root lg:ml-5"><NotificationBell audience="customer" /></div>}
 
                 {/* Wishlist */}
                 <div className="ml-4 flow-root lg:ml-6">

@@ -8,6 +8,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class NotificationController {
 
     // POST /notifications -> Tạo thông báo mới
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<NotificationResponse> postNotification(
             @RequestBody NotificationRequest request) {
         return ApiResponse.<NotificationResponse>builder()

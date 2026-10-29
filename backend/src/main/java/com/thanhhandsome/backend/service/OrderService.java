@@ -37,6 +37,7 @@ public class OrderService {
     OrderMapper orderMapper;
     TrendingCacheService trendingCacheService;
     VoucherService voucherService;
+    NotificationService notificationService;
 
     private User getCurrentUser() {
         var context = SecurityContextHolder.getContext();
@@ -201,6 +202,12 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
 
+        if (saved.getStore() != null && saved.getStore().getOwner() != null) {
+            notificationService.sendToUser(saved.getStore().getOwner().getId(), "Đơn hàng mới",
+                    "Bạn có đơn hàng mới " + saved.getOrderCode() + " cần xử lý.",
+                    com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
+        }
+
         // Xóa cache trending để cập nhật lại sản phẩm bán chạy
         try {
             trendingCacheService.evictCache();
@@ -262,6 +269,9 @@ public class OrderService {
         } catch (Exception e) {
             throw new RuntimeException("Trạng thái đơn hàng không hợp lệ: " + newStatus);
         }
+        if (previousStatus == requestedStatus) {
+            return orderMapper.toOrderResponse(order);
+        }
         if (!isAllowedOrderTransition(previousStatus, requestedStatus)) {
             throw new IllegalArgumentException(
                     "Không thể chuyển trạng thái đơn hàng từ " + previousStatus + " sang " + requestedStatus);
@@ -275,7 +285,34 @@ public class OrderService {
             });
         }
 
-        return orderMapper.toOrderResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        notificationService.sendToUser(saved.getUser().getId(), "Cập nhật đơn hàng",
+                "Đơn hàng " + saved.getOrderCode() + " đã chuyển sang trạng thái " + requestedStatus + ".",
+                com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
+        return orderMapper.toOrderResponse(saved);
+    }
+
+    @Transactional
+    public OrderResponse confirmOrderReceived(String orderId) {
+        User user = getCurrentUser();
+        Order order = orderRepository.findByIdOrOrderCode(orderId, orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        if (order.getOrderStatus() != OrderStatus.SHIPPED) {
+            throw new IllegalArgumentException("Chỉ có thể xác nhận nhận hàng khi đơn đang giao");
+        }
+
+        order.setOrderStatus(OrderStatus.DELIVERED);
+        Order saved = orderRepository.save(order);
+        Store store = saved.getStore();
+        if (store != null && store.getOwner() != null) {
+            notificationService.sendToUser(store.getOwner().getId(), "Khách đã nhận hàng",
+                    "Khách hàng đã xác nhận nhận đơn " + saved.getOrderCode() + ".",
+                    com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
+        }
+        return orderMapper.toOrderResponse(saved);
     }
 
     private boolean isAllowedOrderTransition(OrderStatus current, OrderStatus requested) {
@@ -283,7 +320,8 @@ public class OrderService {
         return switch (current) {
             case PENDING -> requested == OrderStatus.PROCESSING || requested == OrderStatus.CANCELLED;
             case PROCESSING -> requested == OrderStatus.SHIPPED || requested == OrderStatus.CANCELLED;
-            case SHIPPED -> requested == OrderStatus.DELIVERED;
+            // Customer confirmation endpoint alone can complete delivery.
+            case SHIPPED -> false;
             case DELIVERED, CANCELLED -> false;
         };
     }

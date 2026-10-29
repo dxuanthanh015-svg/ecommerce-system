@@ -15,7 +15,6 @@ const OrderTableRow = ({
   order,
   onConfirmOrder,
   onShipOrder,
-  onDeliverOrder,
   onCancelOrder,
   onViewOrder,
   isUpdating = false,
