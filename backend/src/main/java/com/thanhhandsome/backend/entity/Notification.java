@@ -26,6 +26,7 @@ public class Notification extends BaseEntity{
     String message;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 40, columnDefinition = "VARCHAR(40)")
     NotificationType type;
 
     @Column(name = "reference_id")
