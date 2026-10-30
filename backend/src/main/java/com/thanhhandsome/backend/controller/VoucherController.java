@@ -23,6 +23,15 @@ public class VoucherController {
 
     VoucherService voucherService;
 
+    @GetMapping("/public")
+    public ApiResponse<List<VoucherResponse>> getPublicActiveVouchers(
+            @RequestParam(required = false) String storeId) {
+        return ApiResponse.<List<VoucherResponse>>builder()
+                .message("Lấy voucher đang hoạt động thành công")
+                .result(voucherService.getPublicActiveVouchers(storeId))
+                .build();
+    }
+
     // GET /vouchers?storeId= -> Lấy danh sách voucher (lọc theo store nếu có)
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER')")

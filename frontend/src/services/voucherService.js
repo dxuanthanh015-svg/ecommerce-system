@@ -30,6 +30,15 @@ export const voucherService = {
     }
   },
 
+  // Public checkout list: only active, in-date vouchers for this store and global vouchers.
+  fetchPublicVouchers: async (storeId = null) => {
+    const params = storeId ? { storeId } : {}
+    const res = await apiClient.get('/vouchers/public', { params })
+    const list = res.data?.result
+    if (!Array.isArray(list)) throw new Error('API không trả về danh sách voucher công khai')
+    return list.map(voucherService.normalizeVoucher)
+  },
+
   // GET /vouchers/code/{code}?storeId= -> Tìm voucher theo mã
   fetchVoucherByCode: async (code, storeId = null) => {
     if (!code) return null

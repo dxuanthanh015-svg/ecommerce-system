@@ -12,7 +12,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import { voucherService, cartService } from "../../../services";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
-import { useVouchers } from "../../../hooks/useVoucherQuery";
+import { usePublicVouchers } from "../../../hooks/useVoucherQuery";
 import toast from "react-hot-toast";
 import { formatVnd } from "../../../utils/currency";
 import { getEffectivePrice } from "../../../utils/productPricing";
@@ -30,8 +30,8 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
   const [items, setItems] = useState(location.state?.checkoutItems || []);
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
 
-  const storeId = items[0]?.id_store || items[0]?.storeId || "store-001";
-  const { data: vList = [] } = useVouchers(storeId);
+  const storeId = items[0]?.id_store || items[0]?.storeId || items[0]?.store?.id || null;
+  const { data: vList = [] } = usePublicVouchers(storeId);
   const availableVouchers = vList.filter((v) => (v.status || "").toLowerCase() === "active");
 
   useEffect(() => {

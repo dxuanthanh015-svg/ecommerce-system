@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Rating } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -9,7 +9,7 @@ import HomeSectionCarousel from "../Home/HomeSectionCarousel/HomeSectionCarousel
 import StoreInformation from "./StoreInformation";
 import RateAndReview from "./RateAndReview";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
-import { useProducts, useDetailProducts, useTrackProductView } from "../../../hooks/useProductQuery";
+import { useProducts, useDetailProducts } from "../../../hooks/useProductQuery";
 import { useAllStores } from "../../../hooks/useStoreQuery";
 import { useAddCart, useAddToWishList } from "../../../hooks/useCartQuery";
 import { useReviews } from "../../../hooks/useReviewQuery";
@@ -19,7 +19,6 @@ import { formatVnd } from "../../../utils/currency";
 export default function ProductDetails() {
   const { productId } = useParams();
   const navigate = useNavigate();
-  const trackedProductIdRef = useRef(null);
 
   // Lấy dữ liệu từ reactquery
   const { data: currentUser } = useCurrentUser();
@@ -31,7 +30,6 @@ export default function ProductDetails() {
   // 2. Mutation
   const { mutateAsync: addToCartMutate, isPending: isAddingCart } = useAddCart();
   const { mutateAsync: addToWishListMutate } = useAddToWishList();
-  const { mutate: trackProductView } = useTrackProductView();
 
   // 3. State
   const [selectedSize, setSelectedSize] = useState(null);
@@ -56,13 +54,6 @@ export default function ProductDetails() {
     const category = p?.category?.id || p?.categoryId || p?.topLavelCategory;
     return category && category === currentCategory && String(p.id) !== String(product?.id);
   });
-
-  useEffect(() => {
-    if (foundProduct?.id && trackedProductIdRef.current !== foundProduct.id) {
-      trackedProductIdRef.current = foundProduct.id;
-      trackProductView(foundProduct);
-    }
-  }, [foundProduct?.id, trackProductView]);
 
   useEffect(() => {
     setSelectImage(0);

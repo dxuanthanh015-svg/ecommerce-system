@@ -47,6 +47,7 @@ public class SecurityConfig {
             "/products/**",
             "/stores",
             "/stores/profile/*",
+            "/vouchers/public",
             "/vouchers"
     };
 

@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productService } from "../services/productService";
-import { viewsService } from "../services/viewsService";
 import { QUERY_KEYS } from "../constants/queryKeys";
 import { storeService } from "../services/storeService";
 
@@ -115,54 +114,6 @@ export const useSaveProduct = () => {
         }
     });
 };
-
-export const useViewsData = () => {
-    return useQuery({
-        queryKey: ['viewsData'],
-        queryFn: () => viewsService.fetchViewsData(),
-        staleTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false,
-    })
-}
-
-export const useTrackProductView = () => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: async (product) => {
-            const cachedViews = qc.getQueryData(['viewsData']);
-            return await viewsService.recordProductView(product, cachedViews);
-        },
-        onSuccess: (savedItem, product) => {
-            if (savedItem && product?.id) {
-                // Cập nhật trực tiếp cache query để StoreAnalytics luôn có số liệu mới nhất
-                // mà KHÔNG kích hoạt refetch mạng thừa!
-                qc.setQueryData(['viewsData'], (old = {}) => ({
-                    ...old,
-                    [product.id]: {
-                        ...(old?.[product.id] || {}),
-                        ...savedItem,
-                    },
-                }));
-            }
-        },
-        onError: (err) => {
-            console.warn('Error tracking product view', err);
-        }
-    });
-};
-
-export const useSaveViewsData = () => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: ({ productId, viewEntry, allViews }) => viewsService.saveViewsData(productId, viewEntry, allViews),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['viewsData'] })
-        },
-        onError: (err) => {
-            console.log('Error while saving views data', err)
-        }
-    })
-}
 
 export const useTop5Product = () => useQuery({
     queryKey: ['products', 'trending', 5, 'v2'],

@@ -14,6 +14,13 @@ export const useVouchers = (storeId = null, options = {}) => {
   });
 };
 
+export const usePublicVouchers = (storeId = null, options = {}) => useQuery({
+  queryKey: ['public-vouchers', storeId || 'global'],
+  queryFn: () => voucherService.fetchPublicVouchers(storeId),
+  staleTime: 5 * 60 * 1000,
+  enabled: options.enabled ?? true,
+});
+
 export const useVoucherMetrics = (storeId = null, options = {}) => useQuery({
   queryKey: ["voucher-metrics", storeId],
   queryFn: () => voucherService.fetchMetrics(storeId),

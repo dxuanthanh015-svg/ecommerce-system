@@ -101,6 +101,27 @@ public class VoucherService {
     }
 
     @Transactional(readOnly = true)
+    public List<VoucherResponse> getPublicActiveVouchers(String storeId) {
+        LocalDateTime now = LocalDateTime.now();
+        return voucherRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(voucher -> voucher.getStatus() == VoucherStatus.ACTIVE)
+                .filter(voucher -> voucher.getStartDate() == null || !now.isBefore(voucher.getStartDate()))
+                .filter(voucher -> voucher.getEndDate() == null || !now.isAfter(voucher.getEndDate()))
+                .filter(voucher -> voucher.getUsageLimit() == null
+                        || voucher.getUsedCount() == null
+                        || voucher.getUsedCount() < voucher.getUsageLimit())
+                .filter(voucher -> voucher.getStore() == null
+                        || (storeId != null && storeId.equals(voucher.getStore().getId())))
+                .map(voucher -> {
+                    VoucherResponse response = toResponse(voucher);
+                    response.setUsedCount(null);
+                    response.setRevenueImpact(null);
+                    return response;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public VoucherResponse getByCode(String code, String storeId) {
         if (!isAdmin()) ensureStoreAccess(storeId);
         Voucher voucher = storeId != null

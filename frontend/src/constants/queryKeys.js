@@ -12,7 +12,6 @@ export const QUERY_KEYS = {
     USER_ORDERS: (email) => ['userOrders', email],
     REVIEWS: (productId) => ['reviews', productId],
     VOUCHERS: (storeId) => ['vouchers', storeId || 'all'],
-    VIEWS_DATA: ['viewsData'],
     MOST_VIEW_PRODUCT: (storeId) => ['mostViewProduct', storeId],
     TOP5_BEST_SELLERS: (storeId) => ['top5BestSellers', storeId],
     STORE_ANALYTICS: (storeId, range = 'Last 6 Months', revenueData) => ['storeAnalytics', storeId, range, revenueData],
