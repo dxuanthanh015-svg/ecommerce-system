@@ -32,6 +32,10 @@ public class AuthenticationController {
     @Value("${app.cookie.secure:false}")
     boolean secureCookies;
 
+    @NonFinal
+    @Value("${app.cookie.same-site:Lax}")
+    String cookieSameSite;
+
     @PostMapping("/refresh")
     public ApiResponse<LoginResponse> refreshToken(@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response){
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -44,7 +48,7 @@ public class AuthenticationController {
                     .secure(secureCookies)
                     .path("/")
                     .maxAge(7 * 24 * 60 * 60)
-                    .sameSite("Lax")
+                    .sameSite(cookieSameSite)
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, newRefreshTokenCookie.toString());
             newTokens.setRefreshToken(null);
@@ -64,7 +68,7 @@ public class AuthenticationController {
                 .secure(secureCookies)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60)
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());
 
@@ -85,7 +89,7 @@ public class AuthenticationController {
                 .secure(secureCookies)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60) // 7 days
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         loginResponse.setRefreshToken(null);
@@ -108,7 +112,7 @@ public class AuthenticationController {
                 .secure(secureCookies)
                 .path("/")
                 .maxAge(0)
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, deletedCookie.toString());
         return ApiResponse.<Void>builder()
