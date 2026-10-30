@@ -3,7 +3,6 @@ package com.thanhhandsome.backend.dto.request;
 import com.thanhhandsome.backend.enums.Gender;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -31,8 +30,7 @@ public class UserCreationRequest {
 
     String phone;
 
-    @NotNull(message = "Giới tính không được để trống")
-    Gender gender;
+    Gender gender = Gender.OTHER;
 
     String phonePrefix; 
 }

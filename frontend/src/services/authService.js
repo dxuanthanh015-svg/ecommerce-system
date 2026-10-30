@@ -11,7 +11,7 @@ export const authService = {
                 firstName: userData.firstName?.trim(),
                 lastName: userData.lastName?.trim(),
                 phone: userData.phone || null,
-                gender: userData.gender || null,
+                gender: userData.gender || "OTHER",
             });
             return response.data.result;
         } catch (error) {

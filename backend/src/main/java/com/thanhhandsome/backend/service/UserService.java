@@ -40,6 +40,9 @@ public class UserService {
             throw new AppException(ErrorCode.EMAIL_ALREADY_IN_USE);
         }
         User user = userMapper.toUser(userCreationRequest);
+        user.setGender(userCreationRequest.getGender() != null
+                ? userCreationRequest.getGender()
+                : Gender.OTHER);
         user.setPassword(passwordEncoder.encode(userCreationRequest.getPassword()));
         user.setRoles(Set.of(RoleType.CUSTOMER));
         try{
