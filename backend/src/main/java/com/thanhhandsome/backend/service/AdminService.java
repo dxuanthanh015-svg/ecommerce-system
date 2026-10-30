@@ -164,7 +164,7 @@ public class AdminService {
 
         notificationService.sendToUser(applicant.getId(), "Cửa hàng đã được duyệt",
                 "Hồ sơ " + app.getShopName() + " đã được duyệt. Bạn có thể bắt đầu quản lý cửa hàng.",
-                com.thanhhandsome.backend.enums.NotificationType.STORE_APPLICATION, store.getId());
+                com.thanhhandsome.backend.enums.NotificationType.STORE_APPLICATION_APPROVED, store.getId());
 
         return toStoreResponse(store);
     }
@@ -175,12 +175,6 @@ public class AdminService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
         app.setStatus(ApplicationStatus.REJECTED);
         applicationRepository.save(app);
-        String reason = app.getRejectionReason();
-        notificationService.sendToUser(app.getUser().getId(), "Hồ sơ cửa hàng chưa được duyệt",
-                reason == null || reason.isBlank()
-                        ? "Hồ sơ " + app.getShopName() + " chưa được duyệt. Vui lòng kiểm tra thông tin và gửi lại."
-                        : "Hồ sơ " + app.getShopName() + " chưa được duyệt: " + reason,
-                com.thanhhandsome.backend.enums.NotificationType.STORE_APPLICATION, app.getId());
     }
 
     // ===================== STORES =====================

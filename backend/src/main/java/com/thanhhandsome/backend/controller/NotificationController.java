@@ -22,10 +22,11 @@ public class NotificationController {
 
     // GET /notifications -> Lấy thông báo của user hiện tại
     @GetMapping
-    public ApiResponse<List<NotificationResponse>> getNotifications() {
+    public ApiResponse<List<NotificationResponse>> getNotifications(
+            @RequestParam(defaultValue = "customer") String audience) {
         return ApiResponse.<List<NotificationResponse>>builder()
                 .message("Lấy danh sách thông báo thành công")
-                .result(notificationService.getMyNotifications())
+                .result(notificationService.getMyNotifications(audience))
                 .build();
     }
 

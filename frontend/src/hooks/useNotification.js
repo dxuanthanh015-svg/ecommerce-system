@@ -3,12 +3,12 @@ import { notificationService } from "../services/notificationService";
 import { QUERY_KEYS } from "../constants/queryKeys";
 import { useAuthStore } from "../store/useAuthStore";
 
-export const useNotification = () => {
+export const useNotification = (audience = "customer") => {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const userId = useAuthStore((state) => state.user?.id);
     return useQuery({
-        queryKey: [...QUERY_KEYS.NOTIFICATION, userId || "anonymous"],
-        queryFn: () => notificationService.fetchNotification(),
+        queryKey: [...QUERY_KEYS.NOTIFICATION, audience, userId || "anonymous"],
+        queryFn: () => notificationService.fetchNotification(audience),
         enabled: isAuthenticated,
         refetchInterval: isAuthenticated ? 5000 : false,
     })

@@ -19,6 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,16 +47,50 @@ public class NotificationService {
                 .type(n.getType())
                 .referenceId(n.getReferenceId())
                 .isRead(n.getIsRead())
-                .createdAt(n.getCreatedAt())
-                .updatedAt(n.getUpdatedAt())
+                .createdAt(toOffsetDateTime(n.getCreatedAt()))
+                .updatedAt(toOffsetDateTime(n.getUpdatedAt()))
                 .build();
     }
 
+    private java.time.OffsetDateTime toOffsetDateTime(LocalDateTime value) {
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toOffsetDateTime();
+    }
+
     @Transactional(readOnly = true)
-    public List<NotificationResponse> getMyNotifications() {
+    public List<NotificationResponse> getMyNotifications(String audience) {
         User user = getCurrentUser();
+        String normalizedAudience = audience == null ? "customer" : audience.trim().toLowerCase(Locale.ROOT);
+        boolean hasAudienceRole = switch (normalizedAudience) {
+            case "customer" -> user.getRoles() != null && user.getRoles().contains(RoleType.CUSTOMER);
+            case "storemanager" -> user.getRoles() != null && user.getRoles().contains(RoleType.STORE_MANAGER);
+            case "admin" -> user.getRoles() != null && user.getRoles().contains(RoleType.ADMIN);
+            default -> false;
+        };
+        if (!hasAudienceRole) throw new AppException(ErrorCode.UNAUTHORIZED);
+
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream()
+                .filter(notification -> isVisibleForAudience(notification, normalizedAudience))
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    private boolean isVisibleForAudience(Notification notification, String audience) {
+        NotificationType type = notification.getType();
+        if (type == null) return false;
+        return switch (audience) {
+            case "customer" -> type == NotificationType.STORE_APPLICATION_APPROVED
+                    || (type == NotificationType.ORDER_UPDATE
+                    && "Cập nhật đơn hàng".equals(notification.getTitle()));
+            case "storemanager" -> type == NotificationType.STORE_ORDER_NEW
+                    || type == NotificationType.STORE_ORDER_UPDATE
+                    // Keep previously saved store notifications visible after deploying the new event types.
+                    || (type == NotificationType.ORDER_UPDATE
+                    && ("Đơn hàng mới".equals(notification.getTitle())
+                    || "Khách đã nhận hàng".equals(notification.getTitle())));
+            case "admin" -> type == NotificationType.STORE_APPLICATION;
+            default -> false;
+        };
     }
 
     @Transactional

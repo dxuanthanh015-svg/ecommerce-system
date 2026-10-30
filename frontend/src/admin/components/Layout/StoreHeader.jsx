@@ -6,7 +6,7 @@ import { useNotification, useMarkAsRead } from "../../../hooks/useNotification";
 
 const StoreHeader = () => {
   const navigate = useNavigate();
-  const { data: notification = [] } = useNotification();
+  const { data: notification = [] } = useNotification("admin");
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const markAsReadNoti = useMarkAsRead();
 

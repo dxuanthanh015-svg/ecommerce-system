@@ -8,7 +8,7 @@ import { useAuthStore } from "../store/useAuthStore";
 const NotificationBell = ({ audience = "customer" }) => {
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.user?.id);
-  const { data: notifications = [], isSuccess } = useNotification();
+  const { data: notifications = [], isSuccess } = useNotification(audience);
   const markAsRead = useMarkAsRead();
   const [open, setOpen] = useState(false);
   const seenNotifications = useRef({ userId: null, ids: new Set() });
@@ -24,9 +24,12 @@ const NotificationBell = ({ audience = "customer" }) => {
       if (audience === "customer") navigate(`/account/order/${item.referenceId}`);
       else if (audience === "storeManager") navigate("/store-manager/orders");
       else navigate("/admin/orders");
-    } else if (item.type === "STORE_APPLICATION") {
-      if (audience === "admin") navigate("/admin/sellers");
-      else navigate("/account/setting");
+    } else if (item.type === "STORE_ORDER_NEW" || item.type === "STORE_ORDER_UPDATE") {
+      navigate("/store-manager/orders");
+    } else if (item.type === "STORE_APPLICATION" && audience === "admin") {
+      navigate("/admin/sellers");
+    } else if (item.type === "STORE_APPLICATION_APPROVED" && audience === "customer") {
+      navigate("/store-manager/dashboard");
     }
   }, [audience, markAsRead, navigate]);
 

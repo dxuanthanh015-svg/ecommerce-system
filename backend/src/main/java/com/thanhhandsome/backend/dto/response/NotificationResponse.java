@@ -4,7 +4,7 @@ import com.thanhhandsome.backend.enums.NotificationType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
@@ -18,6 +18,6 @@ public class NotificationResponse {
     NotificationType type;
     String referenceId;
     Boolean isRead;
-    LocalDateTime createdAt;
-    LocalDateTime updatedAt;
+    OffsetDateTime createdAt;
+    OffsetDateTime updatedAt;
 }

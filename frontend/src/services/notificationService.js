@@ -8,9 +8,9 @@ import apiClient from './apiClient'
 export const notificationService = {
 
   // GET /notifications -> Lấy danh sách thông báo của user hiện tại (via JWT)
-  fetchNotification: async () => {
+  fetchNotification: async (audience = 'customer') => {
     try {
-      const res = await apiClient.get('/notifications')
+      const res = await apiClient.get('/notifications', { params: { audience } })
       return res.data.result || []
     } catch (error) {
       console.warn('[notificationService] fetchNotification error:', error.response?.data || error.message)

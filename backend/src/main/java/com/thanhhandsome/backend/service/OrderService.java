@@ -205,7 +205,7 @@ public class OrderService {
         if (saved.getStore() != null && saved.getStore().getOwner() != null) {
             notificationService.sendToUser(saved.getStore().getOwner().getId(), "Đơn hàng mới",
                     "Bạn có đơn hàng mới " + saved.getOrderCode() + " cần xử lý.",
-                    com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
+                    com.thanhhandsome.backend.enums.NotificationType.STORE_ORDER_NEW, saved.getId());
         }
 
         // Xóa cache trending để cập nhật lại sản phẩm bán chạy
@@ -310,7 +310,7 @@ public class OrderService {
         if (store != null && store.getOwner() != null) {
             notificationService.sendToUser(store.getOwner().getId(), "Khách đã nhận hàng",
                     "Khách hàng đã xác nhận nhận đơn " + saved.getOrderCode() + ".",
-                    com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
+                    com.thanhhandsome.backend.enums.NotificationType.STORE_ORDER_UPDATE, saved.getId());
         }
         return orderMapper.toOrderResponse(saved);
     }
