@@ -77,7 +77,9 @@ export const voucherService = {
         discountType,
         value: Number(voucherDraft.value ?? voucherDraft.discountValue ?? 0),
         minOrderValue: Number(voucherDraft.minOrderValue) || 0,
-        maxDiscountAmount: Number(voucherDraft.maxDiscountAmount ?? voucherDraft.maxDiscount) || 0,
+        maxDiscountAmount: Number(voucherDraft.maxDiscountAmount ?? voucherDraft.maxDiscount) > 0
+          ? Number(voucherDraft.maxDiscountAmount ?? voucherDraft.maxDiscount)
+          : null,
         usageLimit: Number(voucherDraft.usageLimit) > 0 ? Number(voucherDraft.usageLimit) : null,
         startDate: voucherService.toLocalDateTime(voucherDraft.startDate),
         endDate: voucherService.toLocalDateTime(voucherDraft.endDate, true),
@@ -127,7 +129,16 @@ export const voucherService = {
         subtotal,
         cartItems,
       })
-      return res.data.result
+      const result = res.data.result
+      if (!result?.isValid) return result
+      return {
+        ...result,
+        voucher: voucherService.normalizeVoucher({
+          id: result.voucherId,
+          code: result.code || code,
+          discountType: result.discountType,
+        }),
+      }
     } catch (error) {
       const message = error.response?.data?.message || 'Mã giảm giá không hợp lệ!'
       return { isValid: false, message }

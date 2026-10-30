@@ -2,6 +2,7 @@ package com.thanhhandsome.backend.dto.response;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import com.thanhhandsome.backend.enums.DiscountType;
 
 import java.math.BigDecimal;
 
@@ -16,4 +17,5 @@ public class VoucherValidateResponse {
     BigDecimal discountAmount;
     String voucherId;
     String code;
+    DiscountType discountType;
 }

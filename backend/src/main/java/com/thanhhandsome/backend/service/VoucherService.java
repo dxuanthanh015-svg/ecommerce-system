@@ -258,9 +258,10 @@ public class VoucherService {
         try {
             if (req.getStoreId() != null) {
                 voucher = voucherRepository.findByCodeIgnoreCaseAndStoreId(req.getCode(), req.getStoreId())
+                        .or(() -> voucherRepository.findByCodeIgnoreCaseAndStoreIsNull(req.getCode()))
                         .orElse(null);
             } else {
-                voucher = voucherRepository.findByCodeIgnoreCase(req.getCode()).orElse(null);
+                voucher = voucherRepository.findByCodeIgnoreCaseAndStoreIsNull(req.getCode()).orElse(null);
             }
         } catch (Exception e) {
             return VoucherValidateResponse.builder().isValid(false).message("Mã giảm giá không hợp lệ!").build();
@@ -293,6 +294,7 @@ public class VoucherService {
                 .discountAmount(discount)
                 .voucherId(voucher.getId())
                 .code(voucher.getCode())
+                .discountType(voucher.getDiscountType())
                 .build();
     }
 
@@ -331,7 +333,7 @@ public class VoucherService {
         BigDecimal discount;
         if (voucher.getDiscountType() == DiscountType.PERCENTAGE) {
             discount = subtotal.multiply(voucher.getValue()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-            if (voucher.getMaxDiscountAmount() != null) {
+            if (voucher.getMaxDiscountAmount() != null && voucher.getMaxDiscountAmount().signum() > 0) {
                 discount = discount.min(voucher.getMaxDiscountAmount());
             }
         } else if (voucher.getDiscountType() == DiscountType.FLAT_AMOUNT) {
