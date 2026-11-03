@@ -196,23 +196,28 @@ export default function Navigation() {
               ))}
             </div>
 
-            <div className="space-y-6 border-t border-gray-200 px-4 py-6">
-              <div className="flow-root">
-                <a
-                  href="#"
-                  className="-m-2 block p-2 font-medium text-gray-900"
-                >
-                  Sign in
-                </a>
-              </div>
-              <div className="flow-root">
-                <a
-                  href="#"
-                  className="-m-2 block p-2 font-medium text-gray-900"
-                >
-                  Create account
-                </a>
-              </div>
+            <div className="space-y-3 border-t border-gray-200 px-4 py-6">
+              {isLoggedIn ? (
+                <>
+                  <div className="flex min-w-0 items-center gap-3 px-2 pb-2">
+                    <Avatar src={user?.avatarUrl || undefined} sx={{ width: 40, height: 40, bgcolor: '#4f46e5', flexShrink: 0 }}>
+                      {(user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-gray-900">{`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Tài khoản'}</p>
+                      <p className="truncate text-xs text-gray-500">{user?.email}</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => { setOpen(false); navigate('/account/setting'); }} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-gray-900 hover:bg-gray-50">Tài khoản của tôi</button>
+                  <button type="button" onClick={() => { setOpen(false); navigate('/account/order'); }} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-gray-900 hover:bg-gray-50">Đơn hàng</button>
+                  <button type="button" onClick={() => logout(undefined, { onSuccess: () => { setOpen(false); navigate('/login'); } })} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-red-600 hover:bg-red-50">Đăng xuất</button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => { setOpen(false); navigate('/login'); }} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-gray-900 hover:bg-gray-50">Đăng nhập</button>
+                  <button type="button" onClick={() => { setOpen(false); navigate('/signup'); }} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-gray-900 hover:bg-gray-50">Tạo tài khoản</button>
+                </>
+              )}
             </div>
 
             <div className="border-t border-gray-200 px-4 py-6">
@@ -239,14 +244,14 @@ export default function Navigation() {
 
         <nav
           aria-label="Top"
-          className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+          className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8"
         >
           <div className="border-b border-gray-200">
             <div className="flex h-16 items-center">
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="relative rounded-md bg-white p-2 text-gray-400 lg:hidden"
+                className="relative rounded-md bg-white p-1.5 sm:p-2 text-gray-400 lg:hidden"
               >
                 <span className="absolute -inset-0.5" />
                 <span className="sr-only">Open menu</span>
@@ -257,7 +262,7 @@ export default function Navigation() {
               <div className="ml-4 flex lg:ml-0">
                 <a href="#">
                   <span className="sr-only">Ecommerce-system</span>
-                  <img alt="" src=".\nexCart.svg" className="h-12 w-auto" onClick={() => navigate('/')} />
+                  <img alt="" src=".\nexCart.svg" className="h-9 sm:h-12 w-auto" onClick={() => navigate('/')} />
                 </a>
               </div>
 
@@ -387,7 +392,7 @@ export default function Navigation() {
                 </div>
               </PopoverGroup>
 
-              <div className="ml-auto flex items-center">
+              <div className="ml-auto flex min-w-0 items-center">
                 <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
                   {isLoggedIn ? (
                     <div>
@@ -528,10 +533,23 @@ export default function Navigation() {
 
 
 
-                {isLoggedIn && <div className="ml-3 flow-root lg:ml-5"><NotificationBell audience="customer" /></div>}
+                {isLoggedIn && <div className="ml-1.5 flow-root sm:ml-3 lg:ml-5"><NotificationBell audience="customer" /></div>}
+
+                <button
+                  type="button"
+                  onClick={() => isLoggedIn ? navigate('/account/setting') : navigate('/login')}
+                  className="ml-1.5 inline-flex shrink-0 items-center justify-center rounded-full p-0.5 hover:bg-gray-100 lg:hidden"
+                  aria-label={isLoggedIn ? 'Mở tài khoản' : 'Đăng nhập'}
+                >
+                  {isLoggedIn ? (
+                    <Avatar src={user?.avatarUrl || undefined} sx={{ width: 32, height: 32, bgcolor: '#4f46e5', fontSize: 13, fontWeight: 700 }}>
+                      {(user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
+                    </Avatar>
+                  ) : <PersonOutlinedIcon className="text-gray-500" sx={{ fontSize: 23 }} />}
+                </button>
 
                 {/* Wishlist */}
-                <div className="ml-4 flow-root lg:ml-6">
+                <div className="ml-1.5 flow-root sm:ml-3 lg:ml-6">
                   <button
                     type="button"
                     onClick={() => navigate('/wishlist')}
@@ -543,14 +561,15 @@ export default function Navigation() {
                       className="text-gray-400 group-hover:text-rose-500 transition-colors"
                       sx={{ fontSize: 22 }}
                     />
-                    <span className="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-rose-600">
+                    <span className="sr-only">{wishlistCount} items</span>
+                    <span aria-hidden="true" className="hidden sm:inline ml-1.5 text-xs font-bold text-gray-700 group-hover:text-rose-600">
                       {wishlistCount}
                     </span>
                   </button>
                 </div>
 
                 {/* Cart */}
-                <div className="ml-4 flow-root lg:ml-6">
+                <div className="ml-1.5 flow-root sm:ml-3 lg:ml-6">
                   <button
                     type="button"
                     onClick={() => navigate('/cart')}
@@ -562,7 +581,8 @@ export default function Navigation() {
                       className="text-gray-400 group-hover:text-indigo-600 transition-colors"
                       sx={{ fontSize: 22 }}
                     />
-                    <span className="ml-1.5 text-xs font-bold text-gray-700 group-hover:text-indigo-600">
+                    <span className="sr-only">{cartCount} items</span>
+                    <span aria-hidden="true" className="hidden sm:inline ml-1.5 text-xs font-bold text-gray-700 group-hover:text-indigo-600">
                       {cartCount}
                     </span>
                   </button>

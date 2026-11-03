@@ -144,7 +144,7 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
   return (
     <div>
       {/* Summary Card */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-2xs sticky top-8 space-y-6">
+      <div className="bg-white rounded-2xl p-4 sm:p-7 border border-gray-100 shadow-2xs lg:sticky lg:top-8 space-y-5 sm:space-y-6">
         <h2 className="text-lg font-bold text-gray-900 pb-3 border-b border-gray-100">
           Order Summary
         </h2>
@@ -152,14 +152,14 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
         {/* Product List */}
         <div className="space-y-4">
           {items.map((item) => (
-            <div key={`${item.id}-${item.size}-${item.color}`} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div key={`${item.id}-${item.size}-${item.color}`} className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <img
                   src={item.imageUrl}
                   alt={item.title}
                   className="w-14 h-14 rounded-lg object-cover bg-gray-50 shrink-0 border border-gray-100"
                 />
-                <div>
+                <div className="min-w-0">
                   <h3 className="text-xs font-bold text-gray-900 line-clamp-1">{item.title}</h3>
                   <p className="text-[11px] text-gray-500 mt-0.5">
                     Size: <span className="font-semibold text-gray-700">{item.size || "M"}</span> | Color: <span className="font-semibold text-gray-700">{item.color || "Default"}</span> | Qty: {item.quantity || 1}
@@ -324,7 +324,7 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
 
           <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
             <span className="text-sm font-extrabold text-gray-900">Total</span>
-            <span className="text-2xl font-black text-indigo-600">
+            <span className="text-xl sm:text-2xl font-black text-indigo-600 text-right">
               {formatVnd(finalTotal)}
             </span>
           </div>

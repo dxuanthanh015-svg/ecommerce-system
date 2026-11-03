@@ -36,5 +36,5 @@ export const updateStoreOrderStatus = async (storeId, orderId, newStatus) => {
 };
 
 export const cancelCustomerOrder = async (orderId) => {
-  return orderService.updateOrderStatusInAllRevenue(orderId, "Cancelled");
+  return orderService.cancelMyOrder(orderId);
 };

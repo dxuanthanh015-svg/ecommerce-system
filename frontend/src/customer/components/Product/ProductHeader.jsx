@@ -18,11 +18,11 @@ export default function ProductHeader() {
   return (
 
 
-    <div className="bg-gradient-to-b from-indigo-50/70 via-blue-50/30 to-white py-14 px-4 sm:px-6 lg:px-8 text-center border-b border-gray-100">
+    <div className="bg-gradient-to-b from-indigo-50/70 via-blue-50/30 to-white py-9 sm:py-14 px-4 sm:px-6 lg:px-8 text-center border-b border-gray-100">
       <span className="px-3.5 py-1 bg-indigo-100/80 text-indigo-600 text-[11px] font-bold rounded-full uppercase tracking-wider mb-3 inline-block">
         Style Collection
       </span>
-      <h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-3">
+      <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-3">
         {mapTitle[path] ? mapTitle[path][0] : mapTitle['/product'][0]}
       </h1>
       <p className="text-gray-500 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">

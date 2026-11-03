@@ -104,10 +104,10 @@ export default function CheckOut() {
   };
 
   return (
-    <div className="bg-[#f8f9fc] min-h-screen py-10 font-sans">
+    <div className="bg-[#f8f9fc] min-h-screen py-5 sm:py-10 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div className="flex flex-col mb-8">
+        <div className="flex flex-col mb-5 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight mb-1 text-center">
             Checkout
           </h1>
@@ -116,7 +116,7 @@ export default function CheckOut() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+        <div className="grid min-w-0 grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 lg:gap-10">
           {/* Left Column: Existed Addresses + Shipping & Payment Forms */}
           <div className="lg:col-span-7">
             <ExistedDeliveryAddress

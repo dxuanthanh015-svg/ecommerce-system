@@ -9,7 +9,9 @@ export const useUserOrders = (userEmail, options = {}) => {
     queryFn: () => orderService.fetchUserOrders(userEmail),
     select: (data) => sortOrdersByNewest(data || []),
     enabled: Boolean(userEmail),
-    staleTime: 3 * 60 * 1000,
+    staleTime: 0,
+    refetchInterval: 15 * 1000,
+    refetchOnWindowFocus: true,
     gcTime: 10 * 60 * 1000,
     ...options,
   });
@@ -46,24 +48,15 @@ export const useOrderDetail = (orderId, userEmail = null, options = {}) => {
   const qc = useQueryClient()
   return useQuery({
     queryKey: ['order', orderId],
-    queryFn: async () => {
-      if (!orderId) return null;
-      const cachedOrders = qc.getQueryData(QUERY_KEYS.USER_ORDERS(userEmail))
-      if (cachedOrders && cachedOrders.length > 0) {
-        const order = cachedOrders.find((order) => order.orderId === orderId);
-        if (order) {
-          return order;
-        }
-      }
-      const order = await orderService.fetchUserOrderById(orderId);
-      return order;
-    },
+    queryFn: () => orderService.fetchUserOrderById(orderId),
     initialData: () => {
       const cachedOrders = userEmail ? qc.getQueryData(QUERY_KEYS.USER_ORDERS(userEmail)) : null;
       return cachedOrders?.find((o) => String(o.orderId || o.id) === String(orderId));
     },
     enabled: Boolean(orderId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchInterval: 15 * 1000,
+    refetchOnWindowFocus: true,
     ...options,
   });
 };
@@ -88,10 +81,11 @@ export const useCreateOrder = () => {
 export const useUpdateOrderStatus = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ orderId, status, storeId = null, confirmReceived = false }) =>
-      confirmReceived
-        ? orderService.confirmReceived(orderId)
-        : orderService.updateOrderStatusInAllRevenue(orderId, status, storeId),
+    mutationFn: ({ orderId, status, storeId = null, confirmReceived = false, cancelByCustomer = false }) => {
+      if (confirmReceived) return orderService.confirmReceived(orderId);
+      if (cancelByCustomer) return orderService.cancelMyOrder(orderId);
+      return orderService.updateOrderStatusInAllRevenue(orderId, status, storeId);
+    },
     onSuccess: (data, variables) => {
       const orderId = variables?.orderId;
       const newStatus = data?.orderStatus || data?.status || variables?.status;
@@ -141,6 +135,9 @@ export const useUpdateOrderStatus = () => {
       if (variables?.storeId) {
         qc.invalidateQueries({ queryKey: QUERY_KEYS.ORDERS(variables.storeId) });
         qc.invalidateQueries({ queryKey: QUERY_KEYS.STORE_REVENUE(variables.storeId) });
+      } else {
+        qc.invalidateQueries({ queryKey: ['userOrders'] });
+        qc.invalidateQueries({ queryKey: ['order', orderId] });
       }
     },
   });

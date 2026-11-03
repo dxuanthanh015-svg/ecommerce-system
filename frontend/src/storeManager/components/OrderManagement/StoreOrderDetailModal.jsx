@@ -6,6 +6,7 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import OrderTracker from "../../../customer/components/Order/OrderTracker";
 import { getOrderDeliveryInfo } from "../../../services/orderService";
 import { formatVnd } from "../../../utils/currency";
+import { getEffectivePrice } from "../../../utils/productPricing";
 
 
 export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatusChange }) {
@@ -92,28 +93,46 @@ export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatus
             </h3>
             <div className="divide-y divide-slate-100 rounded-2xl border border-slate-100 overflow-hidden">
               {items.length > 0 ? (
-                items.map((item, index) => (
-                  <div key={item.id || index} className="flex items-center justify-between p-4 bg-white hover:bg-slate-50/50">
-                    <div className="flex items-center gap-3.5">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="h-12 w-12 rounded-xl object-cover border border-slate-100 bg-slate-50 shrink-0"
-                      />
-                      <div>
-                        <p className="text-sm font-bold text-slate-900 line-clamp-1">{item.title}</p>
+                items.map((item, index) => {
+                  const title = item.productTitle || item.title || item.product?.title || "Sản phẩm";
+                  const imageUrl = item.productImageUrl || item.imageUrl || item.image || item.product?.imageUrl || item.product?.images?.[0];
+                  const quantity = Number(item.quantity) || 1;
+                  const unitPrice = getEffectivePrice(item);
+                  const originalPrice = Number(item.price) || 0;
+                  const lineTotal = Number(item.itemSubtotal) || unitPrice * quantity;
+                  const hasDiscount = unitPrice < originalPrice;
+
+                  return (
+                  <div key={item.id || item.productId || index} className="flex flex-col gap-3 p-4 bg-white hover:bg-slate-50/50 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={title}
+                          className="h-14 w-14 rounded-xl object-cover border border-slate-100 bg-slate-50 shrink-0"
+                        />
+                      ) : (
+                        <div aria-label="Không có ảnh sản phẩm" className="h-14 w-14 rounded-xl border border-slate-100 bg-slate-50 shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 line-clamp-2">{title}</p>
                         <p className="text-xs text-slate-400">
-                          Qty: <span className="font-semibold text-slate-700">{item.quantity || 1}</span>
+                          Qty: <span className="font-semibold text-slate-700">{quantity}</span>
                           {item.size ? ` • Size: ${item.size}` : ""}
                           {item.color ? ` • Color: ${item.color}` : ""}
                         </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-700">
+                          {formatVnd(unitPrice)} / sản phẩm
+                          {hasDiscount && <span className="ml-2 font-normal text-slate-400 line-through">{formatVnd(originalPrice)}</span>}
+                        </p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-slate-900 shrink-0">
-                      {formatVnd((Number(item.price) || 0) * (Number(item.quantity) || 1))}
+                    <span className="shrink-0 text-left text-sm font-bold text-slate-900 sm:text-right">
+                      {formatVnd(lineTotal)}
                     </span>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="p-4 text-xs text-slate-500">
                   Item details stored on order total: {formatVnd(totalAmount)}

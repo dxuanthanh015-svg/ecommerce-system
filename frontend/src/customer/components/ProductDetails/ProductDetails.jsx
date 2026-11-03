@@ -184,11 +184,11 @@ export default function ProductDetails() {
 
   return (
     <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
 
         {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="mb-8">
-          <ol className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500 font-medium">
+        <nav aria-label="Breadcrumb" className="mb-5 sm:mb-8 overflow-hidden">
+          <ol className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm text-gray-500 font-medium whitespace-nowrap overflow-x-auto">
             <li><a href="/" className="hover:text-gray-900 transition-colors">Home</a></li>
             <li><ChevronRightIcon sx={{ fontSize: 16 }} className="text-gray-400" /></li>
             <li><a href="/product" className="hover:text-gray-900 transition-colors">Product</a></li>
@@ -200,12 +200,12 @@ export default function ProductDetails() {
         </nav>
 
         {/* Main Product Grid (2 Columns) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 pb-16">
+        <div className="grid min-w-0 grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 lg:gap-14 pb-10 sm:pb-16">
 
           {/* Left Column: Images */}
-          <div className="lg:col-span-7 flex flex-col space-y-4">
+          <div className="min-w-0 lg:col-span-7 flex flex-col space-y-3 sm:space-y-4">
             {/* Large Image */}
-            <div className="w-full h-[450px] sm:h-[580px] lg:h-[620px] rounded-xl overflow-hidden bg-gray-50 shadow-xs border border-gray-100">
+            <div className="w-full aspect-[4/5] max-h-[620px] sm:aspect-auto sm:h-[580px] lg:h-[620px] rounded-xl overflow-hidden bg-gray-50 shadow-xs border border-gray-100">
               {detailProduct.images.length > 0 ? (
                 <img
                   src={detailProduct.images[selectImage]}
@@ -239,7 +239,7 @@ export default function ProductDetails() {
           </div>
 
           {/* Right Column: Information & Actions */}
-          <div className="lg:col-span-5 flex flex-col justify-between">
+          <div className="min-w-0 lg:col-span-5 flex flex-col justify-between">
             <div className="space-y-6">
 
               {/* Brand and Title */}
@@ -247,7 +247,7 @@ export default function ProductDetails() {
                 <p className="text-xs font-bold tracking-widest uppercase text-indigo-600">
                   {detailProduct.brand}
                 </p>
-                <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                <h1 className="mt-1 text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight break-words">
                   {detailProduct.title}
                 </h1>
               </div>
@@ -282,8 +282,8 @@ export default function ProductDetails() {
               </div>
 
               {/* Price Section */}
-              <div className="flex items-baseline space-x-3">
-                <span className="text-3xl font-black text-gray-900">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-2xl sm:text-3xl font-black text-gray-900">
                   {formatVnd(detailProduct.discountedPrice)}
                 </span>
                 {detailProduct.discountPersent > 0 && (

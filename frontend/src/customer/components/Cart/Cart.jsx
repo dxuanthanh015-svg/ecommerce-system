@@ -111,11 +111,11 @@ const Cart = () => {
   const totalCartCount = items.length;
 
   return (
-    <div className="bg-[#f8f9fa]/50 min-h-screen py-10">
+    <div className="bg-[#f8f9fa]/50 min-h-screen py-5 sm:py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-8 pb-4 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-5 sm:mb-8 pb-4 border-b border-gray-100">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
               Shopping Cart
@@ -169,7 +169,7 @@ const Cart = () => {
 
         {/* Main Grid: Cart Items List + Order Summary */}
         {checkoutItems.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+          <div className="grid min-w-0 grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 lg:gap-10">
 
             {/* Left Column: Cart Items List */}
             <div className="lg:col-span-8 space-y-4">
@@ -198,7 +198,7 @@ const Cart = () => {
 
             {/* Right Column: Order Summary Card */}
             <div className="lg:col-span-4">
-              <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-2xs sticky top-8 space-y-6">
+              <div className="bg-white rounded-2xl p-4 sm:p-7 border border-gray-100 shadow-2xs lg:sticky lg:top-8 space-y-5 sm:space-y-6">
                 <h2 className="text-lg font-bold text-gray-900 pb-3 border-b border-gray-100">
                   Order Summary
                 </h2>

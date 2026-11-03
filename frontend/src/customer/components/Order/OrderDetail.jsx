@@ -25,6 +25,7 @@ const OrderDetail = () => {
   const currentStatus = userOrder?.status || "Pending";
   const isInTransit = ["shipped", "in transit", "in_transit", "in-transit"]
     .includes(String(currentStatus).trim().toLowerCase());
+  const displayedStatus = isInTransit ? "In Transit" : currentStatus;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -78,11 +79,11 @@ const OrderDetail = () => {
   const handleCancelOrder = async () => {
     if (window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) {
       try {
-        await updateStatusMutate({ orderId, status: "Cancelled" });
+        await updateStatusMutate({ orderId, status: "Cancelled", cancelByCustomer: true });
         toast.success("Đã hủy đơn hàng thành công.");
       } catch (err) {
         console.error("Error cancelling order:", err);
-        toast.error("Có lỗi xảy ra khi hủy đơn hàng!");
+        toast.error(err.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng!");
       }
     }
   };
@@ -155,7 +156,7 @@ const OrderDetail = () => {
                   ? "bg-rose-50 text-rose-700 border border-rose-200"
                   : "bg-indigo-50 text-indigo-700 border border-indigo-200"
                 }`}>
-                {currentStatus}
+                {displayedStatus}
               </span>
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -214,19 +215,28 @@ const OrderDetail = () => {
             <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-2xs">
               <h2 className="text-base font-bold text-gray-900 mb-4">Purchased Items</h2>
               <div className="divide-y divide-gray-100">
-                {items.map((item, idx) => (
-                  <div key={idx} className="py-4 first:pt-0 last:pb-0 flex items-center gap-4">
-                    <img
-                      src={item.productImageUrl || item.imageUrl || item.image || "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=300"}
-                      alt={item.productTitle || item.title || "Order item"}
-                      className="w-16 h-20 object-cover rounded-xl border border-gray-100 bg-gray-50 shrink-0"
-                    />
+                {items.map((item, idx) => {
+                  const title = item.productTitle || item.title || item.product?.title || "Sản phẩm";
+                  const imageUrl = item.productImageUrl || item.imageUrl || item.image || item.product?.imageUrl || item.product?.images?.[0];
+                  const quantity = Number(item.quantity) || 1;
+
+                  return (
+                  <div key={item.id || item.productId || idx} className="py-4 first:pt-0 last:pb-0 flex items-center gap-3 sm:gap-4">
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={title}
+                        className="w-16 h-20 object-cover rounded-xl border border-gray-100 bg-gray-50 shrink-0"
+                      />
+                    ) : (
+                      <div aria-label="Không có ảnh sản phẩm" className="w-16 h-20 rounded-xl border border-gray-100 bg-gray-50 shrink-0" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xs sm:text-sm font-bold text-gray-900 truncate">
-                        {item.productTitle || item.title}
+                        {title}
                       </h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        Size: <span className="font-semibold text-gray-700">{item.size || "M"}</span> • Color: <span className="font-semibold text-gray-700">{item.color || "Default"}</span> • Qty: <span className="font-semibold text-gray-700">{item.quantity || 1}</span>
+                        Size: <span className="font-semibold text-gray-700">{item.size || "M"}</span> • Color: <span className="font-semibold text-gray-700">{item.color || "Default"}</span> • Qty: <span className="font-semibold text-gray-700">{quantity}</span>
                       </p>
                       <p className="text-xs font-bold text-indigo-600 mt-1">
                         {formatVnd(getEffectivePrice(item))}
@@ -239,11 +249,12 @@ const OrderDetail = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-extrabold text-gray-900">
-                        {formatVnd(getEffectivePrice(item) * (Number(item.quantity) || 1))}
+                        {formatVnd((Number(item.itemSubtotal) || getEffectivePrice(item) * quantity))}
                       </p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

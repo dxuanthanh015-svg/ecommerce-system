@@ -155,6 +155,17 @@ export const orderService = {
     }
   },
 
+  // PATCH /orders/my-orders/{orderId}/cancel -> Khách hủy đơn đang chờ cửa hàng xác nhận
+  cancelMyOrder: async (orderId) => {
+    try {
+      const res = await apiClient.patch(`/orders/my-orders/${orderId}/cancel`)
+      return normalizeOrder(res.data.result)
+    } catch (error) {
+      console.warn('[orderService] cancelMyOrder error:', error.response?.data || error.message)
+      throw error
+    }
+  },
+
   // GET /orders/store/my-store -> Lấy đơn hàng của store hiện tại (Store Manager, via JWT)
   fetchStoreOrders: async (filters = {}) => {
     try {

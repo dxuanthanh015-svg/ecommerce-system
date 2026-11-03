@@ -147,7 +147,7 @@ export default function ProductGrid({ productsList, filterState = {}, sortOption
   return (
     <div className="lg:col-span-3">
       <p className="text-xs text-gray-400 mb-4">{sorted.length} product{sorted.length !== 1 ? "s" : ""} found</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 max-[360px]:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
         {currentItems.map((product, index) => (
           <ProductCard key={product.id || index} product={product} />
         ))}

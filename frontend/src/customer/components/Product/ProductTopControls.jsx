@@ -62,9 +62,9 @@
     const currentLabel = sortOptions.find(o => o.value === sortOption)?.name ?? "Featured";
 
     return (
-      <div className="flex items-center justify-between py-6 border-b border-gray-200 gap-4 my-2">
+      <div className="flex flex-wrap items-center justify-between py-4 sm:py-6 border-b border-gray-200 gap-3 sm:gap-4 my-2">
         {/* Search */}
-        <Search>
+        <Search sx={{ flex: '1 1 100%', minWidth: 0, margin: 0, '@media (min-width: 640px)': { flex: '1 1 auto', maxWidth: 520 } }}>
           <SearchIconWrapper>
             <SearchIcon />
           </SearchIconWrapper>
@@ -75,10 +75,10 @@
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </Search>
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <Menu as="div" className="relative inline-block text-left">
-            <MenuButton className="group inline-flex items-center justify-center text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 bg-white shadow-xs cursor-pointer">
-              Sort by: {currentLabel}
+            <MenuButton className="group inline-flex max-w-[190px] items-center justify-center text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-2 bg-white shadow-xs cursor-pointer">
+              <span className="truncate">Sort: {currentLabel}</span>
               <ChevronDownIcon
                 aria-hidden="true"
                 className="-mr-1 ml-1 size-4 shrink-0 text-gray-400 group-hover:text-gray-500"

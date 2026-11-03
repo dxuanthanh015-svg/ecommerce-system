@@ -40,7 +40,7 @@ const ExistedDeliveryAddress = ({ onSelectAddress, savedAddress, selectedAddress
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-2xs mb-6">
+    <div className="bg-white rounded-2xl p-4 sm:p-7 border border-gray-100 shadow-2xs mb-5 sm:mb-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <LocationOnOutlinedIcon
@@ -68,8 +68,8 @@ const ExistedDeliveryAddress = ({ onSelectAddress, savedAddress, selectedAddress
                 : "border-gray-200 hover:border-gray-300 bg-white"
                 }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className="mt-0.5">
                     {isSelected ? (
                       <CheckCircleIcon
@@ -83,8 +83,8 @@ const ExistedDeliveryAddress = ({ onSelectAddress, savedAddress, selectedAddress
                       />
                     )}
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-bold text-gray-900">
                         {addr.firstName + " " + addr.lastName}
                       </span>
@@ -104,7 +104,7 @@ const ExistedDeliveryAddress = ({ onSelectAddress, savedAddress, selectedAddress
                   </div>
                 </div>
 
-                <div className="flex flex-col space-y-2">
+                <div className="flex w-full flex-col space-y-2 sm:w-auto">
                   <div className="grid grid-cols-2 gap-2">
                     <WaveButton
                       type="button"

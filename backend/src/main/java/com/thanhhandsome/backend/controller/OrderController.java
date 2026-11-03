@@ -59,6 +59,15 @@ public class OrderController {
                 .build();
     }
 
+    @PatchMapping("/my-orders/{orderId}/cancel")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'STORE_MANAGER', 'ADMIN')")
+    public ApiResponse<OrderResponse> cancelMyOrder(@PathVariable String orderId) {
+        return ApiResponse.<OrderResponse>builder()
+                .message("Hủy đơn hàng thành công")
+                .result(orderService.cancelMyOrder(orderId))
+                .build();
+    }
+
     @PatchMapping("/my-orders/{orderId}/confirm-received")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'STORE_MANAGER', 'ADMIN')")
     public ApiResponse<OrderResponse> confirmOrderReceived(@PathVariable String orderId) {

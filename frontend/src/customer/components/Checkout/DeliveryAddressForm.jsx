@@ -110,7 +110,7 @@ const DeliveryAddressForm = ({ savedAddress, selectedAddress, editingAddress, on
   return (
     <div className="space-y-6">
       {/* Card 1: Shipping Details */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-2xs">
+      <div className="bg-white rounded-2xl p-4 sm:p-7 border border-gray-100 shadow-2xs">
         <div className="flex items-center gap-2 mb-6">
           <LocalShippingOutlinedIcon className="text-indigo-600" sx={{ fontSize: 22 }} />
           <h2 className="text-base sm:text-lg font-bold text-gray-900">
@@ -247,7 +247,7 @@ const DeliveryAddressForm = ({ savedAddress, selectedAddress, editingAddress, on
       </div>
 
       {/* Card 2: Payment Method */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 border border-gray-100 shadow-2xs">
+      <div className="bg-white rounded-2xl p-4 sm:p-7 border border-gray-100 shadow-2xs">
         <div className="flex items-center gap-2 mb-6">
           <CreditCardOutlinedIcon className="text-indigo-600" sx={{ fontSize: 22 }} />
           <h2 className="text-base sm:text-lg font-bold text-gray-900">
@@ -323,7 +323,7 @@ const DeliveryAddressForm = ({ savedAddress, selectedAddress, editingAddress, on
                 </div>
 
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
                       EXPIRY DATE

@@ -237,6 +237,31 @@ public class OrderService {
         return orderMapper.toOrderResponse(order);
     }
 
+    @Transactional
+    public OrderResponse cancelMyOrder(String orderId) {
+        User user = getCurrentUser();
+        Order order = orderRepository.findByIdOrOrderCode(orderId, orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        if (order.getOrderStatus() != OrderStatus.PENDING) {
+            throw new IllegalArgumentException("Chỉ có thể hủy đơn hàng khi cửa hàng chưa xác nhận xử lý");
+        }
+
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        restoreOrderInventory(order);
+        Order saved = orderRepository.save(order);
+
+        Store store = saved.getStore();
+        if (store != null && store.getOwner() != null) {
+            notificationService.sendToUser(store.getOwner().getId(), "Khách hủy đơn hàng",
+                    "Khách hàng đã hủy đơn " + saved.getOrderCode() + ".",
+                    com.thanhhandsome.backend.enums.NotificationType.STORE_ORDER_UPDATE, saved.getId());
+        }
+        return orderMapper.toOrderResponse(saved);
+    }
+
     @Transactional(readOnly = true)
     public List<OrderResponse> getMyStoreOrders() {
         User user = getCurrentUser();
@@ -279,10 +304,7 @@ public class OrderService {
         order.setOrderStatus(requestedStatus);
 
         if (order.getOrderStatus() == OrderStatus.CANCELLED && previousStatus != OrderStatus.CANCELLED) {
-            order.getItems().forEach(item -> {
-                Product product = item.getProduct();
-                product.setQuantity((product.getQuantity() == null ? 0 : product.getQuantity()) + item.getQuantity());
-            });
+            restoreOrderInventory(order);
         }
 
         Order saved = orderRepository.save(order);
@@ -290,6 +312,16 @@ public class OrderService {
                 "Đơn hàng " + saved.getOrderCode() + " đã chuyển sang trạng thái " + statusLabel(requestedStatus) + ".",
                 com.thanhhandsome.backend.enums.NotificationType.ORDER_UPDATE, saved.getId());
         return orderMapper.toOrderResponse(saved);
+    }
+
+    private void restoreOrderInventory(Order order) {
+        if (order.getItems() == null) return;
+        order.getItems().forEach(item -> {
+            Product product = item.getProduct();
+            if (product != null) {
+                product.setQuantity((product.getQuantity() == null ? 0 : product.getQuantity()) + item.getQuantity());
+            }
+        });
     }
 
     @Transactional
