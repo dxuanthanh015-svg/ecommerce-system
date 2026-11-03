@@ -30,7 +30,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, columnDefinition = "NVARCHAR(50)", name = "first_name")
     String firstName;
 
-    @Column(nullable = false, columnDefinition = "NVARCHAR(50)", name = "last_name")
+    @Column(nullable = true, columnDefinition = "NVARCHAR(50)", name = "last_name")
     String lastName;
 
     @Column(nullable = true, columnDefinition = "CHAR(15)", name = "phone")

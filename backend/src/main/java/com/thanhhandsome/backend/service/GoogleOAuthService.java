@@ -102,8 +102,8 @@ public class GoogleOAuthService {
             String firstName = asText(userInfoMap.get("given_name"));
             String lastName = asText(userInfoMap.get("family_name"));
 
-            // Google may omit family_name for some accounts. Keep the required DB
-            // column non-null and derive the missing part from Google's full name.
+            // Google may omit family_name for some accounts. Derive it from the
+            // display name when possible; otherwise let the optional DB field be null.
             if ((isBlank(firstName) || isBlank(lastName)) && !isBlank(fullName)) {
                 String[] nameParts = fullName.trim().split("\\s+");
                 if (isBlank(firstName)) {
@@ -128,10 +128,6 @@ public class GoogleOAuthService {
                         ? email.substring(0, email.indexOf('@'))
                         : "Google User";
             }
-            // A one-word Google display name has no surname; an empty string is
-            // valid for the NOT NULL VARCHAR column, whereas null is not.
-            if (lastName == null) lastName = "";
-
             return OAuthUserInfoResponse.builder()
                     .googleId(  (String) userInfoMap.get("sub"))
                     .email(email)
