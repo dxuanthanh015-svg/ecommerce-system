@@ -13,7 +13,7 @@ export const createDefaultProductFormState = () => ({
   imageUrl: "",
   images: [],
   brand: "",
-  color: "Default",
+  colors: [],
   description: "",
   price: "",
   discountedPrice: "",

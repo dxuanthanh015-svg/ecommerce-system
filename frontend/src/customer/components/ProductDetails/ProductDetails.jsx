@@ -16,6 +16,12 @@ import { useReviews } from "../../../hooks/useReviewQuery";
 import toast from "react-hot-toast";
 import { formatVnd } from "../../../utils/currency";
 
+const colorHexByName = {
+  black: "#111827", white: "#ffffff", red: "#ef4444", blue: "#3b82f6",
+  navy: "#1e3a8a", green: "#22c55e", yellow: "#eab308", pink: "#ec4899",
+  beige: "#d6c2a1", gray: "#9ca3af", grey: "#9ca3af", brown: "#92400e", purple: "#8b5cf6",
+};
+
 export default function ProductDetails() {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -90,36 +96,57 @@ export default function ProductDetails() {
         "Fast & secure shipping nationwide",
         "Easy 30-day return policy"
       ],
-    colors: (extraDetail.colors && extraDetail.colors.length > 0)
-      ? extraDetail.colors
-      : [
-        { id: "c1", name: product?.color || "Default", bg: "bg-gray-900" }
-      ],
+    colors: (() => {
+      const variants = Array.isArray(product?.variants) ? product.variants : [];
+      const unique = new Map();
+      variants.forEach((variant) => {
+        const name = variant.colorName?.trim();
+        if (name && !unique.has(name.toLowerCase())) {
+          unique.set(name.toLowerCase(), {
+            id: name.toLowerCase(),
+            name,
+            code: variant.colorCode || colorHexByName[name.toLowerCase()] || "#9ca3af",
+          });
+        }
+      });
+      if (unique.size) return [...unique.values()];
+      const name = product?.color?.trim();
+      return name && name.toLowerCase() !== "default"
+        ? [{ id: name.toLowerCase(), name, code: colorHexByName[name.toLowerCase()] || "#9ca3af" }]
+        : [];
+    })(),
     sizes: (extraDetail.sizes && extraDetail.sizes.length > 0)
       ? extraDetail.sizes.map((s) => ({
         name: typeof s === "string" ? s : s.name,
         inStock: typeof s === "string" ? true : (s.inStock !== undefined ? s.inStock : (s.quantity > 0)),
         quantity: typeof s === "string" ? 10 : (s.quantity !== undefined ? s.quantity : 10),
       }))
-      : (product?.size && Array.isArray(product.size) && product.size.length > 0)
+      : (product?.variants?.length)
+        ? [...new Map(product.variants.filter((variant) => variant.sizeName).map((variant) => [variant.sizeName, {
+          name: variant.sizeName,
+          inStock: product.variants.filter((item) => item.sizeName === variant.sizeName).some((item) => Number(item.quantity) > 0),
+          quantity: product.variants.filter((item) => item.sizeName === variant.sizeName).reduce((total, item) => total + (Number(item.quantity) || 0), 0),
+        }])).values()]
+        : (product?.size && Array.isArray(product.size) && product.size.length > 0)
         ? product.size.map((s) => ({
           name: typeof s === "string" ? s : s.name,
           inStock: typeof s === "string" ? true : (s.quantity > 0),
           quantity: typeof s === "string" ? 10 : s.quantity,
         }))
-        : [
-          { name: "S", inStock: true, quantity: 10 },
-          { name: "M", inStock: true, quantity: 15 },
-          { name: "L", inStock: true, quantity: 12 },
-          { name: "XL", inStock: false, quantity: 0 },
-        ],
+        : [],
     images: productImages,
   };
 
   const currentSizeObj = detailProduct.sizes.find(
     (s) => s.name === (selectedSize || detailProduct.sizes[0]?.name)
   );
-  const maxStockForSelectedSize = currentSizeObj?.quantity !== undefined
+  const selectedVariantStock = product?.variants?.length
+    ? Number(product.variants.find((variant) => variant.sizeName === (selectedSize || detailProduct.sizes[0]?.name)
+      && variant.colorName === (selectedColor || detailProduct.colors[0]?.name))?.quantity ?? 0)
+    : undefined;
+  const maxStockForSelectedSize = selectedVariantStock !== undefined
+    ? selectedVariantStock
+    : currentSizeObj?.quantity !== undefined
     ? Number(currentSizeObj.quantity)
     : (product?.quantity !== undefined ? Number(product.quantity) : 10);
 
@@ -306,26 +333,27 @@ export default function ProductDetails() {
               <hr className="border-gray-100" />
 
               {/* Color Options */}
-              <div>
+              {detailProduct.colors.length > 0 && <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-3">
                   Color: <span className="text-gray-500 font-medium capitalize">{selectedColor || detailProduct.colors[0]?.name}</span>
                 </h3>
-                <div className="flex space-x-3">
+                <div className="flex flex-wrap gap-3">
                   {detailProduct.colors.map((color) => (
                     <button
                       key={color.id}
-                      onClick={() => setSelectedColor(color.name)}
+                      type="button"
+                      onClick={() => { setSelectedColor(color.name); setQuantity(1); }}
                       className={`h-8 w-8 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${selectedColor === color.name || (!selectedColor && color.id === detailProduct.colors[0]?.id)
                         ? "border-indigo-600 ring-2 ring-indigo-600/30 scale-110"
                         : "border-gray-200 hover:scale-105"
                         }`}
                       title={color.name}
                     >
-                      <span className={`h-6 w-6 rounded-full ${color.bg || "bg-gray-800"}`} />
+                      <span className="h-6 w-6 rounded-full border border-black/10" style={{ backgroundColor: color.code }} />
                     </button>
                   ))}
                 </div>
-              </div>
+              </div>}
 
               {/* Size Selector */}
               <div>
@@ -340,15 +368,20 @@ export default function ProductDetails() {
                 <div className="grid grid-cols-4 gap-2.5">
                   {detailProduct.sizes.map((size) => {
                     const isSelected = (selectedSize || detailProduct.sizes[0]?.name) === size.name;
+                    const availableForColor = product?.variants?.length
+                      ? product.variants.some((variant) => variant.sizeName === size.name
+                        && variant.colorName === (selectedColor || detailProduct.colors[0]?.name)
+                        && Number(variant.quantity) > 0)
+                      : size.inStock;
                     return (
                       <button
                         key={size.name}
-                        disabled={!size.inStock}
+                        disabled={!availableForColor}
                         onClick={() => {
                           setSelectedSize(size.name);
                           setQuantity(1);
                         }}
-                        className={`py-3 text-xs font-bold rounded-lg border transition-all cursor-pointer ${!size.inStock
+                        className={`py-3 text-xs font-bold rounded-lg border transition-all cursor-pointer ${!availableForColor
                           ? "bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed line-through"
                           : isSelected
                             ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"

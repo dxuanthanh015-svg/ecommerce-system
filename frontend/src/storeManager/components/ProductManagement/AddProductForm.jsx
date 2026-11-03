@@ -13,6 +13,7 @@ const AddProductForm = ({ isEdit = false, initialData, onSubmitProduct }) => {
   const {
     formData,
     handleChange,
+    handleToggleColor,
     handleSizeQuantityChange,
     handleAddSize,
     handleRemoveSize,
@@ -31,7 +32,7 @@ const AddProductForm = ({ isEdit = false, initialData, onSubmitProduct }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
-          <BasicInformation formData={formData} handleChange={handleChange} />
+          <BasicInformation formData={formData} handleChange={handleChange} handleToggleColor={handleToggleColor} />
           <MediaSection formData={formData} handleChange={handleChange} />
           <VariantsSection
             formData={formData}

@@ -97,18 +97,7 @@ public class ProductService {
 
     private void applyVariants(Product product, ProductRequest request){
         String color = StringUtils.hasText(request.getColor()) ? request.getColor() : "Default";
-        if(request.getSize() != null && !request.getSize().isEmpty()){
-            for(ProductRequest.SizeRequest size : request.getSize()){
-                ProductVariant variant = ProductVariant.builder()
-                                        .sizeName(size.getName())
-                                        .colorName(color)
-                                        .quantity(size.getQuantity() != null ? size.getQuantity() : 0)
-                                        .build();
-
-                product.addVariant(variant);
-            }
-        }
-        else if (request.getVariants() != null && !request.getVariants().isEmpty()) {
+        if (request.getVariants() != null && !request.getVariants().isEmpty()) {
             for (ProductRequest.VariantRequest vr : request.getVariants()) {
                 ProductVariant variant = ProductVariant.builder()
                         .sizeName(vr.getSizeName())
@@ -117,7 +106,16 @@ public class ProductService {
                         .quantity(vr.getQuantity() != null ? vr.getQuantity() : 0)
                         .build();
                 product.addVariant(variant);
+            }
+        } else if(request.getSize() != null && !request.getSize().isEmpty()){
+            for(ProductRequest.SizeRequest size : request.getSize()){
+                ProductVariant variant = ProductVariant.builder()
+                                        .sizeName(size.getName())
+                                        .colorName(color)
+                                        .quantity(size.getQuantity() != null ? size.getQuantity() : 0)
+                                        .build();
 
+                product.addVariant(variant);
             }
         }
     }

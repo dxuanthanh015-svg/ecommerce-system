@@ -16,12 +16,16 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
   // Khi edit: load sản phẩm từ React Query cache
   useEffect(() => {
     if (isEdit && productDetail) {
+      const colors = [...new Map((productDetail.variants || [])
+        .filter((variant) => variant.colorName)
+        .map((variant) => [variant.colorName.toLowerCase(), { name: variant.colorName, code: variant.colorCode || "" }])).values()];
       setFormData({
         ...createDefaultProductFormState(),
         ...productDetail,
         price: productDetail.price ?? "",
         discountedPrice: productDetail.discountedPrice ?? "",
         size: Array.isArray(productDetail.size) ? productDetail.size : [],
+        colors: colors.length ? colors : (productDetail.color && productDetail.color !== "Default" ? [{ name: productDetail.color, code: "" }] : []),
       });
     } else if (initialData) {
       setFormData({
@@ -40,6 +44,19 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  }, []);
+
+  const handleToggleColor = useCallback((color) => {
+    setFormData((prev) => {
+      const colors = prev.colors || [];
+      const exists = colors.some((item) => item.name.toLowerCase() === color.name.toLowerCase());
+      return {
+        ...prev,
+        colors: exists
+          ? colors.filter((item) => item.name.toLowerCase() !== color.name.toLowerCase())
+          : [...colors, color],
+      };
+    });
   }, []);
 
   const handleSizeQuantityChange = useCallback((sizeName, field, value) => {
@@ -82,6 +99,10 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
       toast.error("Vui lòng nhập Tên sản phẩm và Thương hiệu!");
       return;
     }
+    if (!formData.colors?.length) {
+      toast.error("Vui lòng chọn ít nhất một màu sản phẩm.");
+      return;
+    }
 
     const priceNum = Number(formData.price);
     if (!Number.isFinite(priceNum) || priceNum <= 0) {
@@ -98,16 +119,33 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
 
     const primaryImage = formData.images?.[0] || formData.imageUrl || "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=1600&auto=format&fit=crop";
 
+    const sizes = (formData.size || [])
+      .filter((size) => size && typeof size === "object" && size.name?.trim())
+      .map((size) => ({ name: size.name.trim(), quantity: Number(size.quantity) || 0 }));
+    const colors = formData.colors || [];
+    const productFields = { ...formData };
+    delete productFields.colors;
+    const variants = sizes.flatMap((size) => {
+      const eachColorStock = Math.floor(size.quantity / colors.length);
+      const extraStock = size.quantity % colors.length;
+      return colors.map((color, index) => ({
+        sizeName: size.name,
+        colorName: color.name,
+        colorCode: color.code || null,
+        quantity: eachColorStock + (index < extraStock ? 1 : 0),
+      }));
+    });
+
     const payload = {
-      ...formData,
+      ...productFields,
       title: formData.title.trim(),
       brand: formData.brand.trim(),
       price: priceNum,
       discountedPrice: discountedNum,
       quantity: (formData.size || []).reduce((total, size) => total + (Number(size.quantity) || 0), 0),
-      size: (formData.size || [])
-        .filter((size) => size && typeof size === "object" && size.name?.trim())
-        .map((size) => ({ name: size.name.trim(), quantity: Number(size.quantity) || 0 })),
+      color: colors[0]?.name || "",
+      size: sizes,
+      variants,
       imageUrl: primaryImage,
       isFlashSale: Boolean(formData.isFlashSale),
       flashSaleEndTime: formData.isFlashSale ? (formData.flashSaleEndTime || null) : null,
@@ -135,6 +173,7 @@ export const useProductForm = (isEdit, initialData, productId, onSubmitProduct) 
   return {
     formData,
     handleChange,
+    handleToggleColor,
     handleSizeQuantityChange,
     handleAddSize,
     handleRemoveSize,

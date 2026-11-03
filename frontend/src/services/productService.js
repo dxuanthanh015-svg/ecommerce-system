@@ -17,6 +17,13 @@ const normalizeProduct = (p) => {
   const secondCat = deriveSecondCategory(p);
   const thirdCat = p.thirdLavelCategory || p.category?.slug || p.category?.name || "";
   const storeId = p.store?.id || p.storeId || p.id_store || null;
+  const variantSizes = (p.variants || []).reduce((sizes, variant) => {
+    if (!variant.sizeName) return sizes;
+    const current = sizes.get(variant.sizeName) || { name: variant.sizeName, quantity: 0 };
+    current.quantity += Number(variant.quantity) || 0;
+    sizes.set(variant.sizeName, current);
+    return sizes;
+  }, new Map());
 
   return {
     ...p,
@@ -32,11 +39,7 @@ const normalizeProduct = (p) => {
     color: p.color || p.variants?.[0]?.colorName || "",
     size: (p.size && p.size.length > 0)
       ? p.size
-      : (p.variants || []).map((v) => ({
-        name: v.sizeName,
-        quantity: v.quantity,
-        color: v.colorName
-      })),
+      : [...variantSizes.values()],
     imageUrl: p.imageUrl || p.images?.[0] || ""
   };
 };
