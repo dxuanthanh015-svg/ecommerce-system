@@ -13,8 +13,8 @@ const UserTable = ({ users, totalCount = users.length, page = 0, pageSize = 10 }
 
   return (
     <div className="bg-white rounded-lg shadow-sm">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-gray-200 p-3 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-gray-600">Showing {totalCount === 0 ? 0 : page * pageSize + 1}-{Math.min((page + 1) * pageSize, totalCount)} of {totalCount.toLocaleString()}</div>
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 hover:bg-gray-50 rounded-lg text-sm font-medium text-gray-700 transition-colors">
@@ -26,7 +26,8 @@ const UserTable = ({ users, totalCount = users.length, page = 0, pageSize = 10 }
           </div>
         </div>
       </div>
-      <table className="w-full table-auto">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[680px] table-auto">
         <thead className="text-xs text-gray-500 bg-gray-50 font-semibold uppercase tracking-wider">
           <tr>
             <th className="p-4 w-12"><input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" onChange={(e) => { const checked = e.target.checked; setSelectedIds(checked ? users.map(u => u.id) : []); }} /></th>
@@ -42,6 +43,7 @@ const UserTable = ({ users, totalCount = users.length, page = 0, pageSize = 10 }
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 };

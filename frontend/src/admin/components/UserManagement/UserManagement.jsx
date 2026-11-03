@@ -79,19 +79,19 @@ const UserManagement = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      <div className="flex items-center justify-between mb-6">
-        <div><h1 className="text-3xl font-bold text-gray-900 tracking-tight">User Directory</h1><p className="text-base text-gray-500 mt-1">Manage platform administrators, sellers, and customer accounts.</p></div>
+      <div className="mb-5 flex flex-col gap-4 sm:mb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0"><h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">User Directory</h1><p className="text-sm sm:text-base text-gray-500 mt-1">Manage platform administrators, sellers, and customer accounts.</p></div>
         <UserFilters searchTerm={searchTerm} onSearchChange={(value) => { setSearchTerm(value); setPage(0); }} />
       </div>
-      <div className="grid grid-cols-12 gap-6">
-        <aside className="col-span-3 space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
+        <aside className="space-y-4 lg:col-span-3">
           <UserStatsCard totalUsers={totalUsers} delta={dashboardData?.deltaCustomer || 0} />
           <QuickFilters quickFilter={quickFilter} counts={counts} onToggle={(key) => {
             setQuickFilter((previous) => ({ ...previous, [key]: !previous[key] }));
             setPage(0);
           }} />
         </aside>
-        <main className="col-span-9">
+        <main className="min-w-0 lg:col-span-9">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <UserTabs active={activeTab} onChange={(index) => { setActiveTab(index); setPage(0); }} />
             <UserTable users={users} totalCount={totalCount} page={page} pageSize={PAGE_SIZE} />

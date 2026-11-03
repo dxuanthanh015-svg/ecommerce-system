@@ -22,13 +22,13 @@ const StoreConfigForm = ({ category = {}, onSave = () => {} }) => {
   const handleChange = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Category Configuration</h3>
         <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">{category?.breadcrumb || 'No category selected'}</div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-2">Category Name</label>
           <input 
@@ -71,9 +71,9 @@ const StoreConfigForm = ({ category = {}, onSave = () => {} }) => {
         </div>
       </div>
 
-      <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
-        <button className="px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Discard Changes</button>
-        <button className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm" onClick={() => onSave(form)}>Save Configuration</button>
+      <div className="mt-8 flex flex-col-reverse items-stretch justify-end gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:items-center">
+        <button className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">Discard Changes</button>
+        <button className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800" onClick={() => onSave(form)}>Save Configuration</button>
       </div>
     </div>
   );

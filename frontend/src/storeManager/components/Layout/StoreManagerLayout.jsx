@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import StoreSidebar from "./StoreSidebar";
 import StoreHeader from "./StoreHeader";
@@ -6,6 +6,7 @@ import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { hasRole, ROLE } from "../../../constants/roles";
 
 const StoreManagerLayout = ({ requiredRole = ROLE.STORE_MANAGER }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: currentUser, isLoading, isFetching } = useCurrentUser();
 
   if (isLoading || isFetching) {
@@ -22,12 +23,12 @@ const StoreManagerLayout = ({ requiredRole = ROLE.STORE_MANAGER }) => {
 
   return (
     <div className="flex min-h-screen bg-[#f8f9fc] font-sans antialiased">
-      <StoreSidebar />
+      <StoreSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <StoreHeader />
+        <StoreHeader onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="flex-1 p-6 sm:p-8 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-x-hidden p-3 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

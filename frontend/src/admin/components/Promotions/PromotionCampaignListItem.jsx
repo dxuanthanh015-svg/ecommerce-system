@@ -20,24 +20,24 @@ const PromotionCampaignListItem = ({ promotion, isSelected, onSelect }) => {
     <button
       type="button"
       onClick={() => onSelect(promotion.id)}
-      className={`grid w-full grid-cols-[64px_minmax(0,1fr)_110px_100px_48px] items-center gap-3 border-t border-slate-100 px-5 py-3 text-left transition ${
+      className={`grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2 border-t border-slate-100 px-3 py-3 text-left transition sm:grid-cols-[64px_minmax(0,1fr)_110px_100px_48px] sm:gap-3 sm:px-5 ${
         isSelected
           ? "bg-indigo-50/50"
           : "bg-white hover:bg-slate-50"
       }`}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-indigo-50 text-indigo-700">
+      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-50 text-indigo-700 sm:h-12 sm:w-12">
         <Icon sx={{ fontSize: 22 }} />
       </div>
 
       <div className="min-w-0">
-        <p className="truncate text-[30px] leading-8 font-bold tracking-tight text-slate-900">
+        <p className="truncate text-xl font-bold leading-7 tracking-tight text-slate-900 sm:text-[30px] sm:leading-8">
           {promotion.code}
         </p>
         <p className="truncate text-sm text-slate-500">{promotion.description}</p>
       </div>
 
-      <div className="text-left text-sm text-slate-700">
+      <div className="col-span-2 col-start-1 row-start-2 min-w-0 text-left text-xs text-slate-700 sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:text-sm">
         <p className="font-semibold">{promotion.usageCount} Uses</p>
         <p className="text-slate-500">{promotion.scheduleLabel}</p>
       </div>
@@ -52,7 +52,7 @@ const PromotionCampaignListItem = ({ promotion, isSelected, onSelect }) => {
         </span>
       </div>
 
-      <div className="flex justify-end text-slate-400">
+      <div className="col-start-3 row-start-1 flex justify-end text-slate-400 sm:col-auto sm:row-auto">
         <MoreVertRoundedIcon sx={{ fontSize: 20 }} />
       </div>
     </button>

@@ -33,7 +33,7 @@ const PromotionQuickCreateCard = ({
             placeholder="Nhập mã voucher"
           />
 
-          <div className="grid grid-cols-[1.15fr_0.85fr] gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-[1.15fr_0.85fr]">
             <PromotionQuickCreateField
               label="Discount Type"
               name="discountType"
@@ -53,7 +53,7 @@ const PromotionQuickCreateCard = ({
             />
           </div>
 
-          <div className="grid grid-cols-[1fr_1fr] gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
             <PromotionQuickCreateField
               label="Min Order Value"
               name="minOrderValue"

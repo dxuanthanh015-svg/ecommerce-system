@@ -17,9 +17,9 @@ const SellerFilters = ({
   ];
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
       {/* Search Input */}
-      <div className="relative">
+      <div className="relative min-w-0 flex-1 sm:flex-none">
         <svg
           className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
           fill="none"
@@ -38,7 +38,7 @@ const SellerFilters = ({
           value={searchTerm}
           onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
           placeholder="Search stores..."
-          className="w-52 sm:w-64 bg-white border border-gray-200 rounded-lg pl-9 pr-3.5 py-2 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900 transition-all shadow-2xs"
+          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3.5 text-xs text-gray-800 shadow-2xs transition-all placeholder-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 sm:w-64"
         />
       </div>
 

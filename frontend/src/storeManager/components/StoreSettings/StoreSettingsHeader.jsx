@@ -10,9 +10,9 @@ export default function StoreSettingsHeader({
 }) {
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-      <div className="max-w-3xl">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+        <div className="min-w-0 max-w-3xl">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
             Store Settings &amp; Profile
           </h1>
           {hasUnsavedChanges && (

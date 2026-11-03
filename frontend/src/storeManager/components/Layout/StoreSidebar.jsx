@@ -7,6 +7,7 @@ import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutIcon from '@mui/icons-material/Logout';
+import CloseIcon from "@mui/icons-material/Close";
 
 const menuItems = [
   {
@@ -44,7 +45,7 @@ const menuItems = [
 import { useCurrentStore } from "../../../hooks/useStoreQuery";
 import { useLogoutMutation } from "../../../hooks/useAuthQuery";
 
-const StoreSidebar = () => {
+const StoreSidebar = ({ isOpen = false, onClose = () => {} }) => {
   const navigate = useNavigate();
   const { data: storeData } = useCurrentStore();
   const currentStore = storeData || {};
@@ -60,12 +61,14 @@ const StoreSidebar = () => {
   const shopInitial = shopName.charAt(0).toUpperCase();
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-100 min-h-screen flex flex-col justify-between shrink-0 font-sans">
+    <>
+      {isOpen && <button type="button" aria-label="Đóng menu" onClick={onClose} className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" />}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex min-h-screen max-h-screen w-72 shrink-0 flex-col justify-between overflow-y-auto border-r border-gray-100 bg-white font-sans transition-transform duration-200 lg:static lg:z-auto lg:min-h-screen lg:max-h-none lg:w-64 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
       <div>
         {/* Brand Header */}
-        <div 
-          onClick={() => navigate('/store-manager/dashboard')}
-          className="p-5 flex items-center gap-3 cursor-pointer border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+        <div
+          onClick={() => { navigate('/store-manager/dashboard'); onClose(); }}
+          className="flex cursor-pointer items-center gap-3 border-b border-gray-50 p-5 hover:bg-gray-50/50 transition-colors"
         >
           {currentStore.imageUrl ? (
             <img
@@ -86,6 +89,9 @@ const StoreSidebar = () => {
               {currentStore?.category || "Store Manager"}
             </p>
           </div>
+          <button type="button" onClick={(event) => { event.stopPropagation(); onClose(); }} aria-label="Đóng menu" className="ml-auto rounded-lg p-2 text-gray-500 hover:bg-gray-100 lg:hidden">
+            <CloseIcon sx={{ fontSize: 20 }} />
+          </button>
         </div>
 
         {/* Navigation Menu */}
@@ -94,6 +100,7 @@ const StoreSidebar = () => {
             <NavLink
               key={item.name}
               to={item.path}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                   isActive
@@ -114,7 +121,7 @@ const StoreSidebar = () => {
         {currentStore.id && (
           <button
             type="button"
-            onClick={() => navigate(`/store/${currentStore.id}`)}
+            onClick={() => { navigate(`/store/${currentStore.id}`); onClose(); }}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-indigo-50 hover:bg-indigo-100/70 text-indigo-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
           >
             <span>View Public Store</span>
@@ -123,14 +130,15 @@ const StoreSidebar = () => {
 
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => { onClose(); handleLogout(); }}
           className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
         >
           <LogoutIcon sx={{ fontSize: 18 }} />
           <span>Sign Out</span>
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

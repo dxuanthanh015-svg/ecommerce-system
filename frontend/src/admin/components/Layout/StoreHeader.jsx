@@ -2,9 +2,10 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useNotification, useMarkAsRead } from "../../../hooks/useNotification";
 
-const StoreHeader = () => {
+const StoreHeader = ({ onMenuClick = () => {} }) => {
   const navigate = useNavigate();
   const { data: notification = [] } = useNotification("admin");
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -29,11 +30,14 @@ const StoreHeader = () => {
   }
 
   return (
-    <header className="bg-white border-b border-gray-100 py-2.5 px-6 sm:px-8 sticky top-0 z-30 font-sans">
-      <div className="max-w-full mx-auto flex items-center justify-end gap-4">
+    <header className="relative sticky top-0 z-30 border-b border-gray-100 bg-white px-3 py-2.5 sm:px-6 lg:px-8 font-sans">
+      <div className="mx-auto flex max-w-full items-center justify-between gap-3">
+        <button type="button" onClick={onMenuClick} aria-label="Mở menu" className="shrink-0 rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden">
+          <MenuIcon sx={{ fontSize: 22 }} />
+        </button>
 
 
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
 
           <button
             type="button"
@@ -51,7 +55,7 @@ const StoreHeader = () => {
           </button>
 
           {isNotificationOpen && (
-            <div className="absolute right-16 top-12 z-50 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+            <div className="absolute right-3 top-12 z-50 w-[calc(100vw-1.5rem)] max-w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl sm:right-16">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Thông báo</p>
@@ -109,7 +113,7 @@ const StoreHeader = () => {
             <img
               src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=120&auto=format&fit=crop"
               alt="Admin Profile"
-              className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-2xs"
+              className="h-8 w-8 rounded-full border border-gray-200 object-cover shadow-2xs"
             />
           </div>
         </div>

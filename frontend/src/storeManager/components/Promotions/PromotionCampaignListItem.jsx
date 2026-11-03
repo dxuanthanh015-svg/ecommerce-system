@@ -47,17 +47,17 @@ const PromotionCampaignListItem = ({
   return (
     <div
       onClick={() => onSelect(promotion.id)}
-      className={`grid w-full grid-cols-[52px_minmax(0,1fr)_120px_110px_48px] items-center gap-3 border-t border-slate-100 px-5 py-3.5 text-left transition cursor-pointer ${
+      className={`grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2 border-t border-slate-100 px-3 py-3.5 text-left transition cursor-pointer sm:grid-cols-[52px_minmax(0,1fr)_120px_110px_48px] sm:gap-3 sm:px-5 ${
         isSelected ? "bg-indigo-50/60" : "bg-white hover:bg-slate-50"
       }`}
     >
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 shrink-0">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 sm:h-11 sm:w-11">
         <Icon sx={{ fontSize: 22 }} />
       </div>
 
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className="truncate text-lg font-extrabold tracking-tight text-slate-900">
+          <p className="truncate text-base font-extrabold tracking-tight text-slate-900 sm:text-lg">
             {promotion.code}
           </p>
           {promotion.minOrderValue > 0 && (
@@ -69,7 +69,7 @@ const PromotionCampaignListItem = ({
         <p className="truncate text-xs text-slate-500">{promotion.description}</p>
       </div>
 
-      <div className="text-left text-xs text-slate-700">
+      <div className="col-span-2 col-start-1 row-start-2 min-w-0 text-left text-xs text-slate-700 sm:col-span-1 sm:col-start-auto sm:row-start-auto">
         <p className="font-bold text-slate-900">{limitLabel}</p>
         <p className="text-[11px] text-slate-400">{promotion.scheduleLabel}</p>
       </div>
@@ -91,7 +91,7 @@ const PromotionCampaignListItem = ({
         </button>
       </div>
 
-      <div className="flex justify-end">
+      <div className="col-start-3 row-start-1 flex justify-end sm:col-auto sm:row-auto">
         <button
           type="button"
           disabled={isDeleting || isUpdating}

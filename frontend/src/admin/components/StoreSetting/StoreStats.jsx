@@ -5,7 +5,7 @@ const StoreStats = ({ stats = {} }) => {
   
   if (!hasData) {
     return (
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 sm:gap-4">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIVE STORES</div>
           <div className="text-2xl font-bold text-gray-400 mt-2">No data</div>
@@ -23,7 +23,7 @@ const StoreStats = ({ stats = {} }) => {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 sm:gap-4">
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIVE STORES</div>

@@ -7,6 +7,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import QueryStatsOutlinedIcon from "@mui/icons-material/QueryStatsOutlined";
+import CloseIcon from "@mui/icons-material/Close";
 
 const menuItems = [
   { name: "Dashboard", path: "/admin/dashboard", icon: <DashboardOutlinedIcon sx={{ fontSize: 20 }} /> },
@@ -18,15 +19,17 @@ const menuItems = [
   { name: "Admin Account", path: "/admin/settings", icon: <SettingsOutlinedIcon sx={{ fontSize: 20 }} /> },
 ];
 
-const StoreSidebar = () => {
+const StoreSidebar = ({ isOpen = false, onClose = () => {} }) => {
   const navigate = useNavigate();
 
   return (
-    <aside className="w-64 bg-[#0c1322] text-white min-h-screen flex flex-col justify-between shrink-0 font-sans border-r border-white/5 select-none">
+    <>
+      {isOpen && <button type="button" aria-label="Đóng menu" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" />}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex min-h-screen max-h-screen w-72 shrink-0 flex-col justify-between overflow-y-auto border-r border-white/5 bg-[#0c1322] font-sans text-white transition-transform duration-200 select-none lg:static lg:z-auto lg:min-h-screen lg:max-h-none lg:w-64 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
       <div>
         {/* Brand Header */}
         <div
-          onClick={() => navigate("/admin/dashboard")}
+          onClick={() => { navigate("/admin/dashboard"); onClose(); }}
           className="p-5 flex items-center gap-3 cursor-pointer border-b border-white/5 hover:bg-white/2 transition-colors"
         >
           <div className="w-9 h-9 rounded-lg bg-white/10 text-white font-extrabold text-lg flex items-center justify-center shadow-xs">
@@ -38,6 +41,9 @@ const StoreSidebar = () => {
             </h1>
             <p className="text-[11px] text-white/50">Enterprise Suite</p>
           </div>
+          <button type="button" onClick={(event) => { event.stopPropagation(); onClose(); }} aria-label="Đóng menu" className="ml-auto rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden">
+            <CloseIcon sx={{ fontSize: 20 }} />
+          </button>
         </div>
 
         {/* Main Navigation Menu */}
@@ -46,6 +52,7 @@ const StoreSidebar = () => {
             <NavLink
               key={item.name}
               to={item.path}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
                   isActive
@@ -61,7 +68,8 @@ const StoreSidebar = () => {
         </nav>
       </div>
 
-    </aside>
+      </aside>
+    </>
   );
 };
 

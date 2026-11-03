@@ -106,7 +106,7 @@ const PricingSection = ({ formData, handleChange }) => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               <div>
                 <label className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block mb-1">
                   Stock Left
