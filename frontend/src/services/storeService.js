@@ -1,13 +1,6 @@
 import apiClient from './apiClient'
 
-// ==========================================
-// STORE SERVICE - Gọi Spring Boot API
-// TODO: Backend cần implement các endpoint dưới đây
-// ==========================================
-
 export const storeService = {
-
-  // GET /stores -> Lấy toàn bộ danh sách cửa hàng (cho trang khám phá / admin)
   fetchAllStores: async () => {
     try {
       const res = await apiClient.get('/stores')
@@ -18,7 +11,6 @@ export const storeService = {
     }
   },
 
-  // GET /stores/{storeId} -> Lấy thông tin 1 cửa hàng theo ID
   fetchStoreById: async (storeId) => {
     if (!storeId) return null
     try {
@@ -30,7 +22,6 @@ export const storeService = {
     }
   },
 
-  // GET /products/store/{storeId} -> Lọc sản phẩm public bằng nghiệp vụ backend
   fetchStoreProducts: async (storeId, tab = 'all', search = '') => {
     const res = await apiClient.get(`/products/store/${storeId}`, {
       params: { tab, ...(search.trim() ? { search: search.trim() } : {}) },
@@ -38,7 +29,6 @@ export const storeService = {
     return res.data.result || []
   },
 
-  // GET /stores/my-store -> Lấy thông tin cửa hàng của Store Manager đang đăng nhập (via JWT)
   getCurrentStore: async () => {
     try {
       const res = await apiClient.get('/stores/my-store')
@@ -50,7 +40,6 @@ export const storeService = {
     }
   },
 
-  // POST /stores -> Tạo cửa hàng mới (Admin)
   createStore: async (storeData) => {
     try {
       const res = await apiClient.post('/stores', storeData)
@@ -61,7 +50,6 @@ export const storeService = {
     }
   },
 
-  // PUT /stores/my-store -> Store Manager cập nhật thông tin cửa hàng của mình
   updateCurrentStore: async (updateData) => {
     try {
       const res = await apiClient.put('/stores/my-store', updateData)
@@ -72,7 +60,6 @@ export const storeService = {
     }
   },
 
-  // PUT /stores/{storeId} -> Admin cập nhật thông tin bất kỳ cửa hàng nào
   updateStoreById: async (storeId, updateData) => {
     try {
       const res = await apiClient.put(`/stores/${storeId}`, updateData)
@@ -83,7 +70,6 @@ export const storeService = {
     }
   },
 
-  // GET /stores/profile/{storeId} -> Lấy thông tin hồ sơ công khai của cửa hàng
   fetchStoreProfile: async (storeId) => {
     try {
       const res = await apiClient.get(`/stores/profile/${storeId}`)
@@ -94,7 +80,6 @@ export const storeService = {
     }
   },
 
-  // PUT /stores/my-store/settings -> Cập nhật toàn bộ cài đặt cửa hàng (từ StoreSettings UI)
   updateStoreSettings: async (settingsPayload) => {
     try {
       const res = await apiClient.put('/stores/my-store/settings', settingsPayload)
@@ -105,7 +90,6 @@ export const storeService = {
     }
   },
 
-  // GET /stores/applications -> Lấy danh sách đơn đăng ký mở cửa hàng (Admin)
   getStoreApplications: async () => {
     try {
       const res = await apiClient.get('/stores/applications')
@@ -116,7 +100,6 @@ export const storeService = {
     }
   },
 
-  // GET /stores/applications/my -> Lấy đơn đăng ký của user hiện tại
   getStoreApplication: async () => {
     try {
       const res = await apiClient.get('/stores/applications/my')
@@ -128,7 +111,6 @@ export const storeService = {
     }
   },
 
-  // POST /stores/applications -> Nộp đơn đăng ký mở cửa hàng
   saveStoreApplication: async (applicationData) => {
     try {
       const res = await apiClient.post('/stores/applications', applicationData)
@@ -140,7 +122,6 @@ export const storeService = {
     }
   },
 
-  // DELETE /stores/applications/my -> Hủy đơn đăng ký
   removeStoreApplication: async () => {
     try {
       await apiClient.delete('/stores/applications/my')
@@ -151,7 +132,6 @@ export const storeService = {
     }
   },
 
-  // GET /stores/my-store/analytics?range= -> Lấy dữ liệu analytics của cửa hàng
   fetchStoreAnalytics: async (range = 'Last 6 Months') => {
     try {
       const res = await apiClient.get('/stores/my-store/analytics', { params: { range } })

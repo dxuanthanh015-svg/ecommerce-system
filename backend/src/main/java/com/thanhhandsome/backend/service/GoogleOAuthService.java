@@ -97,11 +97,46 @@ public class GoogleOAuthService {
                 throw new RuntimeException("Google UserInfo response body is empty");
             }
 
+            String email = asText(userInfoMap.get("email"));
+            String fullName = asText(userInfoMap.get("name"));
+            String firstName = asText(userInfoMap.get("given_name"));
+            String lastName = asText(userInfoMap.get("family_name"));
+
+            // Google may omit family_name for some accounts. Keep the required DB
+            // column non-null and derive the missing part from Google's full name.
+            if ((isBlank(firstName) || isBlank(lastName)) && !isBlank(fullName)) {
+                String[] nameParts = fullName.trim().split("\\s+");
+                if (isBlank(firstName)) {
+                    firstName = nameParts.length > 1
+                            ? String.join(" ", java.util.Arrays.copyOf(nameParts, nameParts.length - 1))
+                            : fullName.trim();
+                }
+                if (isBlank(lastName) && nameParts.length > 1) {
+                    String given = firstName.trim();
+                    String normalizedFullName = fullName.trim();
+                    if (normalizedFullName.regionMatches(true, 0, given, 0, given.length())
+                            && normalizedFullName.length() > given.length()) {
+                        lastName = normalizedFullName.substring(given.length()).trim();
+                    } else {
+                        lastName = nameParts[nameParts.length - 1];
+                    }
+                }
+            }
+
+            if (isBlank(firstName)) {
+                firstName = email != null && email.contains("@")
+                        ? email.substring(0, email.indexOf('@'))
+                        : "Google User";
+            }
+            // A one-word Google display name has no surname; an empty string is
+            // valid for the NOT NULL VARCHAR column, whereas null is not.
+            if (lastName == null) lastName = "";
+
             return OAuthUserInfoResponse.builder()
                     .googleId(  (String) userInfoMap.get("sub"))
-                    .email(     (String) userInfoMap.get("email"))
-                    .firstName( (String) userInfoMap.get("given_name"))
-                    .lastName(  (String) userInfoMap.get("family_name"))
+                    .email(email)
+                    .firstName(firstName)
+                    .lastName(lastName)
                     .avatarUrl( (String) userInfoMap.get("picture"))
                     .build();
 
@@ -118,5 +153,13 @@ public class GoogleOAuthService {
             log.error("Unexpected error while fetching Google user info", e);
             throw new RuntimeException("An unexpected error occurred while getting user info from Google", e);
         }
+    }
+
+    private String asText(Object value) {
+        return value instanceof String text ? text.trim() : null;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
