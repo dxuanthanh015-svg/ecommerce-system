@@ -417,9 +417,16 @@ public class AdminService {
         List<ProductResponse> mostViewed = productRepository
                 .findByIsActiveTrueAndViewsCountGreaterThanOrderByViewsCountDesc(0L, pageable).stream()
                 .map(productMapper::toProductResponse).toList();
-        List<ProductResponse> trending = productRepository
-                .findByIsActiveTrueAndIsTrendingTrueOrderByViewsCountDesc(pageable).stream()
-                .map(productMapper::toProductResponse).toList();
+        List<ProductResponse> trending = orderItemRepository.findTopDeliveredPaidSales(
+                        PaymentStatus.PAID, OrderStatus.DELIVERED, pageable).stream()
+                .map(sale -> productRepository.findById(sale.getProductId())
+                        .map(product -> {
+                            ProductResponse response = productMapper.toProductResponse(product);
+                            response.setSoldCount(sale.getQuantitySold());
+                            return response;
+                        }).orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
         return Map.of("mostViewedProducts", mostViewed, "trendingProducts", trending);
     }
 

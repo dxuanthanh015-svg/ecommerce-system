@@ -7,6 +7,7 @@ import StoreOrderList from "../components/OrderManagement/StoreOrderList";
 import StorePromotions from "../components/Promotions/StorePromotions";
 import StoreAnalytics from "../components/Analytics/StoreAnalytics";
 import StoreSettings from "../components/StoreSettings/StoreSettings";
+import StoreMessages from "../components/Messages/StoreMessages";
 
 export const storeManagerRoutes = {
   path: "/store-manager",
@@ -35,6 +36,10 @@ export const storeManagerRoutes = {
     {
       path: "orders",
       element: <StoreOrderList />,
+    },
+    {
+      path: "messages",
+      element: <StoreMessages />,
     },
     {
       path: "promotions",

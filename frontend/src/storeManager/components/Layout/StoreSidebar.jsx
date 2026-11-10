@@ -8,6 +8,7 @@ import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from "@mui/icons-material/Close";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 
 const menuItems = [
   {
@@ -24,6 +25,11 @@ const menuItems = [
     name: "Order Management",
     path: "/store-manager/orders",
     icon: <ShoppingCartOutlinedIcon sx={{ fontSize: 20 }} />
+  },
+  {
+    name: "Messages",
+    path: "/store-manager/messages",
+    icon: <ForumOutlinedIcon sx={{ fontSize: 20 }} />
   },
   {
     name: "Promotions",

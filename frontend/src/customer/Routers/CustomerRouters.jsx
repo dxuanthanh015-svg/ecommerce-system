@@ -12,6 +12,7 @@ import SettingPage from "../pages/SettingPage/SettingPage.jsx";
 import WishlistPage from "../pages/WishlistPage/WishlistPage.jsx";
 import CustomerStorePage from "../pages/CustomerStorePage/CustomerStorePage.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
+import MessagesPage from "../pages/MessagesPage/MessagesPage.jsx";
 
 export const customerRoutes = {
   path: "/",
@@ -74,6 +75,10 @@ export const customerRoutes = {
         {
           path: "/wishlist",
           element: <WishlistPage />,
+        },
+        {
+          path: "/messages",
+          element: <MessagesPage />,
         },
         {
           path: "/checkout",

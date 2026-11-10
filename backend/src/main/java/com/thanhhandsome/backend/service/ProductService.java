@@ -145,7 +145,6 @@ public class ProductService {
                 productRepository.findById(productId).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
         product.setViewsCount(((product.getViewsCount() == null) ? 0L : product.getViewsCount()) + 1);
         product.setLastViewedAt(LocalDateTime.now());
-        mostViewedCacheService.evictCache();
         return toResponseWithReviewStats(product, loadReviewStats(List.of(product)).get(product.getId()));
     }
 

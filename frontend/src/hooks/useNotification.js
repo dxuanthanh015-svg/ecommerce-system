@@ -10,7 +10,8 @@ export const useNotification = (audience = "customer") => {
         queryKey: [...QUERY_KEYS.NOTIFICATION, audience, userId || "anonymous"],
         queryFn: () => notificationService.fetchNotification(audience),
         enabled: isAuthenticated,
-        refetchInterval: isAuthenticated ? 5000 : false,
+        // WebSocket invalidates immediately; this slower polling is a reconnect fallback.
+        refetchInterval: isAuthenticated ? 30000 : false,
     })
 }
 

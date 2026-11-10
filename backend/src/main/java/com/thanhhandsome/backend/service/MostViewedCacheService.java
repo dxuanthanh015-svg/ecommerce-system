@@ -21,8 +21,11 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MostViewedCacheService {
 
-    static final String CACHE_KEY = "mostviewed:products";
-    static final Duration TTL = Duration.ofMinutes(30); // Ngắn hơn trending vì view thay đổi nhanh
+    // New key avoids serving an old cache whose list size depended on the first request's limit.
+    static final String CACHE_KEY = "mostviewed:products:v2";
+    static final String LEGACY_CACHE_KEY = "mostviewed:products";
+    static final int CACHE_LIMIT = 50;
+    static final Duration TTL = Duration.ofMinutes(5);
 
     RedisTemplate<String, Object> redisTemplate;
     ProductRepository productRepository;
@@ -30,12 +33,13 @@ public class MostViewedCacheService {
 
     @SuppressWarnings("unchecked")
     public List<ProductResponse> getMostViewedProducts(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, CACHE_LIMIT));
         // Cache HIT
         try {
             Object cached = redisTemplate.opsForValue().get(CACHE_KEY);
             if (cached instanceof List<?> list && !list.isEmpty()) {
                 log.info("[MostViewed] Cache HIT - {} sản phẩm từ Redis", list.size());
-                return (List<ProductResponse>) list;
+                return ((List<ProductResponse>) list).stream().limit(safeLimit).toList();
             }
         } catch (Exception e) {
             log.warn("[MostViewed] Redis lỗi, fallback DB: {}", e.getMessage());
@@ -43,7 +47,12 @@ public class MostViewedCacheService {
 
         // Cache MISS => Query DB
         log.info("[MostViewed] Cache MISS - query DB...");
-        Pageable pageable = PageRequest.of(0, limit);
+        try {
+            redisTemplate.delete(LEGACY_CACHE_KEY);
+        } catch (Exception e) {
+            log.warn("[MostViewed] Không xóa được cache phiên bản cũ: {}", e.getMessage());
+        }
+        Pageable pageable = PageRequest.of(0, CACHE_LIMIT);
         List<ProductResponse> result = productRepository
                 .findByIsActiveTrueOrderByViewsCountDesc(pageable)
                 .stream()
@@ -65,10 +74,11 @@ public class MostViewedCacheService {
         } catch (Exception e) {
             log.warn("[MostViewed] Không lưu được Redis: {}", e.getMessage());
         }
-        return result;
+        return result.stream().limit(safeLimit).toList();
     }
 
     public void evictCache() {
         redisTemplate.delete(CACHE_KEY);
+        redisTemplate.delete(LEGACY_CACHE_KEY);
     }
 }

@@ -48,7 +48,8 @@ public class SecurityConfig {
             "/stores",
             "/stores/profile/*",
             "/vouchers/public",
-            "/vouchers"
+            "/vouchers",
+            "/uploads/chat/**"
     };
 
     @Bean
@@ -59,6 +60,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(HttpMethod.POST,PUBLIC_POST_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET,PUBLIC_GET_ENDPOINTS).permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(customJwtDecoder)

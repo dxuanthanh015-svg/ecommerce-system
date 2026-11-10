@@ -18,4 +18,7 @@ export const QUERY_KEYS = {
     GUEST_CART: ['guestCart'],
     ADMIN_DASHBOARD: ['adminDashBoard'],
     NOTIFICATION: ['notification'],
+    CHAT_CONVERSATIONS: ['chatConversations'],
+    CHAT_MESSAGES: (conversationId, page = 0) => ['chatMessages', conversationId, page],
+    CHAT_UNREAD: (userId) => ['chatUnreadCount', userId],
 };

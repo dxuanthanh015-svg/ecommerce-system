@@ -15,8 +15,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.time.LocalDateTime;
@@ -29,7 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class NotificationService {
-
+    SimpMessagingTemplate messagingTemplate;
     NotificationRepository notificationRepository;
     UserRepository userRepository;
 
@@ -112,7 +115,10 @@ public class NotificationService {
                 .isRead(false)
                 .build();
 
-        return toResponse(notificationRepository.save(notification));
+        Notification saved = notificationRepository.save(notification);
+        NotificationResponse response = toResponse(saved);
+        publishAfterCommit(targetUser.getId(), response);
+        return response;
     }
 
     @Transactional
@@ -152,14 +158,14 @@ public class NotificationService {
     }
 
     @Transactional
-    public void sendToUser(String userId, String title, String message,
-                           com.thanhhandsome.backend.enums.NotificationType type, String referenceId) {
+    public void sendToUser(String userId, String title, String message, NotificationType type, String referenceId) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) return;
         Notification n = Notification.builder()
                 .user(user).title(title).message(message)
                 .type(type).referenceId(referenceId).isRead(false).build();
-        notificationRepository.save(n);
+        Notification saved = notificationRepository.save(n);
+        publishAfterCommit(userId, toResponse(saved));
     }
 
     @Transactional
@@ -177,9 +183,33 @@ public class NotificationService {
                 .toList();
 
         if (!notifications.isEmpty()) {
-            notificationRepository.saveAll(notifications);
+            List<Notification> savedNotifications = notificationRepository.saveAll(notifications);
+            savedNotifications.forEach(notification ->
+                    publishAfterCommit(notification.getUser().getId(), toResponse(notification)));
         } else {
             log.warn("Không tìm thấy tài khoản ADMIN để gửi notification: {}", title);
+        }
+    }
+
+    private void publishAfterCommit(String userId, NotificationResponse notification) {
+        Runnable publish = () -> {
+            try {
+                messagingTemplate.convertAndSendToUser(
+                        userId, "/queue/notifications", notification);
+            } catch (Exception exception) {
+                log.warn("Không gửi được notification realtime đến user {}: {}", userId, exception.getMessage());
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publish.run();
+                }
+            });
+        } else {
+            publish.run();
         }
     }
 }

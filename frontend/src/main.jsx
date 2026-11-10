@@ -1,10 +1,10 @@
-import { Children, StrictMode } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
 import "./index.css";
-import App from "./App.jsx";
+import RealtimeConnection from "./components/RealtimeConnection";
 import { AppRouters } from "./Routers/AppRouters.jsx";
 import { RouterProvider } from "react-router-dom";
 
@@ -23,7 +23,9 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <RealtimeConnection />
       <RouterProvider router={AppRouters} />
+
       <Toaster
         position="top-right"
         toastOptions={{

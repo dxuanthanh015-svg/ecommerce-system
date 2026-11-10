@@ -208,13 +208,6 @@ public class OrderService {
                     com.thanhhandsome.backend.enums.NotificationType.STORE_ORDER_NEW, saved.getId());
         }
 
-        // Xóa cache trending để cập nhật lại sản phẩm bán chạy
-        try {
-            trendingCacheService.evictCache();
-        } catch (Exception e) {
-            log.warn("Không thể xóa cache trending: {}", e.getMessage());
-        }
-
         return orderMapper.toOrderResponse(saved);
     }
 
@@ -338,6 +331,9 @@ public class OrderService {
 
         order.setOrderStatus(OrderStatus.DELIVERED);
         Order saved = orderRepository.save(order);
+        if (saved.getPaymentStatus() == PaymentStatus.PAID) {
+            trendingCacheService.evictCache();
+        }
         Store store = saved.getStore();
         if (store != null && store.getOwner() != null) {
             notificationService.sendToUser(store.getOwner().getId(), "Khách đã nhận hàng",

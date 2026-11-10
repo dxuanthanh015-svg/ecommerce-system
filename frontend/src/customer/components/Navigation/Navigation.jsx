@@ -28,7 +28,9 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import NotificationBell from "../../../components/NotificationBell";
+import { useMessagingStore } from "../../../store/useMessagingStore";
 import { useCurrentUser, useLogoutMutation } from "../../../hooks/useAuthQuery";
 import { useCart, useWishList } from "../../../hooks/useCartQuery";
 
@@ -36,6 +38,7 @@ export default function Navigation() {
   // Lấy thông tin user hiện tại
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const isLoggedIn = Boolean(user);
+  const hasUnreadMessages = useMessagingStore((state) => (state.unreadByAudience.customer || 0) > 0);
 
   // Lấy số lượng giỏ hàng và wishlist
   const { data: cartItems = [], isLoading: cartLoading, error: cartError } = useCart(user?.email, { enabled: !isUserLoading });
@@ -210,6 +213,7 @@ export default function Navigation() {
                   </div>
                   <button type="button" onClick={() => { setOpen(false); navigate('/account/setting'); }} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-gray-900 hover:bg-gray-50">Tài khoản của tôi</button>
                   <button type="button" onClick={() => { setOpen(false); navigate('/account/order'); }} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-gray-900 hover:bg-gray-50">Đơn hàng</button>
+                  <button type="button" onClick={() => { setOpen(false); navigate('/messages'); }} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left font-medium text-gray-900 hover:bg-gray-50"><ForumOutlinedIcon sx={{ fontSize: 18, color: '#6366f1' }} /><span>Message</span></button>
                   <button type="button" onClick={() => logout(undefined, { onSuccess: () => { setOpen(false); navigate('/login'); } })} className="block w-full rounded-lg px-2 py-2 text-left font-medium text-red-600 hover:bg-red-50">Đăng xuất</button>
                 </>
               ) : (
@@ -486,6 +490,10 @@ export default function Navigation() {
                           <Inventory2OutlinedIcon sx={{ fontSize: 18, color: '#6366f1' }} />
                           <span>My Orders</span>
                         </MenuItem>
+                        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/messages'); }} className="gap-3">
+                          <ForumOutlinedIcon sx={{ fontSize: 18, color: '#6366f1' }} />
+                          <span>Message</span>
+                        </MenuItem>
 
                         <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/account/setting'); }} className="gap-3">
                           <SettingsOutlinedIcon sx={{ fontSize: 18, color: '#64748b' }} />
@@ -533,7 +541,13 @@ export default function Navigation() {
 
 
 
-                {isLoggedIn && <div className="ml-1.5 flow-root sm:ml-3 lg:ml-5"><NotificationBell audience="customer" /></div>}
+                {isLoggedIn && <div className="ml-1.5 flex shrink-0 items-center gap-1 sm:ml-3 lg:ml-5">
+                  <button type="button" onClick={() => navigate("/messages")} aria-label="Tin nhắn" title="Tin nhắn" className="relative rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-50 hover:text-indigo-600">
+                    <ForumOutlinedIcon sx={{ fontSize: 22 }} />
+                    {hasUnreadMessages && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />}
+                  </button>
+                  <NotificationBell audience="customer" />
+                </div>}
 
                 <button
                   type="button"

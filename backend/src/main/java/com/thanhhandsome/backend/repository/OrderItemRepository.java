@@ -55,6 +55,20 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,String> {
             @Param("delivered") OrderStatus delivered);
 
     @Query("""
+        select oi.product.id as productId, sum(oi.quantity) as quantitySold
+        from OrderItem oi
+        where oi.order.paymentStatus = :paid
+          and oi.order.orderStatus = :delivered
+          and oi.product.isActive = true
+        group by oi.product.id
+        order by sum(oi.quantity) desc
+        """)
+    List<ProductQuantitySold> findTopDeliveredPaidSales(
+            @Param("paid") PaymentStatus paid,
+            @Param("delivered") OrderStatus delivered,
+            Pageable pageable);
+
+    @Query("""
         SELECT oi.product.id, sum(oi.quantity) as totalSold
         FROM OrderItem oi
         GROUP BY oi.product.id
