@@ -7,89 +7,114 @@ const quickPrompts = [
   "🏷️ Check active sales & discounts"
 ];
 
-const renderMessageContent = (text) => {
-  if (!text) return null;
-
-  // 🟢 Regex cải tiến: Cờ 's' (dotAll) để bắt được cả ký tự xuống dòng \n trong alt text
-  const imgRegex = /!\[([\s\S]*?)\]\((https?:\/\/[^\s)]+)\)/g;
+const renderInline = (text) => {
+  const tokenPattern = /(!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\))|(\*\*(.+?)\*\*)|(`([^`]+)`)|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
   const parts = [];
   let lastIndex = 0;
   let match;
 
-  while ((match = imgRegex.exec(text)) !== null) {
-    // Đưa đoạn chữ nằm trước ảnh vào mảng
-    if (match.index > lastIndex) {
-      parts.push({
-        type: "text",
-        content: text.substring(lastIndex, match.index),
-      });
+  while ((match = tokenPattern.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+
+    if (match[1]) {
+      parts.push(
+        <img
+          key={`image-${match.index}`}
+          src={match[3]}
+          alt={match[2] || "Product image"}
+          loading="lazy"
+          className="my-2 inline-block max-h-40 max-w-full rounded-xl border border-slate-200 object-contain align-middle"
+          onError={(event) => { event.currentTarget.hidden = true; }}
+        />
+      );
+    } else if (match[4]) {
+      parts.push(<strong key={`bold-${match.index}`} className="font-semibold text-slate-900">{match[5]}</strong>);
+    } else if (match[6]) {
+      parts.push(<code key={`code-${match.index}`} className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.92em] text-indigo-700">{match[7]}</code>);
+    } else {
+      parts.push(
+        <a key={`link-${match.index}`} href={match[9]} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 underline decoration-indigo-200 underline-offset-2 hover:text-indigo-800">
+          {match[8]}
+        </a>
+      );
     }
-
-    // Đưa ảnh vào mảng
-    parts.push({
-      type: "image",
-      alt: match[1].trim(),
-      url: match[2].trim(),
-    });
-
-    lastIndex = imgRegex.lastIndex;
+    lastIndex = tokenPattern.lastIndex;
   }
 
-  // Đưa đoạn chữ còn lại phía sau ảnh vào mảng
-  if (lastIndex < text.length) {
-    parts.push({
-      type: "text",
-      content: text.substring(lastIndex),
-    });
-  }
-
-  // Nếu không phát hiện Markdown Image nào, render text thông thường
-  if (parts.length === 0) {
-    return <span className="whitespace-pre-wrap">{text}</span>;
-  }
-
-  return (
-    <>
-      {parts.map((part, index) => {
-        if (part.type === "text") {
-          return (
-            <span key={index} className="whitespace-pre-wrap">
-              {part.content}
-            </span>
-          );
-        }
-
-        if (part.type === "image") {
-          return (
-            <div
-              key={index}
-              className="my-2.5 overflow-hidden rounded-2xl border border-gray-100 shadow-sm bg-gray-50 max-w-full"
-            >
-              <img
-                src={part.url}
-                alt={part.alt || "Product image"}
-                className="w-full h-44 object-cover hover:scale-105 transition-transform duration-300 block"
-                loading="lazy"
-                onError={(e) => {
-                  // Thay vì ẩn hoàn toàn, log lỗi hoặc hiện placeholder nếu URL ảnh bị chết
-                  console.error("Lỗi tải ảnh:", part.url);
-                  e.target.onerror = null;
-                  e.target.src = "https://via.placeholder.com/300x200?text=Image+Not+Found";
-                }}
-              />
-              {part.alt && (
-                <p className="p-2 text-[11px] font-semibold text-gray-700 bg-white text-center border-t border-gray-100 truncate">
-                  {part.alt}
-                </p>
-              )}
-            </div>
-          );
-        }
-        return null;
-      })}
-    </>
-  );
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
 };
+
+const parseBlocks = (text) => {
+  const blocks = [];
+  let paragraph = [];
+  let list = null;
+  const flushParagraph = () => {
+    if (paragraph.length) blocks.push({ type: "paragraph", lines: paragraph });
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (list) blocks.push(list);
+    list = null;
+  };
+
+  (text || "").replace(/\r\n?/g, "\n").split("\n").forEach((line) => {
+    const heading = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/);
+    const bullet = line.match(/^\s*[-*•]\s+(.+)$/);
+    const numbered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+    } else if (/^\s*[-*_]{3,}\s*$/.test(line)) {
+      flushParagraph();
+      flushList();
+      blocks.push({ type: "divider" });
+    } else if (heading) {
+      flushParagraph();
+      flushList();
+      blocks.push({ type: "heading", level: heading[1].length, text: heading[2] });
+    } else if (bullet || numbered) {
+      flushParagraph();
+      const type = bullet ? "ul" : "ol";
+      if (!list || list.type !== type) {
+        flushList();
+        list = { type, items: [] };
+      }
+      list.items.push(bullet?.[1] || numbered[1]);
+    } else {
+      flushList();
+      paragraph.push(line);
+    }
+  });
+
+  flushParagraph();
+  flushList();
+  return blocks;
+};
+
+const renderMessageContent = (text) => parseBlocks(text).map((block, index) => {
+  if (block.type === "divider") {
+    return <hr key={`divider-${index}`} className="my-2 border-slate-200" />;
+  }
+  if (block.type === "heading") {
+    const Heading = block.level === 1 ? "h3" : "h4";
+    return <Heading key={`heading-${index}`} className="mb-1.5 mt-2 font-bold leading-snug text-slate-900 first:mt-0">{renderInline(block.text)}</Heading>;
+  }
+  if (block.type === "ul" || block.type === "ol") {
+    const List = block.type === "ul" ? "ul" : "ol";
+    return (
+      <List key={`list-${index}`} className={`my-1.5 space-y-1 pl-5 ${block.type === "ul" ? "list-disc" : "list-decimal"}`}>
+        {block.items.map((item, itemIndex) => <li key={`item-${itemIndex}`} className="pl-0.5">{renderInline(item)}</li>)}
+      </List>
+    );
+  }
+  return (
+    <p key={`paragraph-${index}`} className="my-1 whitespace-pre-wrap leading-relaxed first:mt-0 last:mb-0">
+      {block.lines.map((line, lineIndex) => <React.Fragment key={`line-${lineIndex}`}>{lineIndex > 0 && <br />}{renderInline(line)}</React.Fragment>)}
+    </p>
+  );
+});
 
 const ChatbotMessageList = ({ messages, isTyping, onSelectPrompt, messagesEndRef }) => {
   return (
@@ -101,9 +126,9 @@ const ChatbotMessageList = ({ messages, isTyping, onSelectPrompt, messagesEndRef
             }`}
         >
           <div
-            className={`max-w-[85%] px-4 py-3 text-xs sm:text-sm leading-relaxed ${msg.sender === "user"
+            className={`max-w-[90%] px-4 py-3 text-xs sm:text-sm leading-relaxed ${msg.sender === "user"
                 ? "bg-indigo-600 text-white rounded-2xl rounded-tr-xs shadow-xs font-normal"
-                : "bg-white text-gray-800 rounded-2xl rounded-tl-xs border border-gray-100 shadow-2xs font-normal"
+                : "bg-white text-gray-700 rounded-2xl rounded-tl-xs border border-gray-100 shadow-2xs font-normal [&_strong]:text-gray-900"
               }`}
           >
             {renderMessageContent(msg.text)}
