@@ -202,9 +202,6 @@ const QrCode = () => {
               <span>Số tiền thanh toán:</span>
               <span className="font-extrabold text-indigo-600 text-sm">
                 {formatVnd(pendingOrder.total)}
-                <span className="text-[10px] text-gray-400 font-normal ml-1">
-                  (~{Math.round((pendingOrder.total || 0) * 25000).toLocaleString('vi-VN')} VND)
-                </span>
               </span>
             </div>
             <div className="flex justify-between items-center text-gray-500">
