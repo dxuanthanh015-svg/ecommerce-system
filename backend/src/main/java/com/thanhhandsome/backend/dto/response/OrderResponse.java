@@ -56,5 +56,8 @@ public class OrderResponse {
     String district;
 
     List<OrderItemResponse> items;
+    String returnReason;
+    LocalDateTime returnRequestedAt;
+    LocalDateTime returnProcessedAt;
     LocalDateTime createdAt;
 }

@@ -137,6 +137,7 @@ const StoreProductList = ({
                 <th className="py-4 px-6">PRODUCT</th>
                 <th className="py-4 px-6">CATEGORY</th>
                 <th className="py-4 px-6">PRICE</th>
+                <th className="py-4 px-6">STOCK</th>
                 <th className="py-4 px-6">STATUS</th>
                 <th className="py-4 px-6">HIDDEN</th>
                 <th className="py-4 px-6 text-right">ACTIONS</th>
@@ -164,7 +165,7 @@ const StoreProductList = ({
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-500 font-medium text-xs">
+                  <td colSpan={7} className="py-12 text-center text-gray-500 font-medium text-xs">
                     {loading ? "Loading products..." : loadError ? (
                       <div className="flex flex-col items-center gap-2">
                         <span>{error?.response?.data?.message || "Không tải được danh sách sản phẩm."}</span>

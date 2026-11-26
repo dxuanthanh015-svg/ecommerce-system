@@ -87,10 +87,12 @@ public class NotificationService {
                     && "Cập nhật đơn hàng".equals(notification.getTitle()));
             case "storemanager" -> type == NotificationType.STORE_ORDER_NEW
                     || type == NotificationType.STORE_ORDER_UPDATE
+                    || type == NotificationType.LOW_STOCK
                     // Keep previously saved store notifications visible after deploying the new event types.
                     || (type == NotificationType.ORDER_UPDATE
                     && ("Đơn hàng mới".equals(notification.getTitle())
-                    || "Khách đã nhận hàng".equals(notification.getTitle())));
+                    || "Khách đã nhận hàng".equals(notification.getTitle())
+                    || "Yêu cầu trả hàng mới".equals(notification.getTitle())));
             case "admin" -> type == NotificationType.STORE_APPLICATION;
             default -> false;
         };

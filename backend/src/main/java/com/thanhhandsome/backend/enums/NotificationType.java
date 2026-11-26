@@ -6,5 +6,6 @@ public enum NotificationType {
     STORE_APPLICATION_APPROVED,
     STORE_ORDER_NEW,
     STORE_ORDER_UPDATE,
-    PROMOTION
+    PROMOTION,
+    LOW_STOCK
 }

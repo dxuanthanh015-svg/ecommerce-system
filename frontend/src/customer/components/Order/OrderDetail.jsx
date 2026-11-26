@@ -6,7 +6,7 @@ import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import { useOrderDetail, useUpdateOrderStatus, useConfirmOrderReceived } from "../../../hooks/useOrderQuery";
+import { useOrderDetail, useUpdateOrderStatus, useConfirmOrderReceived, useRequestReturnOrder } from "../../../hooks/useOrderQuery";
 import { useCurrentUser } from "../../../hooks/useAuthQuery";
 import { getOrderDeliveryInfo } from "../../../services/orderService";
 import toast from "react-hot-toast";
@@ -21,11 +21,20 @@ const OrderDetail = () => {
   const { data: userOrder, isLoading: loading } = useOrderDetail(orderId, currentUser?.email);
   const { mutateAsync: updateStatusMutate } = useUpdateOrderStatus();
   const { mutateAsync: confirmReceived } = useConfirmOrderReceived();
+  const { mutateAsync: requestReturnOrder } = useRequestReturnOrder();
+
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
+  const [submittingReturn, setSubmittingReturn] = useState(false);
 
   const currentStatus = userOrder?.status || "Pending";
+  const normalizedStatus = String(currentStatus).trim().toLowerCase();
   const isInTransit = ["shipped", "in transit", "in_transit", "in-transit"]
-    .includes(String(currentStatus).trim().toLowerCase());
-  const displayedStatus = isInTransit ? "In Transit" : currentStatus;
+    .includes(normalizedStatus);
+  const isDelivered = normalizedStatus === "delivered" || normalizedStatus === "completed";
+  const isReturnRequested = normalizedStatus === "return_requested";
+  const isReturned = normalizedStatus === "returned";
+  const displayedStatus = isInTransit ? "In Transit" : isReturnRequested ? "Yêu cầu trả hàng" : isReturned ? "Đã trả hàng" : currentStatus;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -85,6 +94,26 @@ const OrderDetail = () => {
         console.error("Error cancelling order:", err);
         toast.error(err.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng!");
       }
+    }
+  };
+
+  const handleRequestReturn = async (e) => {
+    e.preventDefault();
+    if (!returnReason.trim()) {
+      toast.error("Vui lòng nhập lý do trả hàng!");
+      return;
+    }
+    setSubmittingReturn(true);
+    try {
+      await requestReturnOrder({ orderId, reason: returnReason.trim() });
+      toast.success("Yêu cầu trả hàng đã được gửi tới cửa hàng!");
+      setIsReturnModalOpen(false);
+      setReturnReason("");
+    } catch (err) {
+      console.error("Error requesting return:", err);
+      toast.error(err?.response?.data?.message || "Có lỗi xảy ra khi yêu cầu trả hàng!");
+    } finally {
+      setSubmittingReturn(false);
     }
   };
 
@@ -208,6 +237,75 @@ const OrderDetail = () => {
           </div>
         )}
 
+        {/* Delivered Actions & Return Order Banner */}
+        {isDelivered && (
+          <div className="mb-6 bg-gradient-to-r from-slate-50 to-indigo-50/40 border border-slate-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                <TaskAltIcon sx={{ fontSize: 22 }} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900">
+                  Đơn hàng đã được giao thành công
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Nếu sản phẩm có vấn đề (lỗi, sai kích cỡ, không đúng mô tả), bạn có thể yêu cầu trả hàng.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsReturnModalOpen(true)}
+              className="shrink-0 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Yêu cầu trả hàng</span>
+            </button>
+          </div>
+        )}
+
+        {/* Return Requested Banner */}
+        {isReturnRequested && (
+          <div className="mb-6 bg-amber-50/80 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                <span className="text-lg">📦</span>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-amber-900">
+                  Đơn hàng đang yêu cầu hoàn trả
+                </h4>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Lý do: <span className="font-semibold text-amber-900">{userOrder.returnReason || "Không có lý do chi tiết"}</span>
+                </p>
+                <p className="text-[11px] text-amber-600 mt-1">
+                  Vui lòng gửi lại sản phẩm cho cửa hàng. Sau khi cửa hàng xác nhận đã nhận hàng hoàn, tồn kho sẽ tự động được hoàn lại.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-100 text-amber-800 border border-amber-300">
+              Chờ shop xác nhận nhận hàng
+            </span>
+          </div>
+        )}
+
+        {/* Returned Banner */}
+        {isReturned && (
+          <div className="mb-6 bg-purple-50 border border-purple-200 rounded-2xl p-5 flex items-center gap-3 shadow-2xs">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+              <TaskAltIcon sx={{ fontSize: 22 }} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-purple-900">
+                Đơn hàng đã được trả hàng thành công
+              </h4>
+              <p className="text-xs text-purple-700 mt-0.5">
+                Cửa hàng đã xác nhận nhận lại sản phẩm hoàn và hệ thống đã tự động cập nhật lại tồn kho.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Two-Column Grid: Order Items & Delivery/Summary Details */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Items List */}
@@ -304,6 +402,50 @@ const OrderDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Modal Yêu cầu trả hàng */}
+        {isReturnModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+            <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 font-sans">
+              <h3 className="text-lg font-bold text-gray-900 mb-1">
+                Yêu cầu trả hàng
+              </h3>
+              <p className="text-xs text-gray-500 mb-4">
+                Vui lòng nêu rõ lý do trả hàng (sản phẩm lỗi, sai màu/size, hàng không giống mô tả...) để shop xử lý.
+              </p>
+              <form onSubmit={handleRequestReturn}>
+                <textarea
+                  rows={4}
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  placeholder="Nhập chi tiết lý do bạn muốn trả hàng..."
+                  className="w-full border border-gray-200 rounded-xl p-3 text-xs sm:text-sm outline-none focus:border-indigo-600 transition"
+                  required
+                />
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsReturnModalOpen(false);
+                      setReturnReason("");
+                    }}
+                    disabled={submittingReturn}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingReturn}
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition disabled:opacity-60 cursor-pointer"
+                  >
+                    {submittingReturn ? "Đang gửi..." : "Xác nhận gửi yêu cầu"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

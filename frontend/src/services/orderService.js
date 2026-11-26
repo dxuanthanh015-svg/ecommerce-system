@@ -122,6 +122,28 @@ export const orderService = {
     }
   },
 
+  // PATCH /orders/my-orders/{orderId}/request-return -> Khách hàng yêu cầu trả hàng
+  requestReturnOrder: async (orderId, reason) => {
+    try {
+      const res = await apiClient.patch(`/orders/my-orders/${orderId}/request-return`, { reason })
+      return normalizeOrder(res.data.result)
+    } catch (error) {
+      console.warn('[orderService] requestReturnOrder error:', error.response?.data || error.message)
+      throw error
+    }
+  },
+
+  // PATCH /orders/store/{orderId}/confirm-return -> Store Manager xác nhận đã nhận hàng hoàn và tự động cộng lại tồn kho
+  confirmReturnOrder: async (orderId) => {
+    try {
+      const res = await apiClient.patch(`/orders/store/${orderId}/confirm-return`)
+      return normalizeOrder(res.data.result)
+    } catch (error) {
+      console.warn('[orderService] confirmReturnOrder error:', error.response?.data || error.message)
+      throw error
+    }
+  },
+
   // DELETE /orders/{orderId} -> Xóa đơn hàng (Admin)
   deleteOrder: async (orderId) => {
     try {

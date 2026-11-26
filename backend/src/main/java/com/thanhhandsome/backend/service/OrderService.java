@@ -3,6 +3,7 @@ package com.thanhhandsome.backend.service;
 import com.thanhhandsome.backend.dto.request.OrderRequest;
 import com.thanhhandsome.backend.dto.response.OrderResponse;
 import com.thanhhandsome.backend.entity.*;
+import com.thanhhandsome.backend.enums.NotificationType;
 import com.thanhhandsome.backend.enums.OrderStatus;
 import com.thanhhandsome.backend.enums.PaymentMethod;
 import com.thanhhandsome.backend.enums.PaymentStatus;
@@ -134,8 +135,10 @@ public class OrderService {
                     throw new IllegalArgumentException("Đơn hàng chỉ được chứa sản phẩm cùng cửa hàng");
                 }
                 int quantity = itemReq.getQuantity() == null ? 1 : itemReq.getQuantity();
-                if (quantity <= 0 || quantity > product.getQuantity()) {
-                    throw new IllegalArgumentException("Số lượng sản phẩm không hợp lệ hoặc không đủ tồn kho");
+                int currentProductStock = product.getQuantity() != null ? product.getQuantity() : 0;
+                if (quantity <= 0 || quantity > currentProductStock) {
+                    throw new IllegalArgumentException(String.format("Sản phẩm '%s' không đủ số lượng trong kho (chỉ còn %d sản phẩm)!",
+                            product.getTitle(), currentProductStock));
                 }
                 BigDecimal unitPrice = product.getDiscountedPrice();
                 if (unitPrice == null || unitPrice.compareTo(product.getPrice()) >= 0) {
@@ -146,12 +149,33 @@ public class OrderService {
                         ? itemReq.getImageUrl()
                         : (product.getImageUrl() != null ? product.getImageUrl() : "");
 
+                String sizeName = itemReq.getSize() != null ? itemReq.getSize() : "M";
+                String colorName = itemReq.getColor() != null ? itemReq.getColor() : "Default";
+
+                // Kiểm tra và trừ kho variant nếu có
+                ProductVariant matchedVariant = null;
+                if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+                    matchedVariant = product.getVariants().stream()
+                            .filter(v -> (v.getSizeName() == null || v.getSizeName().equalsIgnoreCase(sizeName))
+                                    && (v.getColorName() == null || v.getColorName().equalsIgnoreCase(colorName)))
+                            .findFirst().orElse(null);
+                }
+                if (matchedVariant != null) {
+                    int variantStock = matchedVariant.getQuantity() != null ? matchedVariant.getQuantity() : 0;
+                    if (quantity > variantStock) {
+                        throw new IllegalArgumentException(String.format("Phiên bản Size %s - Màu %s của sản phẩm '%s' chỉ còn %d sản phẩm trong kho!",
+                                sizeName, colorName, product.getTitle(), variantStock));
+                    }
+                    matchedVariant.setQuantity(variantStock - quantity);
+                }
+
                 OrderItem orderItem = OrderItem.builder()
                         .product(product)
+                        .productVariant(matchedVariant)
                         .productTitle(itemReq.getTitle() != null ? itemReq.getTitle() : product.getTitle())
                         .productImageUrl(imageUrl)
-                        .size(itemReq.getSize() != null ? itemReq.getSize() : "M")
-                        .color(itemReq.getColor() != null ? itemReq.getColor() : "Default")
+                        .size(sizeName)
+                        .color(colorName)
                         .quantity(quantity)
                         .price(product.getPrice())
                         .discountedPrice(unitPrice)
@@ -167,7 +191,12 @@ public class OrderService {
                 }
                 calculatedCommission = calculatedCommission.add(lineSubtotal.multiply(commissionRate)
                         .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
-                product.setQuantity(product.getQuantity() - quantity);
+
+                int remainingStock = currentProductStock - quantity;
+                product.setQuantity(remainingStock);
+                if (remainingStock < 5) {
+                    triggerLowStockAlert(product, remainingStock);
+                }
             }
         }
         order.setCommissionFee(calculatedCommission);
@@ -312,9 +341,95 @@ public class OrderService {
         order.getItems().forEach(item -> {
             Product product = item.getProduct();
             if (product != null) {
-                product.setQuantity((product.getQuantity() == null ? 0 : product.getQuantity()) + item.getQuantity());
+                int restoredStock = (product.getQuantity() == null ? 0 : product.getQuantity()) + item.getQuantity();
+                product.setQuantity(restoredStock);
+            }
+            ProductVariant variant = item.getProductVariant();
+            if (variant != null) {
+                variant.setQuantity((variant.getQuantity() == null ? 0 : variant.getQuantity()) + item.getQuantity());
+            } else if (product != null && product.getVariants() != null && !product.getVariants().isEmpty()) {
+                product.getVariants().stream()
+                        .filter(v -> (v.getSizeName() == null || v.getSizeName().equalsIgnoreCase(item.getSize()))
+                                && (v.getColorName() == null || v.getColorName().equalsIgnoreCase(item.getColor())))
+                        .findFirst()
+                        .ifPresent(v -> v.setQuantity((v.getQuantity() == null ? 0 : v.getQuantity()) + item.getQuantity()));
             }
         });
+    }
+
+    private void triggerLowStockAlert(Product product, int remainingStock) {
+        Store store = product.getStore();
+        if (store != null && store.getOwner() != null) {
+            notificationService.sendToUser(
+                    store.getOwner().getId(),
+                    "Cảnh báo tồn kho thấp",
+                    String.format("Sản phẩm '%s' hiện chỉ còn %d sản phẩm trong kho. Vui lòng kiểm tra và nhập thêm hàng!", product.getTitle(), remainingStock),
+                    NotificationType.LOW_STOCK,
+                    product.getId()
+            );
+        }
+    }
+
+    @Transactional
+    public OrderResponse requestReturnOrder(String orderId, String reason) {
+        User user = getCurrentUser();
+        Order order = orderRepository.findByIdOrOrderCode(orderId, orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        if (order.getOrderStatus() != OrderStatus.DELIVERED) {
+            throw new IllegalArgumentException("Chỉ có thể yêu cầu trả hàng với đơn hàng đã được giao thành công");
+        }
+        if (reason == null || reason.trim().isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nêu rõ lý do trả hàng");
+        }
+
+        order.setOrderStatus(OrderStatus.RETURN_REQUESTED);
+        order.setReturnReason(reason.trim());
+        order.setReturnRequestedAt(java.time.LocalDateTime.now());
+        Order saved = orderRepository.save(order);
+
+        Store store = saved.getStore();
+        if (store != null && store.getOwner() != null) {
+            notificationService.sendToUser(store.getOwner().getId(), "Yêu cầu trả hàng mới",
+                    "Đơn hàng " + saved.getOrderCode() + " có yêu cầu trả hàng. Lý do: " + reason.trim(),
+                    NotificationType.STORE_ORDER_UPDATE, saved.getId());
+        }
+        return orderMapper.toOrderResponse(saved);
+    }
+
+    @Transactional
+    public OrderResponse confirmReturnReceived(String orderId) {
+        Order order = orderRepository.findByIdOrOrderCode(orderId, orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean admin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!admin) {
+            Store ownStore = storeRepository.findByOwnerId(authentication.getName())
+                    .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+            if (!ownStore.getId().equals(order.getStore().getId())) {
+                throw new AppException(ErrorCode.PRODUCT_NOT_OWNED);
+            }
+        }
+
+        if (order.getOrderStatus() != OrderStatus.RETURN_REQUESTED) {
+            throw new IllegalArgumentException("Chỉ có thể xác nhận nhận hàng trả khi đơn hàng ở trạng thái Yêu cầu trả hàng");
+        }
+
+        // Tự động hoàn lại tồn kho theo số lượng sản phẩm trong đơn
+        restoreOrderInventory(order);
+
+        order.setOrderStatus(OrderStatus.RETURNED);
+        order.setReturnProcessedAt(java.time.LocalDateTime.now());
+        Order saved = orderRepository.save(order);
+
+        notificationService.sendToUser(saved.getUser().getId(), "Xác nhận trả hàng thành công",
+                "Cửa hàng đã xác nhận nhận lại sản phẩm cho đơn hàng " + saved.getOrderCode() + ". Tồn kho đã được hoàn lại thành công.",
+                NotificationType.ORDER_UPDATE, saved.getId());
+
+        return orderMapper.toOrderResponse(saved);
     }
 
     @Transactional
@@ -344,7 +459,10 @@ public class OrderService {
     }
 
     private String statusLabel(OrderStatus status) {
-        return status == OrderStatus.SHIPPED ? "Đang giao" : status.name();
+        if (status == OrderStatus.SHIPPED) return "Đang giao";
+        if (status == OrderStatus.RETURN_REQUESTED) return "Yêu cầu trả hàng";
+        if (status == OrderStatus.RETURNED) return "Đã trả hàng";
+        return status.name();
     }
 
     private boolean isAllowedOrderTransition(OrderStatus current, OrderStatus requested) {
@@ -354,7 +472,9 @@ public class OrderService {
             case PROCESSING -> requested == OrderStatus.SHIPPED || requested == OrderStatus.CANCELLED;
             // Customer confirmation endpoint alone can complete delivery.
             case SHIPPED -> false;
-            case DELIVERED, CANCELLED -> false;
+            case DELIVERED -> requested == OrderStatus.RETURN_REQUESTED;
+            case RETURN_REQUESTED -> requested == OrderStatus.RETURNED || requested == OrderStatus.DELIVERED;
+            case CANCELLED, RETURNED -> false;
         };
     }
 

@@ -234,6 +234,12 @@ public class ProductService {
         product.setIsFlashSale(Boolean.TRUE.equals(productRequest.getIsFlashSale()));
         applyPricing(product, productRequest.getPrice(), productRequest.getDiscountedPrice());
         applyVariants(product, productRequest);
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            int variantTotal = product.getVariants().stream().mapToInt(v -> v.getQuantity() != null ? v.getQuantity() : 0).sum();
+            if (variantTotal > 0 || productRequest.getQuantity() == null || productRequest.getQuantity() == 0) {
+                product.setQuantity(variantTotal);
+            }
+        }
         Product savedProduct = productRepository.save(product);
         trendingCacheService.evictCache();
         return toResponseWithReviewStats(savedProduct, null);
@@ -257,6 +263,12 @@ public class ProductService {
         product.setCategory(category);
         product.getVariants().clear();
         applyVariants(product, request);
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            int variantTotal = product.getVariants().stream().mapToInt(v -> v.getQuantity() != null ? v.getQuantity() : 0).sum();
+            if (variantTotal > 0 || request.getQuantity() == null || request.getQuantity() == 0) {
+                product.setQuantity(variantTotal);
+            }
+        }
         Product savedProduct = productRepository.save(product);
         trendingCacheService.evictCache();
         return toResponseWithReviewStats(savedProduct, loadReviewStats(List.of(savedProduct)).get(savedProduct.getId()));

@@ -24,7 +24,10 @@ const ProductTableRow = ({
     imageUrl,
     images
   } = product;
-  const statusBadge = getProductInventoryStatus(quantity);
+  const totalStock = (product.variants && product.variants.length > 0)
+    ? product.variants.reduce((sum, v) => sum + (Number(v.quantity) || 0), 0)
+    : (Number(quantity) || 0);
+  const statusBadge = getProductInventoryStatus(totalStock);
   const categoryLabel = typeof secondLavelCategory === "string"
     ? secondLavelCategory
     : secondLavelCategory?.name || secondLavelCategory?.slug || product?.category?.name || product?.category || "—";
@@ -57,6 +60,40 @@ const ProductTableRow = ({
       {/* Price */}
       <td className="py-4 px-6 text-xs sm:text-sm font-bold text-gray-900">
         {formatVnd(discountedPrice)}
+      </td>
+
+      {/* Stock Quantity */}
+      <td className="py-4 px-6">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`text-sm font-extrabold ${
+                totalStock === 0
+                  ? "text-red-500"
+                  : totalStock < 5
+                  ? "text-amber-500 font-black animate-pulse"
+                  : "text-gray-900"
+              }`}
+            >
+              {totalStock}
+            </span>
+            {totalStock < 5 && totalStock > 0 && (
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                Sắp hết
+              </span>
+            )}
+            {totalStock === 0 && (
+              <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
+                Hết hàng
+              </span>
+            )}
+          </div>
+          {product.variants && product.variants.length > 0 && (
+            <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+              {product.variants.length} biến thể
+            </span>
+          )}
+        </div>
       </td>
 
       <td className="py-4 px-6">

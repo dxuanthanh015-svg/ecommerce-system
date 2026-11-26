@@ -156,6 +156,33 @@ export const useConfirmOrderReceived = () => {
   });
 };
 
+export const useRequestReturnOrder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, reason }) => orderService.requestReturnOrder(orderId, reason),
+    onSuccess: (order, variables) => {
+      qc.invalidateQueries({ queryKey: ['userOrders'] });
+      qc.invalidateQueries({ queryKey: ['order', variables.orderId] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['notification'] });
+    },
+  });
+};
+
+export const useConfirmReturnOrder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId) => orderService.confirmReturnOrder(orderId),
+    onSuccess: (order, orderId) => {
+      qc.invalidateQueries({ queryKey: ['userOrders'] });
+      qc.invalidateQueries({ queryKey: ['order', orderId] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['notification'] });
+    },
+  });
+};
+
 // 7. Mutation xử lý thanh toán & lưu doanh thu (QrCode payment)
 export const useProcessOrder = () => {
   const qc = useQueryClient();

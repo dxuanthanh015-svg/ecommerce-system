@@ -107,6 +107,15 @@ public class Order extends BaseEntity {
     @Column(length = 500)
     String note;
 
+    @Column(name = "return_reason", length = 500)
+    String returnReason;
+
+    @Column(name = "return_requested_at")
+    java.time.LocalDateTime returnRequestedAt;
+
+    @Column(name = "return_processed_at")
+    java.time.LocalDateTime returnProcessedAt;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     List<OrderItem> items = new ArrayList<>();

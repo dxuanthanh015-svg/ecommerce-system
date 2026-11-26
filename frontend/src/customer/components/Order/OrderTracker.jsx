@@ -38,6 +38,8 @@ const OrderTracker = ({ status, activeStep }) => {
   const normalized = currentStatus.toLowerCase();
 
   const isCancelled = normalized === "cancelled";
+  const isReturnRequested = normalized === "return_requested";
+  const isReturned = normalized === "returned";
 
   let indexStep = 0;
   if (normalized === "pending") {
@@ -59,6 +61,42 @@ const OrderTracker = ({ status, activeStep }) => {
             <h4 className="text-sm font-bold">Đơn hàng đã bị hủy</h4>
             <p className="text-xs text-rose-600 mt-0.5">
               Đơn hàng này đã được hủy và không thể tiếp tục quy trình vận chuyển.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isReturnRequested) {
+    return (
+      <div className="bg-amber-50/70 rounded-2xl p-5 sm:p-6 border border-amber-200/80 shadow-2xs mb-6 font-sans">
+        <div className="flex items-center gap-3 text-amber-800">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-lg">
+            📦
+          </div>
+          <div>
+            <h4 className="text-sm font-bold">Yêu cầu hoàn trả hàng</h4>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Đơn hàng đang trong quy trình xử lý trả hàng và chờ cửa hàng xác nhận đã nhận lại sản phẩm.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isReturned) {
+    return (
+      <div className="bg-purple-50/70 rounded-2xl p-5 sm:p-6 border border-purple-200/80 shadow-2xs mb-6 font-sans">
+        <div className="flex items-center gap-3 text-purple-800">
+          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+            <CheckCircleIcon sx={{ fontSize: 22 }} />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold">Đã hoàn trả thành công</h4>
+            <p className="text-xs text-purple-700 mt-0.5">
+              Sản phẩm đã được hoàn trả về kho cửa hàng và số lượng tồn kho đã được cộng lại.
             </p>
           </div>
         </div>

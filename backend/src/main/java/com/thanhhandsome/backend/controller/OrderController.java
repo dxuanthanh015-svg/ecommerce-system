@@ -1,6 +1,7 @@
 package com.thanhhandsome.backend.controller;
 
 import com.thanhhandsome.backend.dto.request.OrderRequest;
+import com.thanhhandsome.backend.dto.request.ReturnOrderRequest;
 import com.thanhhandsome.backend.dto.request.UpdateOrderStatusRequest;
 import com.thanhhandsome.backend.dto.response.ApiResponse;
 import com.thanhhandsome.backend.dto.response.OrderResponse;
@@ -74,6 +75,27 @@ public class OrderController {
         return ApiResponse.<OrderResponse>builder()
                 .message("Xác nhận đã nhận hàng thành công")
                 .result(orderService.confirmOrderReceived(orderId))
+                .build();
+    }
+
+    @PatchMapping("/my-orders/{orderId}/request-return")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'STORE_MANAGER', 'ADMIN')")
+    public ApiResponse<OrderResponse> requestReturnOrder(
+            @PathVariable String orderId,
+            @RequestBody @Valid ReturnOrderRequest request
+    ) {
+        return ApiResponse.<OrderResponse>builder()
+                .message("Gửi yêu cầu trả hàng thành công")
+                .result(orderService.requestReturnOrder(orderId, request.getReason()))
+                .build();
+    }
+
+    @PatchMapping("/store/{orderId}/confirm-return")
+    @PreAuthorize("hasAnyRole('STORE_MANAGER', 'ADMIN')")
+    public ApiResponse<OrderResponse> confirmReturnReceived(@PathVariable String orderId) {
+        return ApiResponse.<OrderResponse>builder()
+                .message("Xác nhận đã nhận hàng hoàn và cập nhật tồn kho thành công")
+                .result(orderService.confirmReturnReceived(orderId))
                 .build();
     }
 

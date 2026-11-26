@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import OrderTracker from "../../../customer/components/Order/OrderTracker";
 import { getOrderDeliveryInfo } from "../../../services/orderService";
+import { useConfirmReturnOrder } from "../../../hooks/useOrderQuery";
+import toast from "react-hot-toast";
 import { formatVnd } from "../../../utils/currency";
 import { getEffectivePrice } from "../../../utils/productPricing";
 
@@ -22,6 +24,26 @@ export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatus
 
   const totalAmount = Number(order.totalAmount) || Number(order.total) || 0;
   const status = order.orderStatus || order.status || "Pending";
+  const { mutateAsync: confirmReturnMutate } = useConfirmReturnOrder();
+  const [isConfirmingReturn, setIsConfirmingReturn] = useState(false);
+
+  const handleConfirmReturn = async () => {
+    if (!window.confirm("Xác nhận đã nhận lại đầy đủ kiện hàng hoàn? Hệ thống sẽ tự động cộng lại số lượng tồn kho cho các sản phẩm trong đơn.")) return;
+    setIsConfirmingReturn(true);
+    try {
+      await confirmReturnMutate(order.orderId || order.id);
+      toast.success("Xác nhận nhận hàng hoàn thành công! Đã tự động hoàn lại tồn kho.");
+      if (onStatusChange) {
+        onStatusChange(order.orderId || order.id, "RETURNED");
+      }
+      onClose();
+    } catch (err) {
+      console.error("Error confirming return:", err);
+      toast.error(err?.response?.data?.message || "Có lỗi xảy ra khi xác nhận hàng hoàn!");
+    } finally {
+      setIsConfirmingReturn(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in">
@@ -41,9 +63,13 @@ export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatus
                     ? "bg-rose-100 text-rose-800"
                     : status === "Processing"
                       ? "bg-blue-100 text-blue-800"
-                      : "bg-amber-100 text-amber-800"
+                      : (status === "RETURN_REQUESTED" || status === "Return_Requested")
+                        ? "bg-amber-100 text-amber-800 border border-amber-200"
+                        : (status === "RETURNED" || status === "Returned")
+                          ? "bg-purple-100 text-purple-800 border border-purple-200"
+                          : "bg-amber-100 text-amber-800"
                 }`}>
-                {status}
+                {status === "RETURN_REQUESTED" || status === "Return_Requested" ? "Return Requested" : status === "RETURNED" || status === "Returned" ? "Returned" : status}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
@@ -63,6 +89,34 @@ export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatus
         <div className="p-6 sm:p-8 max-h-[65vh] overflow-y-auto space-y-6">
           {/* Order Progress Tracker */}
           <OrderTracker status={status} />
+
+          {/* Return Request Banner */}
+          {(status === "RETURN_REQUESTED" || status === "Return_Requested") && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-1.5 shadow-2xs">
+              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
+                <span className="text-base">⚠️</span>
+                <span>Khách hàng yêu cầu trả hàng</span>
+              </div>
+              <p className="text-sm font-semibold text-amber-950">
+                Lý do trả hàng: <span className="font-bold text-rose-600 underline">{order.returnReason || "Không có lý do cụ thể"}</span>
+              </p>
+              <p className="text-xs text-amber-800">
+                Khi nhận được kiện hàng hoàn trả từ khách, vui lòng nhấn nút <b>"Xác nhận đã nhận hàng hoàn"</b> bên dưới để hoàn tất và tự động cộng lại tồn kho.
+              </p>
+            </div>
+          )}
+
+          {(status === "RETURNED" || status === "Returned") && (
+            <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4 space-y-1 shadow-2xs">
+              <div className="flex items-center gap-2 text-purple-900 font-bold text-xs uppercase tracking-wider">
+                <span className="text-base">📦</span>
+                <span>Đã nhận hàng hoàn trả</span>
+              </div>
+              <p className="text-xs text-purple-700">
+                Cửa hàng đã xác nhận nhận lại sản phẩm hoàn. Tồn kho cho tất cả sản phẩm trong đơn đã được tự động cộng lại.
+              </p>
+            </div>
+          )}
 
           {/* Customer & Shipping Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -206,6 +260,27 @@ export default function StoreOrderDetailModal({ order, isOpen, onClose, onStatus
               <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2 text-xs font-bold text-emerald-700">
                 <CheckCircleOutlinedIcon sx={{ fontSize: 16 }} />
                 <span>Đơn hàng đã hoàn tất</span>
+              </span>
+            )}
+            {(status === "RETURN_REQUESTED" || status === "Return_Requested") && (
+              <button
+                type="button"
+                onClick={handleConfirmReturn}
+                disabled={isConfirmingReturn}
+                className="rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-purple-700 transition cursor-pointer disabled:opacity-60 flex items-center gap-2"
+              >
+                {isConfirmingReturn ? (
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                ) : (
+                  <CheckCircleOutlinedIcon sx={{ fontSize: 16 }} />
+                )}
+                <span>Xác nhận đã nhận hàng hoàn (Tự động hoàn kho)</span>
+              </button>
+            )}
+            {(status === "RETURNED" || status === "Returned") && (
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-purple-50 border border-purple-200 px-3.5 py-2 text-xs font-bold text-purple-700">
+                <CheckCircleOutlinedIcon sx={{ fontSize: 16 }} />
+                <span>Đã nhận hàng hoàn • Đã hoàn lại tồn kho</span>
               </span>
             )}
           </div>
