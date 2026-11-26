@@ -35,8 +35,7 @@ public class PaymentIntent extends BaseEntity {
     @Builder.Default
     PaymentIntentStatus status = PaymentIntentStatus.PENDING;
 
-    @Lob
-    @Column(name = "checkout_payload", nullable = false)
+    @Column(name = "checkout_payload", nullable = false, columnDefinition = "LONGTEXT")
     String checkoutPayload;
 
     @Column(name = "expires_at")
@@ -48,7 +47,6 @@ public class PaymentIntent extends BaseEntity {
     @Column(name = "order_code", length = 80)
     String orderCode;
 
-    @Lob
-    @Column(name = "gateway_response")
+    @Column(name = "gateway_response", columnDefinition = "LONGTEXT")
     String gatewayResponse;
 }

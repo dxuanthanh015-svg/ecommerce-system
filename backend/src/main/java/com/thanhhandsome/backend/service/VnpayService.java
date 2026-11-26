@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class VnpayService {
 
-    final ObjectMapper objectMapper;
+    ObjectMapper objectMapper = new ObjectMapper();
     final PaymentIntentRepository paymentIntentRepository;
     final PaymentTransactionRepository paymentTransactionRepository;
     final OrderRepository orderRepository;
