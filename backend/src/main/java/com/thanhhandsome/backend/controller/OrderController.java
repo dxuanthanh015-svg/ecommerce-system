@@ -32,16 +32,6 @@ public class OrderController {
                 .build();
     }
 
-    // Demo flow: clicking "I have completed the transfer" confirms payment.
-    // Replace this client confirmation with a bank/provider callback when integrated.
-    @PostMapping("/process")
-    public ApiResponse<OrderResponse> processOrder(@RequestBody @Valid OrderRequest request) {
-        return ApiResponse.<OrderResponse>builder()
-                .message("Xác nhận thanh toán và tạo đơn hàng thành công")
-                .result(orderService.createOrder(request, true))
-                .build();
-    }
-
     // GET /orders/my-orders -> Lấy đơn hàng của user hiện tại
     @GetMapping("/my-orders")
     public ApiResponse<List<OrderResponse>> getMyOrders() {

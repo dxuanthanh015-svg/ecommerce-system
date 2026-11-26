@@ -49,7 +49,11 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(OrderRequest request, boolean isPaid) {
-        User user = getCurrentUser();
+        return createOrderForUser(request, getCurrentUser(), isPaid, false);
+    }
+
+    @Transactional
+    public OrderResponse createOrderForUser(OrderRequest request, User user, boolean isPaid, boolean usePriceSnapshot) {
 
         // Make client retries safe when order creation succeeded but the response was lost.
         if (request.getOrderCode() != null && !request.getOrderCode().isBlank()) {
@@ -86,11 +90,17 @@ public class OrderService {
                 ? request.getOrderCode()
                 : "NX-" + UUID.randomUUID();
 
-        PaymentMethod paymentMethod = PaymentMethod.QR_CODE;
-        if (request.getPaymentMethod() != null) {
+        PaymentMethod paymentMethod = PaymentMethod.COD;
+        if (request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank()) {
             try {
-                paymentMethod = PaymentMethod.valueOf(request.getPaymentMethod().toUpperCase());
-            } catch (Exception ignored) {}
+                paymentMethod = PaymentMethod.valueOf(request.getPaymentMethod().trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ");
+            }
+        }
+        if (paymentMethod != PaymentMethod.COD && !(isPaid && paymentMethod == PaymentMethod.VNPAY)) {
+            throw new IllegalArgumentException(
+                    "Đơn online chỉ được tạo sau khi xác minh thanh toán từ cổng thanh toán.");
         }
 
         Order.OrderBuilder orderBuilder = Order.builder()
@@ -104,6 +114,8 @@ public class OrderService {
                 .totalAmount(BigDecimal.ZERO)
                 // Payment confirmation must not bypass the store's order review.
                 .orderStatus(OrderStatus.PENDING)
+                // A customer request never proves that an online payment succeeded.
+                // Gateway-backed orders must be created by a verified provider callback.
                 .paymentStatus(isPaid ? PaymentStatus.PAID : PaymentStatus.PENDING)
                 .paymentMethod(paymentMethod)
                 .items(new ArrayList<>());
@@ -140,9 +152,16 @@ public class OrderService {
                     throw new IllegalArgumentException(String.format("Sản phẩm '%s' không đủ số lượng trong kho (chỉ còn %d sản phẩm)!",
                             product.getTitle(), currentProductStock));
                 }
+                BigDecimal regularPrice = product.getPrice();
                 BigDecimal unitPrice = product.getDiscountedPrice();
-                if (unitPrice == null || unitPrice.compareTo(product.getPrice()) >= 0) {
-                    unitPrice = product.getPrice();
+                if (unitPrice == null || unitPrice.compareTo(regularPrice) >= 0) unitPrice = regularPrice;
+                if (usePriceSnapshot) {
+                    regularPrice = itemReq.getPrice();
+                    unitPrice = itemReq.getDiscountedPrice();
+                    if (regularPrice == null || unitPrice == null || regularPrice.signum() < 0
+                            || unitPrice.signum() < 0 || unitPrice.compareTo(regularPrice) > 0) {
+                        throw new IllegalArgumentException("Snapshot giá thanh toán không hợp lệ");
+                    }
                 }
 
                 String imageUrl = (itemReq.getImageUrl() != null && !itemReq.getImageUrl().isBlank())
@@ -177,7 +196,7 @@ public class OrderService {
                         .size(sizeName)
                         .color(colorName)
                         .quantity(quantity)
-                        .price(product.getPrice())
+                        .price(regularPrice)
                         .discountedPrice(unitPrice)
                         .build();
 
@@ -238,6 +257,76 @@ public class OrderService {
         }
 
         return orderMapper.toOrderResponse(saved);
+    }
+
+    /** Build a server-priced checkout snapshot for VNPAY; it does not reserve stock or create an order. */
+    @Transactional(readOnly = true)
+    public BigDecimal prepareVnpayCheckout(OrderRequest request, User user) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Đơn hàng phải có ít nhất một sản phẩm");
+        }
+        Store store = null;
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (OrderRequest.OrderItemRequest item : request.getItems()) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+            if (!Boolean.TRUE.equals(product.getIsActive())) {
+                throw new IllegalArgumentException("Sản phẩm không còn được bán");
+            }
+            if (store == null) store = product.getStore();
+            if (product.getStore() == null || !product.getStore().getId().equals(store.getId())) {
+                throw new IllegalArgumentException("Mỗi đơn hàng chỉ được chứa sản phẩm của một cửa hàng");
+            }
+            int quantity = item.getQuantity() == null ? 1 : item.getQuantity();
+            if (quantity <= 0 || product.getQuantity() == null || quantity > product.getQuantity()) {
+                throw new IllegalArgumentException("Sản phẩm " + product.getTitle() + " không đủ tồn kho");
+            }
+            String size = item.getSize() != null ? item.getSize() : "M";
+            String color = item.getColor() != null ? item.getColor() : "Default";
+            if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+                ProductVariant variant = product.getVariants().stream()
+                        .filter(v -> (v.getSizeName() == null || v.getSizeName().equalsIgnoreCase(size))
+                                && (v.getColorName() == null || v.getColorName().equalsIgnoreCase(color)))
+                        .findFirst().orElse(null);
+                if (variant != null && (variant.getQuantity() == null || quantity > variant.getQuantity())) {
+                    throw new IllegalArgumentException("Phiên bản sản phẩm không đủ tồn kho");
+                }
+            }
+            BigDecimal price = product.getPrice();
+            BigDecimal discounted = product.getDiscountedPrice();
+            if (discounted == null || discounted.compareTo(price) >= 0) discounted = price;
+            item.setTitle(product.getTitle());
+            item.setImageUrl(product.getImageUrl() != null ? product.getImageUrl() : "");
+            item.setSize(size);
+            item.setColor(color);
+            item.setPrice(price);
+            item.setDiscountedPrice(discounted);
+            item.setQuantity(quantity);
+            subtotal = subtotal.add(discounted.multiply(BigDecimal.valueOf(quantity)));
+        }
+        if (request.getStoreId() != null && !request.getStoreId().isBlank()
+                && !request.getStoreId().equals(store.getId())) {
+            throw new IllegalArgumentException("Cửa hàng của sản phẩm không khớp với checkout");
+        }
+        request.setStoreId(store.getId());
+        request.setPaymentMethod(PaymentMethod.VNPAY.name());
+        if (request.getOrderCode() == null || request.getOrderCode().isBlank()) {
+            request.setOrderCode("NX-" + UUID.randomUUID());
+        }
+        BigDecimal shipping = subtotal.compareTo(new BigDecimal("500000")) > 0
+                ? subtotal.multiply(new BigDecimal("0.005")).setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        BigDecimal tax = subtotal.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal discount = voucherService.previewDiscountForCheckout(
+                request.getVoucherCode(), store, user, subtotal, shipping);
+        BigDecimal total = subtotal.add(tax).add(shipping).subtract(discount);
+        if (total.signum() <= 0) throw new IllegalArgumentException("Tổng tiền thanh toán phải lớn hơn 0");
+        request.setSubtotal(subtotal);
+        request.setTax(tax);
+        request.setShippingFee(shipping);
+        request.setDiscountAmount(discount);
+        request.setTotalAmount(total);
+        return total;
     }
 
     @Transactional(readOnly = true)
@@ -445,6 +534,10 @@ public class OrderService {
         }
 
         order.setOrderStatus(OrderStatus.DELIVERED);
+        if (order.getPaymentMethod() == PaymentMethod.COD
+                && order.getPaymentStatus() == PaymentStatus.PENDING) {
+            order.setPaymentStatus(PaymentStatus.PAID);
+        }
         Order saved = orderRepository.save(order);
         if (saved.getPaymentStatus() == PaymentStatus.PAID) {
             trendingCacheService.evictCache();
@@ -529,6 +622,7 @@ public class OrderService {
     public java.util.Map<String, Object> getAllStoreRevenue() {
         List<Order> allOrders = orderRepository.findAll();
         BigDecimal total = allOrders.stream()
+                .filter(o -> o.getPaymentStatus() == PaymentStatus.PAID)
                 .map(o -> o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         java.util.Map<String, Object> result = new java.util.HashMap<>();
@@ -540,6 +634,7 @@ public class OrderService {
     private java.util.Map<String, Object> buildRevenueMap(String storeId) {
         List<Order> orders = orderRepository.findByStoreIdOrderByCreatedAtDesc(storeId);
         BigDecimal total = orders.stream()
+                .filter(o -> o.getPaymentStatus() == PaymentStatus.PAID)
                 .map(o -> o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         java.util.Map<String, Object> result = new java.util.HashMap<>();

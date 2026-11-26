@@ -151,6 +151,8 @@ export const useConfirmOrderReceived = () => {
       qc.invalidateQueries({ queryKey: ['userOrders'] });
       qc.invalidateQueries({ queryKey: ['order', orderId] });
       qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['storeRevenue'] });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN_DASHBOARD });
       qc.invalidateQueries({ queryKey: ['notification'] });
     },
   });

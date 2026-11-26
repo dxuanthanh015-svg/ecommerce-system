@@ -329,6 +329,31 @@ public class VoucherService {
         return discount;
     }
 
+    /** Calculates the same discount as order creation without consuming the voucher. */
+    @Transactional(readOnly = true)
+    public BigDecimal previewDiscountForCheckout(String code, Store store, User user,
+                                                 BigDecimal subtotal, BigDecimal shippingFee) {
+        if (code == null || code.isBlank()) return BigDecimal.ZERO;
+        Voucher voucher = voucherRepository.findByCodeIgnoreCaseAndStoreId(code.trim(), store.getId())
+                .or(() -> voucherRepository.findByCodeIgnoreCaseAndStoreIsNull(code.trim()))
+                .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now();
+        if (voucher.getStatus() != VoucherStatus.ACTIVE || now.isBefore(voucher.getStartDate())
+                || now.isAfter(voucher.getEndDate())
+                || (voucher.getUsageLimit() != null && voucher.getUsedCount() >= voucher.getUsageLimit())
+                || subtotal.compareTo(voucher.getMinOrderValue()) < 0) {
+            throw new IllegalArgumentException("Voucher không còn hợp lệ cho đơn hàng này");
+        }
+        if (Boolean.TRUE.equals(voucher.getLimitPerCustomer())
+                && voucherUsageRepository.existsByVoucher_IdAndUser_Id(voucher.getId(), user.getId())) {
+            throw new IllegalArgumentException("Bạn đã sử dụng voucher này trước đó");
+        }
+        if (voucher.getDiscountType() == DiscountType.FREE_SHIPPING) {
+            return shippingFee;
+        }
+        return calculateDiscount(voucher, subtotal);
+    }
+
     private BigDecimal calculateDiscount(Voucher voucher, BigDecimal subtotal) {
         BigDecimal discount;
         if (voucher.getDiscountType() == DiscountType.PERCENTAGE) {

@@ -15,7 +15,7 @@ export default function CheckOut() {
   const { mutateAsync: updateProfile } = useUpdateProfileMutation();
   const [editingAddress, setEditingAddress] = useState(null);
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("creditCard");
+  const [paymentMethod, setPaymentMethod] = useState("COD");
 
   // Tính trực tiếp từ React Query cache — không cần useState + useEffect
   const savedAddress = useMemo(() => {

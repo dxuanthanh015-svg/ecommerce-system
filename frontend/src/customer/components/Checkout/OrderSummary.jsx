@@ -16,6 +16,8 @@ import { usePublicVouchers } from "../../../hooks/useVoucherQuery";
 import toast from "react-hot-toast";
 import { formatVnd } from "../../../utils/currency";
 import { getEffectivePrice } from "../../../utils/productPricing";
+import { useProcessOrder } from "../../../hooks/useOrderQuery";
+import { vnpayService } from "../../../services/vnpayService";
 
 const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => {
   const navigate = useNavigate();
@@ -27,8 +29,10 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
   const [voucherMessage, setVoucherMessage] = useState("");
   const [voucherError, setVoucherError] = useState("");
   const [showVoucherList, setShowVoucherList] = useState(false);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [items, setItems] = useState(location.state?.checkoutItems || []);
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
+  const { mutateAsync: processOrder, isPending: isSubmitting } = useProcessOrder();
 
   const storeId = items[0]?.id_store || items[0]?.storeId || items[0]?.store?.id || null;
   const { data: vList = [] } = usePublicVouchers(storeId);
@@ -108,7 +112,7 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
     setVoucherError("");
   };
 
-  const handlePlaceOrder = (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
     if (!savedAddress || savedAddress.length === 0) {
       toast.error("Chưa có địa chỉ giao hàng! Vui lòng thêm địa chỉ mới.");
@@ -135,10 +139,30 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
       total: finalTotal,
       items: items,
       address: selectedAddress,
-      paymentMethod: paymentMethod,
+      paymentMethod: paymentMethod === "ONLINE" ? "VNPAY" : "COD",
     };
 
-    navigate("/checkout/qr", { state: { order: orderData } });
+    try {
+      if (paymentMethod === "ONLINE") {
+        setIsCreatingPayment(true);
+        const payment = await vnpayService.createPayment(orderData);
+        if (!payment?.paymentUrl) throw new Error("Backend không trả về URL thanh toán VNPAY.");
+        window.location.assign(payment.paymentUrl);
+        return;
+      }
+      await processOrder({ pendingOrder: orderData, currentUser });
+      try {
+        await cartService.clearCart(currentUser?.email);
+      } catch (cartError) {
+        console.warn("Order created but cart could not be cleared:", cartError);
+      }
+      toast.success("Đã tạo đơn hàng. Bạn sẽ thanh toán khi nhận hàng.");
+      navigate("/account/order", { replace: true });
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Không thể tạo đơn hàng.");
+    } finally {
+      setIsCreatingPayment(false);
+    }
   };
 
   return (
@@ -334,10 +358,13 @@ const OrderSummary = ({ savedAddress = [], selectedAddress, paymentMethod }) => 
         <button
           type="button"
           onClick={handlePlaceOrder}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white py-3.5 px-6 rounded-xl font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
+          disabled={isSubmitting || isCreatingPayment}
+          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 active:scale-[0.98] text-white py-3.5 px-6 rounded-xl font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
         >
           <LockOutlinedIcon sx={{ fontSize: 16 }} />
-          <span>PAY WITH VIETQR ({formatVnd(finalTotal)})</span>
+          <span>{(isSubmitting || isCreatingPayment) ? "ĐANG XỬ LÝ..." : paymentMethod === "ONLINE"
+            ? `THANH TOÁN VNPAY · ${formatVnd(finalTotal)}`
+            : `ĐẶT HÀNG · ${formatVnd(finalTotal)}`}</span>
         </button>
 
         {/* Trust Badges */}

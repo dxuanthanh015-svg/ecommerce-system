@@ -255,7 +255,7 @@ export const orderService = {
         orderCode: orderPayload?.orderCode || orderPayload?.orderId,
         storeId: orderPayload?.storeId || orderPayload?.items?.[0]?.storeId || orderPayload?.items?.[0]?.id_store,
         voucherCode: orderPayload?.voucherCode || null,
-        paymentMethod: 'QR_CODE',
+        paymentMethod: orderPayload?.paymentMethod || 'COD',
         tax: orderPayload?.tax,
         shippingFee: orderPayload?.shippingFee,
         address: {
@@ -274,7 +274,10 @@ export const orderService = {
           quantity: Number(item.quantity) || 1,
         })),
       };
-      const res = await apiClient.post('/orders/process', payload)
+      if (payload.paymentMethod !== 'COD') {
+        throw new Error('Thanh toán online chưa được cấu hình cổng thanh toán.');
+      }
+      const res = await apiClient.post('/orders', payload)
       return res.data.result
     } catch (error) {
       console.warn('[orderService] processOrder error:', error.response?.data || error.message)

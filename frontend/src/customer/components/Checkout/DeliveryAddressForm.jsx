@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import toast from "react-hot-toast";
 
 const DeliveryAddressForm = ({ savedAddress, selectedAddress, editingAddress, onCancelEdit, paymentMethod, setPaymentMethod, onAddressSaved }) => {
@@ -256,127 +255,38 @@ const DeliveryAddressForm = ({ savedAddress, selectedAddress, editingAddress, on
         </div>
 
         <div className="space-y-4">
-          {/* Option 1: Credit Card */}
+          {/* VNPAY sandbox payment */}
           <div
-            onClick={() => setPaymentMethod("creditCard")}
-            className={`rounded-2xl p-5 transition-all cursor-pointer ${paymentMethod === "creditCard"
+            onClick={() => setPaymentMethod("ONLINE")}
+            className={`rounded-2xl p-4 sm:p-5 transition-all cursor-pointer ${paymentMethod === "ONLINE"
               ? "border-2 border-indigo-600 bg-indigo-50/10"
               : "border border-gray-200 hover:border-gray-300"
               }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === "creditCard"}
-                  onChange={() => setPaymentMethod("creditCard")}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                />
-                <span className="text-sm font-bold text-gray-900">Credit Card</span>
-              </div>
-              {/* Card Logos */}
-              <div className="flex items-center gap-1.5 text-gray-400">
-                <span className="text-[10px] font-bold border border-gray-300 px-1.5 py-0.5 rounded">VISA</span>
-                <span className="text-[10px] font-bold border border-gray-300 px-1.5 py-0.5 rounded">MC</span>
+            <div className="flex items-center gap-3">
+              <input type="radio" name="payment" checked={paymentMethod === "ONLINE"}
+                onChange={() => setPaymentMethod("ONLINE")} className="h-4 w-4 text-indigo-600" />
+              <div>
+                <span className="text-sm font-bold text-gray-900">Thanh toán online</span>
+                <p className="mt-1 text-xs text-gray-500">Thanh toán qua cổng VNPAY.</p>
               </div>
             </div>
-
-            <p className="text-xs text-gray-500 mb-4 pl-7 leading-relaxed">
-              Safe & encrypted credit card payment. We support Visa, Mastercard, Discover, and American Express.
-            </p>
-
-            {/* Credit Card Fields */}
-            {paymentMethod === "creditCard" && (
-              <div className="pl-0 sm:pl-7 space-y-4 pt-2">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                    CARDHOLDER NAME
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="cardholderName"
-                      value={formData.cardholderName}
-                      onChange={handleChange}
-                      placeholder="Đặng Xuân Thành"
-                      className="w-full bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl pl-4 pr-10 py-2.5 text-xs sm:text-sm text-gray-900 w-full"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                    CARD NUMBER
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="cardNumber"
-                      value={formData.cardNumber}
-                      onChange={handleChange}
-                      placeholder="0000 0000 0000 0000"
-                      className="w-full bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl pl-4 pr-10 py-2.5 text-xs sm:text-sm text-gray-900"
-                    />
-                    <CreditCardOutlinedIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 18 }} />
-                  </div>
-                </div>
-
-
-                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                      EXPIRY DATE
-                    </label>
-                    <input
-                      type="text"
-                      name="expiry"
-                      value={formData.expiry}
-                      onChange={handleChange}
-                      placeholder="MM/YY"
-                      className="w-full bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                      CVC
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        name="cvc"
-                        value={formData.cvc}
-                        onChange={handleChange}
-                        placeholder="123"
-                        className="w-full bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl pl-4 pr-9 py-2.5 text-xs sm:text-sm text-gray-900"
-                      />
-                      <InfoOutlinedIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" sx={{ fontSize: 16 }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Option 2: PayPal */}
+          {/* Cash on delivery */}
           <div
-            onClick={() => setPaymentMethod("VN-PAY")}
-            className={`rounded-2xl p-4 sm:p-5 transition-all cursor-pointer flex items-center justify-between ${paymentMethod === "VN-PAY"
+            onClick={() => setPaymentMethod("COD")}
+            className={`rounded-2xl p-4 sm:p-5 transition-all cursor-pointer ${paymentMethod === "COD"
               ? "border-2 border-indigo-600 bg-indigo-50/10"
               : "border border-gray-200 hover:border-gray-300 bg-white"
               }`}
           >
             <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                name="payment"
-                checked={paymentMethod === "VN-PAY"}
-                onChange={() => setPaymentMethod("VN-PAY")}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-              />
-              <span className="text-sm font-bold text-gray-900">VN-PAY</span>
+              <input type="radio" name="payment" checked={paymentMethod === "COD"}
+                onChange={() => setPaymentMethod("COD")} className="h-4 w-4 text-indigo-600" />
+              <span className="text-sm font-bold text-gray-900">Thanh toán khi nhận hàng (COD)</span>
             </div>
-            <span className="text-xs font-bold text-indigo-600">Pay with VN-PAY</span>
+            <p className="mt-2 pl-7 text-xs text-gray-500">Đơn hàng được tạo ở trạng thái chờ xác nhận; thanh toán được ghi nhận khi bạn xác nhận đã nhận hàng.</p>
           </div>
         </div>
       </div>

@@ -190,7 +190,7 @@ Mở `.env` và thay các giá trị mẫu. Bảng dưới đây phân biệt bi
 
 Các biến OAuth redirect, S3/CloudFront và tên database/user MySQL cũng có mặc định trong `.env.example` hoặc `compose.yaml`. Không commit file `.env`.
 
-=
+
 Khởi động các dịch vụ:
 
 ```powershell

@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(HttpMethod.POST,PUBLIC_POST_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET,PUBLIC_GET_ENDPOINTS).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/payments/vnpay/ipn", "/payments/vnpay/return").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
